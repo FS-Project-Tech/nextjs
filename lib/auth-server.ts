@@ -1,0 +1,396 @@
+'use server';
+
+/**
+ * Authentication Utilities (Server-Only)
+ * Handles JWT token storage, validation, and cookie management
+ * This file uses Next.js server-only APIs and should only be imported in Server Components or API routes
+ */
+
+import { cookies } from 'next/headers';
+import crypto from 'crypto';
+import { getWpBaseUrl } from './wp-utils';
+
+const SESSION_COOKIE_NAME = 'session';
+const SESSION_MAX_AGE = 60 * 60; // 1 hour (3600 seconds)
+const CSRF_COOKIE_NAME = 'csrf-token';
+
+/**
+ * Get JWT token from cookie
+ */
+export async function getAuthToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value || null;
+}
+
+/**
+ * Generate CSRF token
+ */
+function generateCSRFToken(): string {
+  return Buffer.from(crypto.randomBytes(32)).toString('base64url');
+}
+
+/**
+ * Set JWT token in HttpOnly cookie with secure settings
+ * Uses environment-aware cookie settings for proper functionality in both dev and prod
+ */
+export async function setAuthToken(token: string, csrfToken?: string): Promise<string> {
+  const cookieStore = await cookies();
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Generate CSRF token if not provided
+  const csrf = csrfToken || generateCSRFToken();
+  
+  // Environment-aware cookie settings
+  // - Production: secure=true, sameSite=none (for cross-site requests with HTTPS)
+  // - Development: secure=false, sameSite=lax (works on localhost without HTTPS)
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    maxAge: SESSION_MAX_AGE,
+    path: '/',
+  };
+  
+  // Set session token (HTTP-only)
+  cookieStore.set(SESSION_COOKIE_NAME, token, cookieOptions);
+  
+  // Set CSRF token (not HTTP-only, for client-side validation)
+  cookieStore.set(CSRF_COOKIE_NAME, csrf, {
+    ...cookieOptions,
+    httpOnly: false, // Accessible to JavaScript for CSRF validation
+  });
+  
+  return csrf;
+}
+
+/**
+ * Get CSRF token from cookie
+ */
+export async function getCSRFToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(CSRF_COOKIE_NAME)?.value || null;
+}
+
+/**
+ * Validate CSRF token
+ */
+export async function validateCSRFToken(token: string): Promise<boolean> {
+  const storedToken = await getCSRFToken();
+  return storedToken !== null && storedToken === token;
+}
+
+/**
+ * Clear auth token and CSRF cookies
+ * Must use same settings as when setting cookies (for proper deletion)
+ */
+export async function clearAuthToken(): Promise<void> {
+  const cookieStore = await cookies();
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Delete with same settings as when setting (for proper deletion)
+  const deleteOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' as const : 'lax' as const,
+    maxAge: 0,
+    path: '/',
+  };
+  
+  cookieStore.set(SESSION_COOKIE_NAME, '', deleteOptions);
+  cookieStore.set(CSRF_COOKIE_NAME, '', {
+    ...deleteOptions,
+    httpOnly: false,
+  });
+}
+
+/**
+ * Validate JWT token with WordPress
+ */
+export async function validateToken(token: string): Promise<boolean> {
+  try {
+    const wpBase = getWpBaseUrl();
+    if (!wpBase) return false;
+
+    // Add timeout to prevent hanging requests
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutMs = 5000; // 5 second timeout for validation
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const response = await fetch(`${wpBase}/wp-json/jwt-auth/v1/token/validate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+        signal: controller?.signal,
+      }).finally(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      });
+
+      return response.ok;
+    } catch (fetchError: any) {
+      // Handle timeout and connection errors gracefully
+      if (fetchError?.name === 'AbortError' || 
+          fetchError?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+          fetchError?.message?.includes('timeout') ||
+          fetchError?.message?.includes('aborted')) {
+        // Timeout/connection error - treat as invalid token
+        return false;
+      }
+      throw fetchError;
+    }
+  } catch (error) {
+    // Only log non-timeout errors
+    if (error?.name !== 'AbortError' && 
+        error?.code !== 'UND_ERR_CONNECT_TIMEOUT' &&
+        !error?.message?.includes('timeout') &&
+        !error?.message?.includes('aborted')) {
+      console.error('Token validation error:', error);
+    }
+    return false;
+  }
+}
+
+/**
+ * Get user data from WordPress using JWT token
+ */
+export async function getUserData(token: string): Promise<any | null> {
+  try {
+    const wpBase = getWpBaseUrl();
+    if (!wpBase) {
+      console.error('WordPress base URL not configured');
+      return null;
+    }
+
+    // Add timeout to prevent hanging requests
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutMs = 10000; // 10 second timeout
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    try {
+      const response = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        cache: 'no-store',
+        signal: controller?.signal,
+        // Don't send credentials for cross-origin WordPress requests
+        // WordPress handles its own authentication via Bearer token
+      }).finally(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+      });
+
+      if (!response.ok) {
+        // Don't log 401/403 as errors - these are expected for invalid tokens
+        if (response.status !== 401 && response.status !== 403) {
+          console.error('Failed to fetch user data:', response.status, response.statusText);
+        }
+        return null;
+      }
+
+      // Check if response body exists before reading (prevents getReader error on null)
+      if (!response.body) {
+        return null;
+      }
+
+      const user = await response.json();
+      
+      // Ensure we have required fields
+      if (!user || !user.id) {
+        console.error('Invalid user data received:', user);
+        return null;
+      }
+
+      return {
+        id: user.id,
+        email: user.email || user.user_email,
+        name: user.name || user.display_name,
+        username: user.slug || user.user_login || user.nicename,
+        roles: user.roles || [],
+      };
+    } catch (fetchError: any) {
+      // Handle timeout and connection errors gracefully
+      if (fetchError?.name === 'AbortError' || 
+          fetchError?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+          fetchError?.message?.includes('timeout') ||
+          fetchError?.message?.includes('aborted')) {
+        // Timeout/connection error - don't log as error
+        return null;
+      }
+      throw fetchError;
+    }
+  } catch (error: any) {
+    // Only log non-timeout errors
+    if (error?.name !== 'AbortError' && 
+        error?.code !== 'UND_ERR_CONNECT_TIMEOUT' &&
+        !error?.message?.includes('timeout') &&
+        !error?.message?.includes('aborted')) {
+      console.error('Get user data error:', error);
+    }
+    return null;
+  }
+}
+
+export interface AuthenticatedUser {
+  id: number;
+  email: string;
+  name: string;
+  username: string;
+  roles: string[];
+}
+
+export interface AuthSession {
+  token: string;
+  user: AuthenticatedUser;
+  customer?: any | null;
+}
+
+function normalizeJwtUser(data: any): AuthenticatedUser {
+  return {
+    id: Number(data?.id || data?.user_id || 0),
+    email: data?.email || data?.user_email || '',
+    name: data?.name || data?.display_name || data?.nicename || '',
+    username: data?.nicename || data?.username || data?.slug || data?.user_login || '',
+    roles: Array.isArray(data?.roles) ? data.roles : [],
+  };
+}
+
+async function fetchCustomerByEmail(email: string, token: string): Promise<any | null> {
+  if (!email) return null;
+  const wpBase = getWpBaseUrl();
+  if (!wpBase) return null;
+
+  const response = await fetch(
+    `${wpBase}/wp-json/wc/v3/customers?email=${encodeURIComponent(email)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    }
+  );
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const customers = await response.json();
+  return Array.isArray(customers) && customers.length > 0 ? customers[0] : null;
+}
+
+export async function authenticateUser(username: string, password: string): Promise<AuthSession> {
+  const wpBase = getWpBaseUrl();
+
+  if (!wpBase) {
+    throw new Error('WordPress URL is not configured.');
+  }
+
+  const jwtResponse = await fetch(`${wpBase}/wp-json/jwt-auth/v1/token`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+    cache: 'no-store',
+    // Don't include credentials for WordPress login (it's a different domain)
+    // WordPress will set its own cookies if needed
+  });
+
+  const jwtData = await jwtResponse.json();
+
+  if (!jwtResponse.ok || !jwtData?.token) {
+    throw new Error(jwtData?.message || 'Invalid credentials.');
+  }
+
+  const rawUser = jwtData?.user || jwtData?.data || jwtData;
+  let user = normalizeJwtUser(rawUser);
+
+  if (!user.email) {
+    const fetchedUser = await getUserData(jwtData.token);
+    if (fetchedUser) {
+      user = {
+        id: fetchedUser.id,
+        email: fetchedUser.email,
+        name: fetchedUser.name,
+        username: fetchedUser.username,
+        roles: fetchedUser.roles || [],
+      };
+    }
+  }
+
+  const customer = await fetchCustomerByEmail(user.email, jwtData.token);
+
+  return {
+    token: jwtData.token,
+    user,
+    customer,
+  };
+}
+
+interface CreateWooUserInput {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+}
+
+export async function createWooUser(input: CreateWooUserInput) {
+  const wpBase = getWpBaseUrl();
+
+  if (!wpBase) {
+    throw new Error('WordPress URL is not configured.');
+  }
+
+  const consumerKey = process.env.WC_CONSUMER_KEY;
+  const consumerSecret = process.env.WC_CONSUMER_SECRET;
+
+  if (!consumerKey || !consumerSecret) {
+    throw new Error('WooCommerce credentials are missing.');
+  }
+
+  const wcUrl = new URL(`${wpBase}/wp-json/wc/v3/customers`);
+  wcUrl.searchParams.set('consumer_key', consumerKey);
+  wcUrl.searchParams.set('consumer_secret', consumerSecret);
+
+  const response = await fetch(wcUrl.toString(), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64')}`,
+    },
+    body: JSON.stringify({
+      email: input.email,
+      username: input.username || input.email,
+      password: input.password,
+      first_name: input.firstName || '',
+      last_name: input.lastName || '',
+    }),
+    cache: 'no-store',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'Registration failed.');
+  }
+
+  return {
+    id: data?.id,
+    email: data?.email,
+    username: data?.username,
+    firstName: data?.first_name,
+    lastName: data?.last_name,
+  };
+}
+

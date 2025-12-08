@@ -1,0 +1,133 @@
+@import "tailwindcss";
+@import "swiper/css";
+@import "swiper/css/navigation";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Primary brand tokens */
+  --primary: #1f605f;
+  --primary-muted: #d1eaea;
+  --primary-dark: #164948;
+  --primary-foreground: #f4fbfb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Brand color: #1f605f - Base color palette */
+  --color-teal-50: #f0f9f9;
+  --color-teal-100: #d1eaea;
+  --color-teal-200: #a3d5d5;
+  --color-teal-300: #75c0c0;
+  --color-teal-400: #47abab;
+  --color-teal-500: #2a8a89;
+  --color-teal-600: var(--primary); /* Base brand color */
+  --color-teal-700: #164948;
+  --color-teal-800: #0d3231;
+  --color-teal-900: #041b1a;
+  
+  /* Primary brand color variable */
+  --color-primary: var(--primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.btn-brand {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  transition: background-color 150ms ease;
+}
+
+.btn-brand:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-brand:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hide horizontal/vertical scrollbars for custom sliders */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 10+ */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+/* Swiper navigation: smaller gray arrows with transparent circular background */
+:root {
+  --swiper-navigation-size: 18px; /* default ~44px; make arrows smaller */
+}
+.swiper-button-next,
+.swiper-button-prev {
+  color: #6b7280; /* gray-500 */
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background-color: transparent;
+}
+.swiper-button-next:hover,
+.swiper-button-prev:hover {
+  color: #374151; /* gray-700 */
+}
+
+/* Remove brand utilities and gradient: revert to defaults */
+
+/* Blob animation for About page hero */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+/* Disabled variation option styling */
+.disabled-option {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Category Swiper - Equal height slides */
+.category-swiper .swiper-slide {
+  height: auto;
+  display: flex;
+}
+
+.category-swiper .swiper-slide > div {
+  width: 100%;
+  display: flex;
+}

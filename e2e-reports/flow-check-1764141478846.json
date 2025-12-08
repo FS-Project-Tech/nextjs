@@ -1,0 +1,1820 @@
+{
+  "timestamp": "2025-11-26T07:17:58.846Z",
+  "summary": {
+    "errors": 26,
+    "warnings": 197,
+    "info": 35
+  },
+  "issues": [
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\account\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\cart\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\cart\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useMemo",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\cart\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\order-review\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\order-review\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useCallback",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\order-review\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.156Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.157Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.157Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useMemo",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.157Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\addresses\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.157Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\layout.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\layout.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\[id]\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\[id]\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\quotes\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\quotes\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.158Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useState",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\settings\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.159Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\settings\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.159Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useRef",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\settings\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.159Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\login\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.160Z"
+    },
+    {
+      "level": "error",
+      "message": "Server component uses client hook: useEffect",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\register\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.161Z"
+    }
+  ],
+  "warnings": [
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\order-review\\page.tsx",
+      "line": 98,
+      "timestamp": "2025-11-26T07:17:54.790Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\order-review\\page.tsx",
+      "line": 124,
+      "timestamp": "2025-11-26T07:17:54.793Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": 158,
+      "timestamp": "2025-11-26T07:17:55.351Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": 160,
+      "timestamp": "2025-11-26T07:17:55.351Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\checkout\\page.tsx",
+      "line": 354,
+      "timestamp": "2025-11-26T07:17:55.351Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\page.tsx",
+      "line": 18,
+      "timestamp": "2025-11-26T07:17:56.064Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\orders\\page.tsx",
+      "line": 128,
+      "timestamp": "2025-11-26T07:17:56.064Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\page.tsx",
+      "line": 63,
+      "timestamp": "2025-11-26T07:17:57.142Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\page.tsx",
+      "line": 164,
+      "timestamp": "2025-11-26T07:17:57.142Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\page.tsx",
+      "line": 170,
+      "timestamp": "2025-11-26T07:17:57.142Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\wishlist\\page.tsx",
+      "line": 39,
+      "timestamp": "2025-11-26T07:17:57.204Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\dashboard\\wishlist\\page.tsx",
+      "line": 87,
+      "timestamp": "2025-11-26T07:17:57.204Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\layout.tsx",
+      "line": 109,
+      "timestamp": "2025-11-26T07:17:57.236Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\layout.tsx",
+      "line": 111,
+      "timestamp": "2025-11-26T07:17:57.236Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\layout.tsx",
+      "line": 128,
+      "timestamp": "2025-11-26T07:17:57.236Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\layout.tsx",
+      "line": 129,
+      "timestamp": "2025-11-26T07:17:57.236Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\login\\page.tsx",
+      "line": 20,
+      "timestamp": "2025-11-26T07:17:57.283Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\page.tsx",
+      "line": 80,
+      "timestamp": "2025-11-26T07:17:57.283Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\NumberCountersSection.tsx",
+      "line": 26,
+      "timestamp": "2025-11-26T07:17:57.469Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\NumberCountersSection.tsx",
+      "line": 30,
+      "timestamp": "2025-11-26T07:17:57.469Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\AnimatedSection.tsx",
+      "line": 19,
+      "timestamp": "2025-11-26T07:17:57.548Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\auth\\LoginForm.tsx",
+      "line": 58,
+      "timestamp": "2025-11-26T07:17:57.568Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\AuthProvider.tsx",
+      "line": 97,
+      "timestamp": "2025-11-26T07:17:57.596Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\AuthProvider.tsx",
+      "line": 107,
+      "timestamp": "2025-11-26T07:17:57.596Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 43,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 47,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 48,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 52,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 53,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 54,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 58,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 68,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 73,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": 82,
+      "timestamp": "2025-11-26T07:17:57.622Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoriesNav.tsx",
+      "line": 20,
+      "timestamp": "2025-11-26T07:17:57.652Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 31,
+      "timestamp": "2025-11-26T07:17:57.652Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 69,
+      "timestamp": "2025-11-26T07:17:57.652Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 70,
+      "timestamp": "2025-11-26T07:17:57.652Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 73,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 77,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 79,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryPageClient.tsx",
+      "line": 84,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ConsultationFormModal.tsx",
+      "line": 57,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ConsultationFormModal.tsx",
+      "line": 68,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Container.tsx",
+      "line": 6,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Container.tsx",
+      "line": 16,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Container.tsx",
+      "line": 21,
+      "timestamp": "2025-11-26T07:17:57.653Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 43,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 44,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 54,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 55,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 58,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 59,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 69,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 77,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 342,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 343,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FilterSidebar.tsx",
+      "line": 345,
+      "timestamp": "2025-11-26T07:17:57.732Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FloatingToolbar.tsx",
+      "line": 21,
+      "timestamp": "2025-11-26T07:17:57.750Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FloatingToolbar.tsx",
+      "line": 29,
+      "timestamp": "2025-11-26T07:17:57.750Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FloatingToolbar.tsx",
+      "line": 30,
+      "timestamp": "2025-11-26T07:17:57.750Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 64,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 65,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 67,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 69,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 70,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 94,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 131,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 168,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 170,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 172,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 214,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 216,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 267,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 268,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Footer.tsx",
+      "line": 272,
+      "timestamp": "2025-11-26T07:17:57.763Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 54,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 57,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 59,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 60,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 64,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 68,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 73,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 85,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 87,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 96,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 111,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": 119,
+      "timestamp": "2025-11-26T07:17:57.770Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroDualSlider.tsx",
+      "line": 45,
+      "timestamp": "2025-11-26T07:17:57.771Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroDualSlider.tsx",
+      "line": 46,
+      "timestamp": "2025-11-26T07:17:57.771Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroDualSlider.tsx",
+      "line": 48,
+      "timestamp": "2025-11-26T07:17:57.771Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroDualSlider.tsx",
+      "line": 71,
+      "timestamp": "2025-11-26T07:17:57.771Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 17,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 24,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 31,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 40,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 52,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 54,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 61,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 74,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": 91,
+      "timestamp": "2025-11-26T07:17:57.772Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": 82,
+      "timestamp": "2025-11-26T07:17:57.813Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": 83,
+      "timestamp": "2025-11-26T07:17:57.813Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": 87,
+      "timestamp": "2025-11-26T07:17:57.813Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": 92,
+      "timestamp": "2025-11-26T07:17:57.813Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": 94,
+      "timestamp": "2025-11-26T07:17:57.813Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 206,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 211,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 215,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 217,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 233,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 235,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": 253,
+      "timestamp": "2025-11-26T07:17:57.827Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 11,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 12,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 13,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 15,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 28,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\NDISCTASection.tsx",
+      "line": 29,
+      "timestamp": "2025-11-26T07:17:57.847Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 71,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 86,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 99,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 100,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 125,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 126,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 128,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 130,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 155,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 158,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 159,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 164,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 252,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 253,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 258,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 347,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 349,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 350,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 355,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 443,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 444,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductBook.tsx",
+      "line": 449,
+      "timestamp": "2025-11-26T07:17:57.910Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductConsultation.tsx",
+      "line": 469,
+      "timestamp": "2025-11-26T07:17:57.935Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductDetailPanel.tsx",
+      "line": 82,
+      "timestamp": "2025-11-26T07:17:57.935Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductDetailPanel.tsx",
+      "line": 215,
+      "timestamp": "2025-11-26T07:17:57.935Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductDetailPanel.tsx",
+      "line": 224,
+      "timestamp": "2025-11-26T07:17:57.935Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGallery.tsx",
+      "line": 42,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 91,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 97,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 231,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 277,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 279,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 291,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 309,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 312,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 324,
+      "timestamp": "2025-11-26T07:17:57.944Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 336,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 339,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 349,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 371,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 388,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 422,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 434,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGrid.tsx",
+      "line": 449,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductInfoAccordion.tsx",
+      "line": 158,
+      "timestamp": "2025-11-26T07:17:57.945Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionWrapper.tsx",
+      "line": 28,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionWrapper.tsx",
+      "line": 29,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionWrapper.tsx",
+      "line": 36,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionWrapper.tsx",
+      "line": 53,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 31,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 36,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 49,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 50,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 56,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 67,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 69,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsPageClient.tsx",
+      "line": 74,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 22,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 57,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 58,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 60,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 76,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 78,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 103,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": 114,
+      "timestamp": "2025-11-26T07:17:57.946Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductVariations.tsx",
+      "line": 325,
+      "timestamp": "2025-11-26T07:17:57.982Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RecentlyViewedSection.tsx",
+      "line": 11,
+      "timestamp": "2025-11-26T07:17:58.044Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RecurringSelect.tsx",
+      "line": 22,
+      "timestamp": "2025-11-26T07:17:58.050Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 266,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "Direct window/document access without guard can cause hydration issues",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 267,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 490,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 492,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 520,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\SearchBar.tsx",
+      "line": 522,
+      "timestamp": "2025-11-26T07:17:58.074Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\StructuredData.tsx",
+      "line": 74,
+      "timestamp": "2025-11-26T07:17:58.107Z"
+    },
+    {
+      "level": "warning",
+      "message": "Date.now() or Math.random() in render can cause hydration mismatch",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ToastProvider.tsx",
+      "line": 37,
+      "timestamp": "2025-11-26T07:17:58.113Z"
+    },
+    {
+      "level": "warning",
+      "message": "suppressHydrationWarning used - potential hydration issue",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\VariationSwatches.tsx",
+      "line": 52,
+      "timestamp": "2025-11-26T07:17:58.125Z"
+    },
+    {
+      "level": "warning",
+      "message": "Async operation without error handling",
+      "file": "F:\\woocommerce-headless-nextjs\\app\\account\\page.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.843Z"
+    }
+  ],
+  "info": [
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\JOYAMeaningSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.830Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\NumberCountersSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\ServicesSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\WhatMakesUsSpecialSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\about\\WhereWeSupplySection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\BottomNav.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Breadcrumbs.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.831Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoriesSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.832Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\CategoryBrandsSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.832Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\FloatingToolbar.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.832Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Header.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroDualSlider.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\HeroEnhancement.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MarketingUpdatesSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider wrapping dynamic imports with Suspense",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\MiniCartDrawer.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\Pagination.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductCard.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.833Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductGallery.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductInfoAccordion.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider wrapping dynamic imports with Suspense",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionCard.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider wrapping dynamic imports with Suspense",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductSectionWrapper.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ProductsSlider.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RecentlyViewedSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RecommendedSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RecurringSelect.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider wrapping dynamic imports with Suspense",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RelatedProductsSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\RequestQuoteModal.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.834Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\ServiceFeatures.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\skeletons\\ProductGridSkeleton.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\skeletons\\ProductsPageSkeleton.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\skeletons\\ProductsSliderSkeleton.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\StructuredData.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\TrendingSection.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\TrendingSectionClient.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    },
+    {
+      "level": "info",
+      "message": "Consider using useMemo/useCallback for expensive computations",
+      "file": "F:\\woocommerce-headless-nextjs\\components\\WooDataLoader.tsx",
+      "line": null,
+      "timestamp": "2025-11-26T07:17:58.835Z"
+    }
+  ]
+}

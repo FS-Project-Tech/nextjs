@@ -1,0 +1,69 @@
+/**
+ * Dynamic Sitemap Generation
+ * Automatically generates sitemap.xml for all products and categories
+ */
+
+import { MetadataRoute } from 'next';
+import { fetchProducts, fetchCategories } from '@/lib/woocommerce';
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = siteUrl;
+  
+  // Static pages
+  const staticPages: MetadataRoute.Sitemap = [
+    {
+      url: baseUrl,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 1,
+    },
+    {
+      url: `${baseUrl}/shop`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/catalogue`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
+  ];
+
+  // Fetch products and categories
+  let productPages: MetadataRoute.Sitemap = [];
+  let categoryPages: MetadataRoute.Sitemap = [];
+
+  try {
+    // Fetch products directly
+    const products = await fetchProducts({ per_page: 100, orderby: 'popularity' }).catch(() => []);
+    
+    productPages = products.map((product) => ({
+      url: `${baseUrl}/products/${product.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
+
+    // Fetch all categories directly
+    const categories = await fetchCategories({ per_page: 100 }).catch(() => []);
+    
+    categoryPages = categories.map((category) => ({
+      url: `${baseUrl}/product-category/${category.slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }));
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    // Return static pages only if fetch fails
+    return staticPages;
+  }
+
+  // Combine all pages
+  return [...staticPages, ...productPages, ...categoryPages];
+}
+
