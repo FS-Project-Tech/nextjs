@@ -11,10 +11,12 @@ import { sanitizeString, sanitizeEmail } from '@/lib/sanitize';
 export async function POST(request: NextRequest) {
   // Apply rate limiting (stricter for login endpoint)
   // Use IP-based rate limiting (username-based would require parsing body first)
-  const rateLimitCheck = await rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 5, // 5 attempts per 15 minutes per IP
-  })(request);
+  const rateLimitConfig =
+    process.env.NODE_ENV === 'production'
+      ? { windowMs: 15 * 60 * 1000, maxRequests: 5 }
+      : { windowMs: 5 * 60 * 1000, maxRequests: 20 }; // relaxed for local/dev
+
+  const rateLimitCheck = await rateLimit(rateLimitConfig)(request);
 
   if (rateLimitCheck) {
     return rateLimitCheck;

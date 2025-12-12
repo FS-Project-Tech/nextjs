@@ -22,7 +22,7 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
       );
     }
 
-    // Get user data to get customer ID
+    // Fetch user data to get customer ID (can parallelize with other tasks later)
     const userResponse = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -32,8 +32,9 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
     });
 
     if (!userResponse.ok) {
+      const body = await userResponse.text().catch(() => '');
       return NextResponse.json(
-        { error: 'Failed to get user data' },
+        { error: 'Failed to get user data', detail: body || undefined },
         { status: 401 }
       );
     }
@@ -70,124 +71,59 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
       console.warn('No customer ID found, will filter orders by billing email');
     }
 
-    // Method 1: Try using WooCommerce API client (with consumer key/secret)
-    try {
-      // Fetch orders by customer ID/email
-      const response = await wcAPI.get('/orders', { params: orderParams });
-      let orders = response.data || [];
-      
-      // If no customer ID, fetch all orders and filter by billing email
-      // Also fetch orders by billing email to catch pending/guest orders
-      if (!customerId && userData.email) {
-        try {
-          // Fetch orders without customer filter and filter by billing email
-          const allOrdersParams = {
-            ...orderParams,
-            // Remove customer parameter if it doesn't exist
-          };
+    // Fetch orders via WooCommerce client and JWT in parallel, then merge/dedupe
+    const fetches: Promise<any[]>[] = [];
+
+    // WooCommerce client (consumer key/secret)
+    fetches.push((async () => {
+      try {
+        let orders: any[] = [];
+        const response = await wcAPI.get('/orders', { params: orderParams });
+        orders = response.data || [];
+
+        if (userData.email) {
+          const allOrdersParams = { ...orderParams };
           delete allOrdersParams.customer;
-          
           const allOrdersResponse = await wcAPI.get('/orders', { params: allOrdersParams });
           const allOrders = allOrdersResponse.data || [];
-          
-          // Filter orders by billing email
-          const filteredOrders = allOrders.filter((order: any) => {
-            return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase();
-          });
-          
-          // Combine and deduplicate orders by ID
-          const orderMap = new Map();
-          const userIdInt = toIntCustomerId(userData.id);
-          [...orders, ...filteredOrders].forEach((order: any) => {
-            if (!orderMap.has(order.id)) {
-              // Verify order belongs to user by checking billing email or customer ID
-              const orderCustomerId = toIntCustomerId(order.customer_id);
-              if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                  (orderCustomerId && orderCustomerId === customerId) ||
-                  (orderCustomerId && orderCustomerId === userIdInt)) {
-                orderMap.set(order.id, order);
-              }
-            }
-          });
-          orders = Array.from(orderMap.values());
-        } catch (emailError) {
-          console.warn('Failed to fetch orders by email:', emailError);
-          // Continue with customer ID results (or empty if no customer ID)
-        }
-      } else if (customerId && userData.email) {
-        // If we have customer ID, also try to fetch by billing email for guest orders
-        try {
-          const allOrdersParams = {
-            ...orderParams,
-          };
-          delete allOrdersParams.customer;
-          
-          const allOrdersResponse = await wcAPI.get('/orders', { params: allOrdersParams });
-          const allOrders = allOrdersResponse.data || [];
-          
-          // Filter orders by billing email that don't have customer ID
+
           const emailOrders = allOrders.filter((order: any) => {
             const orderCustomerId = toIntCustomerId(order.customer_id);
             return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() &&
-                   (!orderCustomerId || orderCustomerId !== customerId);
+                   (!customerId || orderCustomerId !== customerId);
           });
-          
-          // Combine and deduplicate
+
           const orderMap = new Map();
-          const userIdInt = toIntCustomerId(userData.id);
           [...orders, ...emailOrders].forEach((order: any) => {
             if (!orderMap.has(order.id)) {
               const orderCustomerId = toIntCustomerId(order.customer_id);
-              if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                  (orderCustomerId && orderCustomerId === customerId) ||
-                  (orderCustomerId && orderCustomerId === userIdInt)) {
+              if (
+                order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
+                (orderCustomerId && orderCustomerId === customerId) ||
+                (orderCustomerId && orderCustomerId === toIntCustomerId(userData.id))
+              ) {
                 orderMap.set(order.id, order);
               }
             }
           });
           orders = Array.from(orderMap.values());
-        } catch (emailError) {
-          console.warn('Failed to fetch additional orders by email:', emailError);
         }
-      }
-      
-      // Sort orders by date (newest first)
-      orders.sort((a: any, b: any) => {
-        const dateA = new Date(a.date_created).getTime();
-        const dateB = new Date(b.date_created).getTime();
-        return dateB - dateA;
-      });
-      
-      // Apply pagination manually since we fetched all orders
-      const total = orders.length;
-      const totalPages = Math.ceil(total / perPage);
-      const startIndex = (page - 1) * perPage;
-      const endIndex = startIndex + perPage;
-      const paginatedOrders = orders.slice(startIndex, endIndex);
-      
-      // Sanitize orders data
-      const sanitizedOrders = paginatedOrders.map((order: any) => sanitizeObject(order));
-      
-      return NextResponse.json({ 
-        orders: sanitizedOrders,
-        pagination: {
-          page,
-          per_page: perPage,
-          total,
-          total_pages: totalPages,
-        }
-      });
-    } catch (wcError: any) {
-      console.error('WooCommerce API client error:', {
-        status: wcError.response?.status,
-        message: wcError.response?.data?.message || wcError.message,
-        customerId,
-        userEmail: userData.email,
-      });
 
-      // Method 2: Try with JWT token as fallback
+        return orders;
+      } catch (wcError: any) {
+        console.error('WooCommerce API client error:', {
+          status: wcError.response?.status,
+          message: wcError.response?.data?.message || wcError.message,
+          customerId,
+          userEmail: userData.email,
+        });
+        return [];
+      }
+    })());
+
+    // JWT fallback
+    fetches.push((async () => {
       try {
-        // Fetch orders by customer ID/email
         const ordersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
         Object.keys(orderParams).forEach(key => {
           ordersUrl.searchParams.set(key, orderParams[key]);
@@ -201,147 +137,99 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
           cache: 'no-store',
         });
 
-        if (ordersResponse.ok) {
-          let orders = await ordersResponse.json() || [];
-          
-          // If no customer ID, fetch all orders and filter by billing email
-          // Also fetch orders by billing email to catch pending/guest orders
-          if (!customerId && userData.email) {
-            try {
-              // Fetch orders without customer filter
-              const allOrdersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
-              const allOrdersParams = { ...orderParams };
-              delete allOrdersParams.customer;
-              Object.keys(allOrdersParams).forEach(key => {
-                allOrdersUrl.searchParams.set(key, allOrdersParams[key]);
-              });
-              
-              const allOrdersResponse = await fetch(allOrdersUrl.toString(), {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                cache: 'no-store',
-              });
-              
-              if (allOrdersResponse.ok) {
-                const allOrders = await allOrdersResponse.json() || [];
-                // Filter by billing email
-                const filteredOrders = allOrders.filter((order: any) => {
-                  return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase();
-                });
-                
-                // Combine and deduplicate orders by ID
-                const orderMap = new Map();
-                const userIdInt = toIntCustomerId(userData.id);
-                [...orders, ...filteredOrders].forEach((order: any) => {
-                  if (!orderMap.has(order.id)) {
-                    const orderCustomerId = toIntCustomerId(order.customer_id);
-                    if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                        (orderCustomerId && orderCustomerId === customerId) ||
-                        (orderCustomerId && orderCustomerId === userIdInt)) {
-                      orderMap.set(order.id, order);
-                    }
-                  }
-                });
-                orders = Array.from(orderMap.values());
-              }
-            } catch (emailError) {
-              console.warn('Failed to fetch orders by email (JWT):', emailError);
-            }
-          } else if (customerId && userData.email) {
-            // If we have customer ID, also fetch orders by billing email for guest orders
-            try {
-              const allOrdersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
-              const allOrdersParams = { ...orderParams };
-              delete allOrdersParams.customer;
-              Object.keys(allOrdersParams).forEach(key => {
-                allOrdersUrl.searchParams.set(key, allOrdersParams[key]);
-              });
-              
-              const allOrdersResponse = await fetch(allOrdersUrl.toString(), {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                cache: 'no-store',
-              });
-              
-              if (allOrdersResponse.ok) {
-                const allOrders = await allOrdersResponse.json() || [];
-                // Filter orders by billing email that don't have customer ID
-                const emailOrders = allOrders.filter((order: any) => {
-                  const orderCustomerId = toIntCustomerId(order.customer_id);
-                  return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() &&
-                         (!orderCustomerId || orderCustomerId !== customerId);
-                });
-                
-                // Combine and deduplicate
-                const orderMap = new Map();
-                const userIdInt = toIntCustomerId(userData.id);
-                [...orders, ...emailOrders].forEach((order: any) => {
-                  if (!orderMap.has(order.id)) {
-                    const orderCustomerId = toIntCustomerId(order.customer_id);
-                    if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                        (orderCustomerId && orderCustomerId === customerId) ||
-                        (orderCustomerId && orderCustomerId === userIdInt)) {
-                      orderMap.set(order.id, order);
-                    }
-                  }
-                });
-                orders = Array.from(orderMap.values());
-              }
-            } catch (emailError) {
-              console.warn('Failed to fetch additional orders by email (JWT):', emailError);
-            }
-          }
-          
-          // Sort orders by date (newest first)
-          orders.sort((a: any, b: any) => {
-            const dateA = new Date(a.date_created).getTime();
-            const dateB = new Date(b.date_created).getTime();
-            return dateB - dateA;
-          });
-          
-          // Apply pagination manually
-          const total = orders.length;
-          const totalPages = Math.ceil(total / perPage);
-          const startIndex = (page - 1) * perPage;
-          const endIndex = startIndex + perPage;
-          const paginatedOrders = orders.slice(startIndex, endIndex);
-          
-          // Sanitize orders data
-          const sanitizedOrders = paginatedOrders.map((order: any) => sanitizeObject(order));
-          
-          return NextResponse.json({ 
-            orders: sanitizedOrders,
-            pagination: {
-              page,
-              per_page: perPage,
-              total,
-              total_pages: totalPages,
-            }
-          });
-        } else {
+        if (!ordersResponse.ok) {
           const errorText = await ordersResponse.text();
-          console.error('JWT auth failed:', {
+          console.error('JWT orders fetch failed:', {
             status: ordersResponse.status,
             error: errorText,
           });
+          return [];
         }
+
+        let orders = await ordersResponse.json() || [];
+
+        if (userData.email) {
+          try {
+            const allOrdersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
+            const allOrdersParams = { ...orderParams };
+            delete allOrdersParams.customer;
+            Object.keys(allOrdersParams).forEach(key => {
+              allOrdersUrl.searchParams.set(key, allOrdersParams[key]);
+            });
+            
+            const allOrdersResponse = await fetch(allOrdersUrl.toString(), {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              cache: 'no-store',
+            });
+            
+            if (allOrdersResponse.ok) {
+              const allOrders = await allOrdersResponse.json() || [];
+              const filteredOrders = allOrders.filter((order: any) => {
+                return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase();
+              });
+              
+              const orderMap = new Map();
+              const userIdInt = toIntCustomerId(userData.id);
+              [...orders, ...filteredOrders].forEach((order: any) => {
+                if (!orderMap.has(order.id)) {
+                  const orderCustomerId = toIntCustomerId(order.customer_id);
+                  if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
+                      (orderCustomerId && orderCustomerId === customerId) ||
+                      (orderCustomerId && orderCustomerId === userIdInt)) {
+                    orderMap.set(order.id, order);
+                  }
+                }
+              });
+              orders = Array.from(orderMap.values());
+            }
+          } catch (emailError) {
+            console.warn('Failed to fetch orders by email (JWT):', emailError);
+          }
+        }
+
+        return orders;
       } catch (jwtError: any) {
         console.error('JWT auth error:', jwtError.message);
+        return [];
       }
-    }
+    })());
 
-    // If all methods failed, return empty array with pagination
+    // Resolve in parallel and merge/dedupe
+    const results = await Promise.all(fetches);
+    const mergedMap = new Map<number, any>();
+    results.flat().forEach((order: any) => {
+      if (order && !mergedMap.has(order.id)) {
+        mergedMap.set(order.id, order);
+      }
+    });
+
+    const mergedOrders = Array.from(mergedMap.values());
+
+    // Sort by date desc
+    mergedOrders.sort((a: any, b: any) => {
+      const dateA = new Date(a.date_created).getTime();
+      const dateB = new Date(b.date_created).getTime();
+      return dateB - dateA;
+    });
+
+    const total = mergedOrders.length;
+    const totalPages = Math.ceil(total / perPage);
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    const paginatedOrders = mergedOrders.slice(startIndex, endIndex);
+
+    const sanitizedOrders = paginatedOrders.map((order: any) => sanitizeObject(order));
+
     return NextResponse.json({ 
-      orders: [],
+      orders: sanitizedOrders,
       pagination: {
         page,
         per_page: perPage,
-        total: 0,
-        total_pages: 0,
+        total,
+        total_pages: totalPages,
       }
     });
   } catch (error) {

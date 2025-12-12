@@ -297,18 +297,30 @@ export function SessionProvider({ children, initialSession }: SessionProviderPro
         credentials: 'include',
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.session) {
-          setSession(data.session);
-          emitEvent(SessionEventType.REFRESHED, data.session);
-        }
+      if (!response.ok) {
+        setSession(null);
+        setError('Session expired');
+        emitEvent(SessionEventType.EXPIRED);
+        syncSession(null);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.session) {
+        setSession(data.session);
+        emitEvent(SessionEventType.REFRESHED, data.session);
+      } else if (data.success === true && session) {
+        // Keep existing session if backend refresh succeeded but returned no payload
+        emitEvent(SessionEventType.REFRESHED, session);
       }
     } catch (e) {
-      // Refresh failed, session may still be valid
+      setSession(null);
+      setError('Session expired');
+      emitEvent(SessionEventType.EXPIRED);
+      syncSession(null);
       console.debug('Session refresh failed:', e);
     }
-  }, [session?.token, emitEvent]);
+  }, [session, emitEvent, syncSession]);
   
   /**
    * Update cart count

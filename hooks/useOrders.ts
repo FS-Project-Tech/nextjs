@@ -69,12 +69,19 @@ export function useOrders(page: number = 1): UseOrdersResult {
         cache: 'no-store',
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch orders: ${response.status}`);
+      const raw = await response.text();
+      let result: any = {};
+      if (raw) {
+        try {
+          result = JSON.parse(raw);
+        } catch {
+          throw new Error(`Failed to parse orders response (status ${response.status})`);
+        }
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error || `Failed to fetch orders: ${response.status}`);
+      }
       
       // Log if there's an error in the response
       if (result.error) {
@@ -87,7 +94,7 @@ export function useOrders(page: number = 1): UseOrdersResult {
       };
     },
     staleTime: 60 * 1000, // 1 minute
-    retry: 1, // Only retry once
+    retry: process.env.NODE_ENV === 'production' ? 1 : 0, // avoid duplicate fetches in dev
   });
 
   return {
