@@ -30,9 +30,15 @@ export async function GET() {
       }
     );
   } catch (error) {
+    const err = error as { code?: string; message?: string };
+    const message = err?.message || '';
     // Handle errors gracefully - return 0 count instead of failing
     // Only log non-timeout errors
-    if (error?.code !== 'ECONNABORTED' && error?.code !== 'ETIMEDOUT' && !error?.message?.toLowerCase().includes('timeout')) {
+    if (
+      err?.code !== 'ECONNABORTED' &&
+      err?.code !== 'ETIMEDOUT' &&
+      !message.toLowerCase().includes('timeout')
+    ) {
       console.error('Error fetching product count:', error);
     }
 
