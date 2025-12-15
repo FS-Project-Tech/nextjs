@@ -222,10 +222,11 @@ async function calculateDiscount(req: NextRequest) {
     });
   } catch (error) {
     console.error("Discount calculation error:", error);
+    const message = error instanceof Error ? error.message : 'Discount calculation failed';
     return NextResponse.json(
       { 
         error: "Discount calculation failed",
-        details: error.message 
+        details: message 
       },
       { status: 500 }
     );
