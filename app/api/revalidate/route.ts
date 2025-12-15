@@ -76,13 +76,13 @@ export async function POST(request: NextRequest) {
       case 'tag':
         // Revalidate single tag
         if (tag) {
-          revalidateTag(tag);
+          revalidateTag(tag, 'page');
           revalidated.push(tag);
         }
         // Revalidate multiple tags
         if (tags && Array.isArray(tags)) {
           for (const t of tags) {
-            revalidateTag(t);
+            revalidateTag(t, 'page');
             revalidated.push(t);
           }
         }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
       case 'products':
         // Revalidate all product-related caches
-        revalidateTag('products');
+        revalidateTag('products', 'page');
         revalidatePath('/shop');
         revalidatePath('/products/[slug]', 'page');
         invalidateProducts(); // Also clear API cache
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
       case 'categories':
         // Revalidate all category-related caches
-        revalidateTag('categories');
+        revalidateTag('categories', 'page');
         revalidatePath('/product-category/[slug]', 'page');
         invalidateCategories(); // Also clear API cache
         revalidated = ['categories', '/product-category/*'];
@@ -181,14 +181,14 @@ export async function GET(request: NextRequest) {
       revalidatePath(path);
       message = `Revalidated path: ${path}`;
     } else if (tag) {
-      revalidateTag(tag);
+      revalidateTag(tag, 'page');
       message = `Revalidated tag: ${tag}`;
     } else if (type === 'products') {
-      revalidateTag('products');
+      revalidateTag('products', 'page');
       invalidateProducts();
       message = 'Revalidated all products';
     } else if (type === 'categories') {
-      revalidateTag('categories');
+      revalidateTag('categories', 'page');
       invalidateCategories();
       message = 'Revalidated all categories';
     } else if (type === 'all') {
