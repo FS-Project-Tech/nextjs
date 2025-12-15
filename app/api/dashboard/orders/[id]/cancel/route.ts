@@ -64,7 +64,8 @@ export async function POST(
       const orderResponse = await wcAPI.get(`/orders/${orderId}`);
       order = orderResponse.data;
     } catch (error) {
-      if (error.response?.status === 404) {
+      const axiosLike = error as { response?: { status?: number } };
+      if (axiosLike.response?.status === 404) {
         return NextResponse.json(
           { error: 'Order not found' },
           { status: 404 }
@@ -120,14 +121,15 @@ export async function POST(
         order: updateResponse.data,
         message: 'Order cancelled successfully',
       });
-    } catch (error: any) {
+    } catch (error) {
+      const axiosLike = error as { response?: { data?: { message?: string }; status?: number } };
       console.error('Error cancelling order:', error);
       return NextResponse.json(
-        { error: error.response?.data?.message || 'Failed to cancel order' },
-        { status: error.response?.status || 500 }
+        { error: axiosLike.response?.data?.message || 'Failed to cancel order' },
+        { status: axiosLike.response?.status || 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Cancel order API error:', error);
     return NextResponse.json(
       { error: 'An error occurred while cancelling the order' },
