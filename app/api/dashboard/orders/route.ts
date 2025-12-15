@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWpBaseUrl } from '@/lib/auth';
-import wcAPI from '@/lib/woocommerce';
 import { createProtectedApiHandler, API_TIMEOUT } from '@/lib/api-middleware';
-import { sanitizeObject, sanitizeUser } from '@/lib/sanitize';
-import { getCustomerIdWithFallback, toIntCustomerId } from '@/lib/customer-utils';
+import { sanitizeObject } from '@/lib/sanitize';
 
 /**
  * GET /api/dashboard/orders
- * Fetch orders for the authenticated user
+ * Fetch orders for the authenticated user using the Headless Woo API Gateway
  * Protected with JWT authentication, rate limiting, and response sanitization
+ * 
+ * This endpoint uses the API Gateway plugin which automatically:
+ * - Validates JWT token
+ * - Gets current user ID
+ * - Returns only that user's orders
+ * - Handles pagination
  */
 async function getOrders(req: NextRequest, context: { user: any; token: string }) {
   try {
-    const { user, token } = context;
+    const { token } = context;
 
     const wpBase = getWpBaseUrl();
     if (!wpBase) {
@@ -22,8 +26,18 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
       );
     }
 
-    // Fetch user data to get customer ID (can parallelize with other tasks later)
-    const userResponse = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
+    // Get pagination parameters from query string
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const perPage = 10; // Display 10 orders per page
+
+    // Use the new API Gateway endpoint
+    // This endpoint automatically handles user-scoping and authentication
+    const gatewayUrl = new URL(`${wpBase}/wp-json/api/v1/my-orders`);
+    gatewayUrl.searchParams.set('per_page', perPage.toString());
+    gatewayUrl.searchParams.set('page', page.toString());
+
+    const ordersResponse = await fetch(gatewayUrl.toString(), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -31,205 +45,115 @@ async function getOrders(req: NextRequest, context: { user: any; token: string }
       cache: 'no-store',
     });
 
-    if (!userResponse.ok) {
-      const body = await userResponse.text().catch(() => '');
+    if (!ordersResponse.ok) {
+      const errorText = await ordersResponse.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { error: errorText || 'Failed to fetch orders' };
+      }
+
+      console.error('Gateway orders fetch failed:', {
+        status: ordersResponse.status,
+        error: errorData,
+      });
+
       return NextResponse.json(
-        { error: 'Failed to get user data', detail: body || undefined },
-        { status: 401 }
+        { 
+          error: errorData.message || errorData.error || 'Failed to fetch orders',
+          debug: process.env.NODE_ENV === 'development' ? errorData : undefined
+        },
+        { status: ordersResponse.status }
       );
     }
 
-    const userData = await userResponse.json();
+    const gatewayData = await ordersResponse.json();
 
-    // Get WooCommerce customer ID using optimized hybrid approach
-    // This uses: cache -> session endpoint -> email lookup
-    let customerId: number | null = await getCustomerIdWithFallback(userData.email, token);
-
-    // If no customer ID found, try to use WordPress user ID as fallback
-    if (!customerId && userData.id) {
-      customerId = toIntCustomerId(userData.id);
-    }
-
-    // Get pagination parameters from query string
-    const { searchParams } = new URL(req.url);
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const perPage = 10; // Display 10 orders per page
-
-    // Build query parameters for orders
-    const orderParams: any = {
-      per_page: 100, // Fetch more to ensure we get all orders including pending
-      page: 1,
-      orderby: 'date',
-      order: 'desc',
+    // Gateway returns: { orders: [...], total, per_page, current_page, total_pages }
+    const gatewayOrders = gatewayData.orders || [];
+    const pagination = gatewayData.pagination || {
+      total: gatewayData.total || 0,
+      per_page: gatewayData.per_page || perPage,
+      current_page: gatewayData.current_page || page,
+      total_pages: gatewayData.total_pages || 0,
     };
 
-    // Set customer filter - only use customer ID (must be integer for WooCommerce API)
-    if (customerId) {
-      orderParams.customer = customerId; // Must be integer for WooCommerce API
-    } else {
-      // No customer ID found - we'll fetch orders and filter by billing email
-      console.warn('No customer ID found, will filter orders by billing email');
-    }
+    // Transform API Gateway response to match frontend expectations
+    // Frontend expects: line_items (not items), billing, shipping
+    const transformedOrders = gatewayOrders.map((order: any) => {
+      // Transform items to line_items format expected by frontend
+      const line_items = (order.items || []).map((item: any, index: number) => ({
+        id: index + 1, // Generate sequential ID
+        name: item.name || '',
+        quantity: item.qty || 0,
+        price: item.price?.toString() || '0',
+        product_id: item.product_id || 0,
+        image: item.image || undefined,
+      }));
 
-    // Fetch orders via WooCommerce client and JWT in parallel, then merge/dedupe
-    const fetches: Promise<any[]>[] = [];
-
-    // WooCommerce client (consumer key/secret)
-    fetches.push((async () => {
-      try {
-        let orders: any[] = [];
-        const response = await wcAPI.get('/orders', { params: orderParams });
-        orders = response.data || [];
-
-        if (userData.email) {
-          const allOrdersParams = { ...orderParams };
-          delete allOrdersParams.customer;
-          const allOrdersResponse = await wcAPI.get('/orders', { params: allOrdersParams });
-          const allOrders = allOrdersResponse.data || [];
-
-          const emailOrders = allOrders.filter((order: any) => {
-            const orderCustomerId = toIntCustomerId(order.customer_id);
-            return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() &&
-                   (!customerId || orderCustomerId !== customerId);
-          });
-
-          const orderMap = new Map();
-          [...orders, ...emailOrders].forEach((order: any) => {
-            if (!orderMap.has(order.id)) {
-              const orderCustomerId = toIntCustomerId(order.customer_id);
-              if (
-                order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                (orderCustomerId && orderCustomerId === customerId) ||
-                (orderCustomerId && orderCustomerId === toIntCustomerId(userData.id))
-              ) {
-                orderMap.set(order.id, order);
-              }
-            }
-          });
-          orders = Array.from(orderMap.values());
-        }
-
-        return orders;
-      } catch (wcError: any) {
-        console.error('WooCommerce API client error:', {
-          status: wcError.response?.status,
-          message: wcError.response?.data?.message || wcError.message,
-          customerId,
-          userEmail: userData.email,
-        });
-        return [];
-      }
-    })());
-
-    // JWT fallback
-    fetches.push((async () => {
-      try {
-        const ordersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
-        Object.keys(orderParams).forEach(key => {
-          ordersUrl.searchParams.set(key, orderParams[key]);
-        });
-
-        const ordersResponse = await fetch(ordersUrl.toString(), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          cache: 'no-store',
-        });
-
-        if (!ordersResponse.ok) {
-          const errorText = await ordersResponse.text();
-          console.error('JWT orders fetch failed:', {
-            status: ordersResponse.status,
-            error: errorText,
-          });
-          return [];
-        }
-
-        let orders = await ordersResponse.json() || [];
-
-        if (userData.email) {
-          try {
-            const allOrdersUrl = new URL(`${wpBase}/wp-json/wc/v3/orders`);
-            const allOrdersParams = { ...orderParams };
-            delete allOrdersParams.customer;
-            Object.keys(allOrdersParams).forEach(key => {
-              allOrdersUrl.searchParams.set(key, allOrdersParams[key]);
-            });
-            
-            const allOrdersResponse = await fetch(allOrdersUrl.toString(), {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              cache: 'no-store',
-            });
-            
-            if (allOrdersResponse.ok) {
-              const allOrders = await allOrdersResponse.json() || [];
-              const filteredOrders = allOrders.filter((order: any) => {
-                return order.billing?.email?.toLowerCase() === userData.email?.toLowerCase();
-              });
-              
-              const orderMap = new Map();
-              const userIdInt = toIntCustomerId(userData.id);
-              [...orders, ...filteredOrders].forEach((order: any) => {
-                if (!orderMap.has(order.id)) {
-                  const orderCustomerId = toIntCustomerId(order.customer_id);
-                  if (order.billing?.email?.toLowerCase() === userData.email?.toLowerCase() ||
-                      (orderCustomerId && orderCustomerId === customerId) ||
-                      (orderCustomerId && orderCustomerId === userIdInt)) {
-                    orderMap.set(order.id, order);
-                  }
-                }
-              });
-              orders = Array.from(orderMap.values());
-            }
-          } catch (emailError) {
-            console.warn('Failed to fetch orders by email (JWT):', emailError);
-          }
-        }
-
-        return orders;
-      } catch (jwtError: any) {
-        console.error('JWT auth error:', jwtError.message);
-        return [];
-      }
-    })());
-
-    // Resolve in parallel and merge/dedupe
-    const results = await Promise.all(fetches);
-    const mergedMap = new Map<number, any>();
-    results.flat().forEach((order: any) => {
-      if (order && !mergedMap.has(order.id)) {
-        mergedMap.set(order.id, order);
-      }
+      return {
+        id: order.id,
+        status: order.status,
+        date_created: order.date_created,
+        total: order.total?.toString() || '0',
+        currency: order.currency || 'USD',
+        line_items,
+        // Use billing and shipping from gateway (now included in plugin response)
+        billing: order.billing ? {
+          first_name: order.billing.first_name || '',
+          last_name: order.billing.last_name || '',
+          email: order.billing.email || '',
+          phone: order.billing.phone || '',
+          address_1: order.billing.address_1 || '',
+          address_2: order.billing.address_2 || '',
+          city: order.billing.city || '',
+          state: order.billing.state || '',
+          postcode: order.billing.postcode || '',
+          country: order.billing.country || '',
+        } : {
+          first_name: '',
+          last_name: '',
+          email: '',
+          phone: '',
+          address_1: '',
+          address_2: '',
+          city: '',
+          state: '',
+          postcode: '',
+          country: '',
+        },
+        shipping: order.shipping ? {
+          first_name: order.shipping.first_name || '',
+          last_name: order.shipping.last_name || '',
+          address_1: order.shipping.address_1 || '',
+          address_2: order.shipping.address_2 || '',
+          city: order.shipping.city || '',
+          state: order.shipping.state || '',
+          postcode: order.shipping.postcode || '',
+          country: order.shipping.country || '',
+        } : {
+          first_name: '',
+          last_name: '',
+          address_1: '',
+          address_2: '',
+          city: '',
+          state: '',
+          postcode: '',
+          country: '',
+        },
+      };
     });
 
-    const mergedOrders = Array.from(mergedMap.values());
-
-    // Sort by date desc
-    mergedOrders.sort((a: any, b: any) => {
-      const dateA = new Date(a.date_created).getTime();
-      const dateB = new Date(b.date_created).getTime();
-      return dateB - dateA;
-    });
-
-    const total = mergedOrders.length;
-    const totalPages = Math.ceil(total / perPage);
-    const startIndex = (page - 1) * perPage;
-    const endIndex = startIndex + perPage;
-    const paginatedOrders = mergedOrders.slice(startIndex, endIndex);
-
-    const sanitizedOrders = paginatedOrders.map((order: any) => sanitizeObject(order));
+    const sanitizedOrders = transformedOrders.map((order: any) => sanitizeObject(order));
 
     return NextResponse.json({ 
       orders: sanitizedOrders,
       pagination: {
-        page,
-        per_page: perPage,
-        total,
-        total_pages: totalPages,
+        page: pagination.current_page || page,
+        per_page: pagination.per_page || perPage,
+        total: pagination.total || 0,
+        total_pages: pagination.total_pages || 0,
       }
     });
   } catch (error) {
@@ -251,5 +175,3 @@ export const GET = createProtectedApiHandler(getOrders, {
   sanitize: true,
   allowedMethods: ['GET'],
 });
-
-

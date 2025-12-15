@@ -3,12 +3,11 @@
  * Standardized response helpers for API routes
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import type { ApiResponse, ApiErrorResponse, ApiSuccessResponse, ApiErrorCode } from '../types/api';
 import { secureResponse } from '../security-headers';
 import { applyCorsHeaders } from '../cors';
 import { logger } from './logger';
-import type { NextRequest } from 'next/server';
 
 /**
  * Create a standardized success response

@@ -7,6 +7,7 @@ import { sanitizeUser } from '@/lib/sanitize';
  * GET /api/auth/validate
  * Validate current session and return user data if valid
  * Automatically clears invalid sessions
+ * Includes timeout handling to prevent slow responses
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,8 +20,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Validate token with WordPress
-    const isValid = await validateToken(token);
+    // Validate token with WordPress (with timeout handling)
+    let isValid = false;
+    try {
+      isValid = await validateToken(token);
+    } catch (error) {
+      // Timeout or connection errors - treat as invalid
+      const err = error as Error & { code?: string };
+      const isTimeoutError = 
+        err?.name === 'AbortError' ||
+        err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        err?.message?.includes('timeout') ||
+        err?.message?.includes('aborted');
+      
+      if (!isTimeoutError) {
+        console.error('Token validation error:', error);
+      }
+      isValid = false;
+    }
     
     if (!isValid) {
       // Clear invalid session
@@ -31,8 +48,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user data
-    const user = await getUserData(token);
+    // Get user data (with timeout handling)
+    let user = null;
+    try {
+      user = await getUserData(token);
+    } catch (error) {
+      // Timeout or connection errors
+      const err = error as Error & { code?: string };
+      const isTimeoutError = 
+        err?.name === 'AbortError' ||
+        err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        err?.message?.includes('timeout') ||
+        err?.message?.includes('aborted');
+      
+      if (!isTimeoutError) {
+        console.error('Get user data error:', error);
+      }
+      user = null;
+    }
     
     if (!user) {
       // Clear invalid session if user data can't be fetched

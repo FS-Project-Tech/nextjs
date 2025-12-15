@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { validateRedirect, ALLOWED_REDIRECT_PATHS } from '@/lib/redirectUtils';
 import { addSecurityHeadersToResponse } from '@/lib/security-headers';
 

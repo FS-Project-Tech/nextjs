@@ -17,16 +17,14 @@ export function sanitizeString(input: string | null | undefined): string {
 
 /**
  * Sanitize HTML - allow safe HTML but remove scripts
+ * @deprecated Use sanitizeHTML from '@/lib/xss-sanitizer' for better security
+ * This function is kept for backward compatibility but delegates to DOMPurify-based implementation
  */
 export function sanitizeHTML(input: string | null | undefined): string {
-  if (!input || typeof input !== 'string') return '';
-  
-  // Remove script tags and event handlers
-  return input
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '') // Remove event handlers
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .trim();
+  // Re-export from xss-sanitizer for backward compatibility
+  // DOMPurify is more secure than regex-based sanitization
+  const { sanitizeHTML: sanitizeHTMLSecure } = require('@/lib/xss-sanitizer');
+  return sanitizeHTMLSecure(input);
 }
 
 /**
@@ -220,4 +218,3 @@ export function sanitizeError(error: any): {
 
   return sanitized;
 }
-

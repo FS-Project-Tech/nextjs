@@ -7,38 +7,25 @@ import { applyCorsHeaders } from '@/lib/cors';
 
 /**
  * POST /api/wc/checkout
- * Process checkout using WooCommerce Store API (if available)
- * Note: This is a wrapper around the main checkout endpoint
- * The main /api/checkout endpoint should be used instead
+ * @deprecated This endpoint is deprecated. Use /api/checkout instead.
+ * Returns 410 Gone status to indicate the resource is permanently removed.
  */
 export async function POST(req: NextRequest) {
-  try {
-    // Handle CORS preflight
-    if (req.method === 'OPTIONS') {
-      const response = new NextResponse(null, { status: 204 });
-      return applyCorsHeaders(req, response);
-    }
-
-    // Redirect to main checkout endpoint
-    // This endpoint exists for compatibility but the main /api/checkout should be used
-    return secureResponse(
-      {
-        error: 'This endpoint is deprecated. Use /api/checkout instead.',
-        redirect: '/api/checkout',
-      },
-      { status: 301 }
-    );
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('WC checkout error:', error);
-    }
-    
-    const errorResponse = secureResponse(
-      { error: 'Checkout failed' },
-      { status: 500 }
-    );
-    return applyCorsHeaders(req, errorResponse);
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    const response = new NextResponse(null, { status: 204 });
+    return applyCorsHeaders(req, response);
   }
+
+  // Return 410 Gone - resource permanently removed
+  return secureResponse(
+    {
+      error: 'This endpoint has been permanently removed. Use /api/checkout instead.',
+      deprecated: true,
+      alternative: '/api/checkout',
+    },
+    { status: 410 }
+  );
 }
 
 /**
@@ -107,5 +94,3 @@ export async function GET(req: NextRequest) {
     return applyCorsHeaders(req, errorResponse);
   }
 }
-
-

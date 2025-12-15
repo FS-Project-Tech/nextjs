@@ -113,7 +113,7 @@ export async function validateToken(token: string): Promise<boolean> {
 
     // Add timeout to prevent hanging requests
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutMs = 5000; // 5 second timeout for validation
+    const timeoutMs = 3000; // Reduced to 3 second timeout for validation
     const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
     try {
@@ -168,7 +168,7 @@ export async function getUserData(token: string): Promise<any | null> {
 
     // Add timeout to prevent hanging requests
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timeoutMs = 10000; // 10 second timeout
+    const timeoutMs = 5000; // Reduced to 5 second timeout (was 10s)
     const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
     try {
@@ -209,10 +209,27 @@ export async function getUserData(token: string): Promise<any | null> {
         return null;
       }
 
+      // Extract name with comprehensive fallback chain
+      // WordPress API may return name, display_name, or first_name/last_name
+      let userName = user.name || user.display_name;
+      
+      // If no name or display_name, try to construct from first_name + last_name
+      if (!userName && (user.first_name || user.last_name)) {
+        const firstName = user.first_name || '';
+        const lastName = user.last_name || '';
+        userName = `${firstName} ${lastName}`.trim() || null;
+      }
+      
+      // Final fallback to nicename or user_login (but prefer empty over username)
+      // Only use username as last resort if nothing else is available
+      if (!userName) {
+        userName = user.nicename || user.user_login || '';
+      }
+
       return {
         id: user.id,
         email: user.email || user.user_email,
-        name: user.name || user.display_name,
+        name: userName,
         username: user.slug || user.user_login || user.nicename,
         roles: user.roles || [],
       };
@@ -254,10 +271,25 @@ export interface AuthSession {
 }
 
 function normalizeJwtUser(data: any): AuthenticatedUser {
+  // Extract name with comprehensive fallback chain (same as getUserData)
+  let userName = data?.name || data?.display_name;
+  
+  // If no name or display_name, try to construct from first_name + last_name
+  if (!userName && (data?.first_name || data?.last_name)) {
+    const firstName = data?.first_name || '';
+    const lastName = data?.last_name || '';
+    userName = `${firstName} ${lastName}`.trim() || null;
+  }
+  
+  // Final fallback to nicename or user_login
+  if (!userName) {
+    userName = data?.nicename || data?.user_login || '';
+  }
+
   return {
     id: Number(data?.id || data?.user_id || 0),
     email: data?.email || data?.user_email || '',
-    name: data?.name || data?.display_name || data?.nicename || '',
+    name: userName,
     username: data?.nicename || data?.username || data?.slug || data?.user_login || '',
     roles: Array.isArray(data?.roles) ? data.roles : [],
   };
@@ -393,4 +425,3 @@ export async function createWooUser(input: CreateWooUserInput) {
     lastName: data?.last_name,
   };
 }
-

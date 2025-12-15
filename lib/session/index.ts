@@ -24,9 +24,6 @@ export {
   createSessionError,
   createSessionEvent,
   serializeSessionForClient,
-  isAuthenticated,
-  hasRole,
-  hasAnyRole,
   updateSession,
   extendSession,
   markSessionRefreshing,
@@ -115,4 +112,7 @@ export {
   requireAuth,
   requireRole,
 } from './server';
+
+// Role helpers (non-duplicated)
+export { hasAnyRole } from './manager';
 
