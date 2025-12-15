@@ -68,11 +68,14 @@ export async function GET(req: NextRequest) {
       }
     );
   } catch (error) {
+    const err = error as { code?: string; message?: string };
+    const message = err?.message || '';
+
     // Only log non-timeout errors
     if (
-      error?.code !== "ECONNABORTED" &&
-      error?.code !== "ETIMEDOUT" &&
-      !error?.message?.toLowerCase().includes("timeout")
+      err?.code !== "ECONNABORTED" &&
+      err?.code !== "ETIMEDOUT" &&
+      !message.toLowerCase().includes("timeout")
     ) {
       console.error("Unified search error:", error);
     }
