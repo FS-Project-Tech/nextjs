@@ -64,7 +64,8 @@ export async function POST(
       const orderResponse = await wcAPI.get(`/orders/${orderId}`);
       order = orderResponse.data;
     } catch (error) {
-      if (error.response?.status === 404) {
+      const axiosLike = error as { response?: { status?: number } };
+      if (axiosLike.response?.status === 404) {
         return NextResponse.json(
           { error: 'Order not found' },
           { status: 404 }
@@ -124,7 +125,7 @@ export async function POST(
       order_id: orderId,
       message: 'Redirecting to payment...',
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Pay order API error:', error);
     return NextResponse.json(
       { error: 'An error occurred while initiating payment' },

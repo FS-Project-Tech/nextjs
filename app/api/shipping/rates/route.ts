@@ -110,8 +110,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ rates: methods });
   } catch (error) {
-    const status = error?.response?.status || 500;
-    const message = error?.response?.data || { message: "Failed to fetch shipping rates" };
+    const axiosLike = error as { response?: { status?: number; data?: unknown } };
+    const status = axiosLike.response?.status || 500;
+    const message = axiosLike.response?.data || { message: "Failed to fetch shipping rates" };
     return NextResponse.json(message, { status });
   }
 }

@@ -212,8 +212,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Order creation error:", error);
-    const status = error?.response?.status || 500;
-    const message = error?.response?.data || { message: "Order creation failed" };
+    const axiosLike = error as { response?: { status?: number; data?: unknown } };
+    const status = axiosLike.response?.status || 500;
+    const message = axiosLike.response?.data || { message: "Order creation failed" };
     return NextResponse.json(message, { status });
   }
 }
