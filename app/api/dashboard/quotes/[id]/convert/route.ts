@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthToken } from '@/lib/auth-server';
+import { getAuthToken, getUserData } from '@/lib/auth-server';
 import { getQuoteById } from '@/lib/quote-storage';
 import { getCustomerIdWithFallback } from '@/lib/customer-utils';
 
@@ -28,8 +28,16 @@ export async function POST(
       );
     }
 
-    // Get customer ID
-    const customerId = await getCustomerIdWithFallback();
+    // Get customer ID using authenticated user
+    const user = await getUserData(token);
+    if (!user?.email) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const customerId = await getCustomerIdWithFallback(user.email, token);
     if (!customerId) {
       return NextResponse.json(
         { error: 'Customer not found' },
