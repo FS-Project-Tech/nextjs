@@ -32,7 +32,10 @@ async function fetchWithTimeout(
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
+    const isAbort =
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    if (isAbort) {
       throw new Error(`Request timeout after ${timeoutMs}ms`);
     }
     throw error;
@@ -72,7 +75,15 @@ async function getHeaderData(req: NextRequest) {
         siteName: fields?.site_name || fields?.siteName || fallback.siteName,
       }, { headers: { 'Cache-Control': 'no-store' } });
     }
-  } catch {}
+  } catch (error) {
+    // Swallow and continue to next fallback path
+    const isAbort =
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    if (isAbort) {
+      // Silent on timeout/abort
+    }
+  }
 
   // Fallback to a "home" page ACF (5 second timeout)
   try {
@@ -91,7 +102,15 @@ async function getHeaderData(req: NextRequest) {
         siteName: acf?.site_name || acf?.siteName || fallback.siteName,
       }, { headers: { 'Cache-Control': 'no-store' } });
     }
-  } catch {}
+  } catch (error) {
+    // Swallow and continue to next fallback path
+    const isAbort =
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    if (isAbort) {
+      // Silent on timeout/abort
+    }
+  }
 
   // Try to get site name from WordPress general settings (5 second timeout)
   let siteName = fallback.siteName;
@@ -105,7 +124,14 @@ async function getHeaderData(req: NextRequest) {
       const settings: any = await settingsRes.json();
       siteName = settings?.name || siteName;
     }
-  } catch {}
+  } catch (error) {
+    const isAbort =
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    if (isAbort) {
+      // Silent on timeout/abort
+    }
+  }
 
   // Final fallback - always return footerLogo from env var if set
   return NextResponse.json({

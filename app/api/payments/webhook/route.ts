@@ -199,7 +199,8 @@ async function handlePayPalPaymentSuccess(payload: any) {
     return NextResponse.json({ received: true, order_id: orderId });
   } catch (error) {
     console.error("Error handling PayPal payment success:", error);
-    return NextResponse.json({ received: true, error: error.message });
+    const message = error instanceof Error ? error.message : 'An error occurred';
+    return NextResponse.json({ received: true, error: message });
   }
 }
 

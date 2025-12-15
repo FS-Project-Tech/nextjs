@@ -64,10 +64,11 @@ export async function GET(req: NextRequest) {
         monthlyRevenue,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Analytics error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to fetch analytics';
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch analytics' },
+      { error: message },
       { status: 500 }
     );
   }

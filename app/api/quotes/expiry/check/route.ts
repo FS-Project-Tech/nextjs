@@ -60,10 +60,11 @@ export async function POST(req: NextRequest) {
       ...result,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to check expired quotes';
     console.error('Quote expiry check error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to check expired quotes' },
+      { error: message },
       { status: 500 }
     );
   }
@@ -123,10 +124,11 @@ export async function GET(req: NextRequest) {
       ...result,
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to check expired quotes';
     console.error('Quote expiry check error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to check expired quotes' },
+      { error: message },
       { status: 500 }
     );
   }

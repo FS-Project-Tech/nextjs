@@ -76,10 +76,11 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error("Inventory check error:", error);
+    const message = error instanceof Error ? error.message : 'Failed to check inventory';
     return NextResponse.json(
       { 
         error: "Failed to check inventory",
-        details: error.message 
+        details: message 
       },
       { status: 500 }
     );

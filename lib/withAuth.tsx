@@ -268,7 +268,7 @@ export default function withAuth<P extends object>(
             // All checks passed
             setIsVerifying(false);
             verificationInProgress.current = false;
-          } catch (error: any) {
+          } catch (error) {
             // Clear timeout on error
             if (timeoutRef.current) {
               clearTimeout(timeoutRef.current);
@@ -276,7 +276,11 @@ export default function withAuth<P extends object>(
             }
 
             // Handle abort (timeout)
-            if (error.name === 'AbortError' || controller.signal.aborted) {
+            const isAbort =
+              (error instanceof DOMException && error.name === 'AbortError') ||
+              (error instanceof Error && error.name === 'AbortError') ||
+              controller.signal.aborted;
+            if (isAbort) {
               setHasTimedOut(true);
               setVerificationError('Page took too long to load. Please try again.');
               setIsVerifying(false);
@@ -290,9 +294,10 @@ export default function withAuth<P extends object>(
             const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
             router.replace(redirectUrl);
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error('Auth verification error:', error);
-          setVerificationError(error.message || 'Authentication verification failed');
+          const message = error instanceof Error ? error.message : 'Authentication verification failed';
+          setVerificationError(message);
           setIsVerifying(false);
           verificationInProgress.current = false;
         }

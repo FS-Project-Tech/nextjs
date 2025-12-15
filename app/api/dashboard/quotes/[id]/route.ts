@@ -113,10 +113,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, message: 'Quote deleted' });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Quote delete API error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete quote';
     return NextResponse.json(
-      { error: error.message || 'Failed to delete quote' },
+      { error: message },
       { status: 500 }
     );
   }

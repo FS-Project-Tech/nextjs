@@ -132,23 +132,35 @@ export async function validateToken(token: string): Promise<boolean> {
       });
 
       return response.ok;
-    } catch (fetchError: any) {
+    } catch (fetchError: unknown) {
       // Handle timeout and connection errors gracefully
-      if (fetchError?.name === 'AbortError' || 
-          fetchError?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-          fetchError?.message?.includes('timeout') ||
-          fetchError?.message?.includes('aborted')) {
+      const fe = fetchError as Error & { code?: string };
+      const message = typeof fe?.message === 'string' ? fe.message : '';
+      const name = fe?.name;
+      const code = fe?.code;
+      const isTimeout =
+        name === 'AbortError' ||
+        code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        message.includes('timeout') ||
+        message.includes('aborted');
+      if (isTimeout) {
         // Timeout/connection error - treat as invalid token
         return false;
       }
       throw fetchError;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     // Only log non-timeout errors
-    if (error?.name !== 'AbortError' && 
-        error?.code !== 'UND_ERR_CONNECT_TIMEOUT' &&
-        !error?.message?.includes('timeout') &&
-        !error?.message?.includes('aborted')) {
+    const err = error as Error & { code?: string };
+    const name = err?.name;
+    const code = err?.code;
+    const message = typeof err?.message === 'string' ? err.message : '';
+    const isTimeout =
+      name === 'AbortError' ||
+      code === 'UND_ERR_CONNECT_TIMEOUT' ||
+      message.includes('timeout') ||
+      message.includes('aborted');
+    if (!isTimeout) {
       console.error('Token validation error:', error);
     }
     return false;
