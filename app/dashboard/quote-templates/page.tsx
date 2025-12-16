@@ -78,7 +78,7 @@ export default function QuoteTemplatesPage() {
         await addItem({
           id: item.product_id?.toString() || item.name,
           name: item.name,
-          price: Number(item.price),
+          price: String(item.price),
           qty: item.qty,
           sku: item.sku || undefined,
           attributes: item.attributes || {},
