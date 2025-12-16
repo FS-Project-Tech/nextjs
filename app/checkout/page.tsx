@@ -367,8 +367,8 @@ function CheckoutPageContent() {
 
       checkoutPayload.delivery_authority = data.deliveryAuthority || "with_signature";
       
-      if (data.delivery_instructions) {
-        checkoutPayload.delivery_instructions = data.delivery_instructions;
+      if (data.deliveryInstructions) {
+        checkoutPayload.delivery_instructions = data.deliveryInstructions;
       }
 
       checkoutPayload.subscribe_newsletter = data.subscribe_newsletter || false;
