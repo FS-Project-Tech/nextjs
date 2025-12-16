@@ -57,7 +57,7 @@ export async function GET() {
           } else {
             break;
           }
-        } catch (err) {
+        } catch (err: any) {
           // Only log non-timeout errors
           if (err?.code !== 'ECONNABORTED' && err?.code !== 'ETIMEDOUT' && !err?.message?.toLowerCase().includes('timeout')) {
             console.error(`Error fetching products page ${page}:`, err);
@@ -101,11 +101,11 @@ export async function GET() {
           });
           categories = fallbackRes.data || [];
         }
-      } catch (fetchError: any) {
+      } catch (error: any) {
         clearTimeout(timeoutId);
         // Only log non-timeout errors
-        if (fetchError?.name !== 'AbortError' && !fetchError?.message?.toLowerCase().includes('timeout')) {
-          console.error('Error fetching categories:', fetchError);
+        if (error?.name !== 'AbortError' && !error?.message?.toLowerCase().includes('timeout')) {
+          console.error('Error fetching categories:', error);
         }
         // Fallback to WooCommerce API
         try {
@@ -125,7 +125,7 @@ export async function GET() {
           categories = [];
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log non-timeout errors
       if (error?.name !== 'AbortError' && error?.code !== 'ECONNABORTED' && error?.code !== 'ETIMEDOUT' && !error?.message?.toLowerCase().includes('timeout')) {
         console.error('Error fetching categories:', error);
@@ -186,7 +186,7 @@ export async function GET() {
           console.error('Error fetching brands:', fetchError);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log non-timeout errors
       if (error?.name !== 'AbortError' && error?.code !== 'ECONNABORTED' && error?.code !== 'ETIMEDOUT' && !error?.message?.toLowerCase().includes('timeout')) {
         console.error('Error fetching brands:', error);
@@ -259,7 +259,7 @@ export async function GET() {
           tags = [];
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       // Only log non-timeout errors
       if (error?.name !== 'AbortError' && error?.code !== 'ECONNABORTED' && error?.code !== 'ETIMEDOUT' && !error?.message?.toLowerCase().includes('timeout')) {
         console.error('Error fetching tags:', error);
@@ -277,7 +277,7 @@ export async function GET() {
     };
     
     return NextResponse.json(indexData);
-  } catch (error) {
+  } catch (error: any) {
     // Only log non-timeout errors (timeouts are handled gracefully)
     if (error?.code !== 'ECONNABORTED' && error?.code !== 'ETIMEDOUT' && !error?.message?.toLowerCase().includes('timeout')) {
       console.error('Error building search index:', error);
