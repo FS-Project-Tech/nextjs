@@ -5,12 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
 import { getExpiryStatus, isQuoteExpired } from '@/lib/quote-expiry';
+import type { Quote } from '@/lib/types/quote';
 
-interface Quote {
-  id: string;
-  quote_number?: string;
-  date: string;
-  created_at?: string;
+// Update the local interface to include missing fields
+interface QuoteListItem extends Omit<Quote, 'items'> {
+  date?: string;
   items: Array<{
     name: string;
     sku?: string;
@@ -18,20 +17,13 @@ interface Quote {
     qty?: number;
     price: string | number;
   }>;
-  subtotal: number;
-  shipping: number;
-  discount: number;
-  total: number;
-  status: 'pending' | 'sent' | 'accepted' | 'rejected' | 'expired';
-  expires_at?: string;
-  notes?: string;
 }
 
 type StatusFilter = 'all' | 'pending' | 'sent' | 'accepted' | 'rejected' | 'expired';
 type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc' | 'status';
 
 export default function DashboardQuotes() {
-  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotes, setQuotes] = useState<QuoteListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -89,9 +81,9 @@ export default function DashboardQuotes() {
     filtered.sort((a, b) => {
       switch (sortOption) {
         case 'date-desc':
-          return new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime();
+          return new Date(b.created_at || b.date || 0).getTime() - new Date(a.created_at || a.date || 0).getTime();
         case 'date-asc':
-          return new Date(a.created_at || a.date).getTime() - new Date(b.created_at || b.date).getTime();
+          return new Date(a.created_at || a.date || 0).getTime() - new Date(b.created_at || b.date || 0).getTime();
         case 'amount-desc':
           return b.total - a.total;
         case 'amount-asc':
@@ -398,7 +390,7 @@ export default function DashboardQuotes() {
                     <div>
                       <p className="text-xs text-gray-500">Date</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {new Date(quote.created_at || quote.date).toLocaleDateString()}
+                        {new Date(quote.created_at || quote.date || 0).toLocaleDateString()}
                       </p>
                     </div>
                     <div>
@@ -420,7 +412,13 @@ export default function DashboardQuotes() {
                       </span>
                     </div>
                     {quote.expires_at && (() => {
-                      const expiryStatus = getExpiryStatus(quote);
+                      // Cast to Quote type for getExpiryStatus (it only needs expires_at)
+                      const expiryStatus = getExpiryStatus({
+                        ...quote,
+                        user_email: quote.user_email || '',
+                        user_name: quote.user_name || '',
+                        updated_at: quote.updated_at || quote.created_at || new Date().toISOString(),
+                      } as Quote);
                       return (
                         <div>
                           <p className="text-xs text-gray-500">Expires</p>

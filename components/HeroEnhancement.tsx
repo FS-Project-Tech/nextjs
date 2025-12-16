@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import SearchBar from "@/components/SearchBar";
 
 const floatingChips = [
@@ -10,7 +10,7 @@ const floatingChips = [
   { label: "First Aid", emoji: "🩹", href: "/shop?category=first-aid" },
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -21,21 +21,21 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
+    transition: { duration: 0.4 },
   },
 };
 
-const chipVariants = {
+const chipVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8 },
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { type: "spring", stiffness: 200 },
+    transition: { type: "spring" as const, stiffness: 200 },
   },
 };
 
@@ -56,10 +56,7 @@ export default function HeroEnhancement() {
         </p>
       </motion.div>
 
-      <motion.div
-        className="max-w-2xl mx-auto mb-8"
-        variants={itemVariants}
-      >
+      <motion.div className="max-w-2xl mx-auto mb-8" variants={itemVariants}>
         <SearchBar className="w-full" />
         <p className="text-xs text-gray-500 text-center mt-2">
           Search among 9,000+ trusted medical products

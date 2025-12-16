@@ -112,8 +112,8 @@ export function withApiCache<T>(
       );
 
       // Check if response came from cache
-      const cached = responseCache.get(cacheKey);
-      wasCached = cached !== null && !forceRefresh;
+      const cacheEntry = responseCache.get(cacheKey);
+      wasCached = cacheEntry !== null && !forceRefresh;
 
       // Generate HTTP cache headers
       const headers = httpCache
@@ -138,7 +138,7 @@ export function withApiCache<T>(
 function createResponse<T>(
   data: T,
   cached: boolean,
-  headers: Record<string, string>
+  headers: CacheHeaders
 ): NextResponse {
   const response: CachedApiResponse<T> = {
     data,
@@ -280,7 +280,8 @@ export function cachedResponse<T>(
     private: isPrivate,
   });
 
-  return NextResponse.json(data, { headers });
+  const normalizedHeaders: HeadersInit = headers as unknown as Record<string, string>;
+  return NextResponse.json(data, { headers: normalizedHeaders });
 }
 
 /**

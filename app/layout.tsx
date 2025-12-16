@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import dynamic from "next/dynamic";
 import Script from "next/script";
 import Header from "@/components/Header";
@@ -34,20 +33,6 @@ if (typeof window === 'undefined') {
 // Note: MiniCartDrawer is a client component, so it will hydrate on the client
 const MiniCartDrawer = dynamic(() => import("@/components/MiniCartDrawer"), {
   // No ssr: false needed - component will render empty on server and hydrate on client
-});
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-  display: "swap", // Optimize font loading - show fallback font immediately
-  preload: true,
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap", // Optimize font loading - show fallback font immediately
-  preload: false, // Only preload primary font
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
@@ -122,7 +107,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body 
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         {/* Remove browser extension attributes before React hydrates */}
         <Script

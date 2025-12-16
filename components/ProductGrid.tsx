@@ -191,12 +191,32 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
         const products = Array.isArray(json) ? json : json?.products;
         if (!Array.isArray(products)) {
           // If products key exists but is not an array, return empty
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId: 'debug-session',
+              runId: 'products-run1',
+              hypothesisId: 'H1',
+              location: 'ProductGrid.tsx:192',
+              message: 'Non-array products response, returning empty list',
+              data: {
+                pageNum,
+                append,
+                jsonType: json && typeof json,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+          // #endregion
           dispatch({
             type: 'FETCH_SUCCESS',
             products: [],
             total: 0,
             totalPages: 0,
             append,
+            pageNum,
           });
           return;
         }
@@ -204,6 +224,28 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
         // Use the products array from whichever format we received
         const total = json?.total ?? products.length;
         const totalPages = json?.totalPages ?? 1;
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: 'debug-session',
+            runId: 'products-run1',
+            hypothesisId: 'H2',
+            location: 'ProductGrid.tsx:208',
+            message: 'Products fetch success',
+            data: {
+              pageNum,
+              append,
+              productsLength: products.length,
+              total,
+              totalPages,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
 
         dispatch({
           type: 'FETCH_SUCCESS',

@@ -75,13 +75,26 @@ export default function QuoteTemplatesPage() {
 
       // Add template items to cart
       for (const item of template.items) {
+        // Skip items without product_id
+        if (!item.product_id) {
+          continue;
+        }
+        
+        // Generate slug from name (simple slug conversion)
+        const slug = item.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'product';
+        
         await addItem({
-          id: item.product_id?.toString() || item.name,
+          productId: item.product_id,
+          slug: slug,
           name: item.name,
           price: String(item.price),
           qty: item.qty,
           sku: item.sku || undefined,
           attributes: item.attributes || {},
+          variationId: item.variation_id,
         });
       }
 

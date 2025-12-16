@@ -361,7 +361,12 @@ export async function apiFetch<T = any>(
         }
       }
     } catch (error) {
-      lastError = error;
+      // #region agent log
+      const errorType = error instanceof Error ? 'Error' : typeof error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:363',message:'Outer catch block error',data:{errorType,errorMessage,attempt,retries},timestamp:Date.now(),sessionId:'debug-session',runId:'api-run1',hypothesisId:'H1'})}).catch(()=>{});
+      // #endregion
+      lastError = error instanceof Error ? error : new Error(String(error));
       
       // If this is the last attempt, break and throw
       if (attempt >= retries) {

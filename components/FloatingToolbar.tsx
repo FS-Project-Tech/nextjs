@@ -3,6 +3,14 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
+type ToolbarTool = {
+  icon: string;
+  label: string;
+  href: string;
+  color: string;
+  badge?: string;
+};
+
 export default function FloatingToolbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -23,7 +31,7 @@ export default function FloatingToolbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const tools = [
+  const tools: ToolbarTool[] = [
     {
       icon: "💬",
       label: "Chat",

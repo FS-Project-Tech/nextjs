@@ -93,17 +93,42 @@ export async function syncCartToWooCommerce(
     return cartData;
   } catch (error) {
     console.error('Cart sync error:', error);
-    
-    // Return error details for frontend handling
-    if (error.response?.data) {
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'cart-sync-run1',
+        hypothesisId: 'H-cart-1',
+        location: 'cart-sync.ts:94',
+        message: 'Cart sync error caught',
+        data: {
+          hasResponse: typeof error === 'object' && error !== null && 'response' in error,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
+    // Return error details for frontend handling (Axios-style errors)
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'response' in error &&
+      (error as any).response?.data
+    ) {
+      const respData = (error as any).response.data;
       throw new Error(
-        error.response.data.message || 
-        error.response.data.code || 
-        'Cart sync failed'
+        respData.message ||
+          respData.code ||
+          'Cart sync failed'
       );
     }
-    
-    throw error;
+
+    // Fallback: ensure we always throw an Error instance
+    throw error instanceof Error ? error : new Error(String(error));
   }
 }
 

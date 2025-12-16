@@ -91,24 +91,46 @@ export async function fetchHeroSliders(): Promise<HeroSliders> {
     }
   } catch (error) {
     // Fall back to placeholder images on error
+    const err = error as any;
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: 'debug-session',
+        runId: 'cms-run1',
+        hypothesisId: 'H-cms-1',
+        location: 'cms.ts:92',
+        message: 'CMS hero slider fetch failed, using placeholders',
+        data: {
+          name: err?.name,
+          code: err?.code,
+          message: err?.message,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
     // Handle various timeout and connection error types
     const isTimeoutError = 
-      error?.name === 'AbortError' ||
-      error?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-      error?.code === 'ECONNABORTED' ||
-      error?.code === 'ETIMEDOUT' ||
-      error?.message?.includes('timeout') ||
-      error?.message?.includes('aborted') ||
-      error?.message?.includes('Connect Timeout');
+      err?.name === 'AbortError' ||
+      err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+      err?.code === 'ECONNABORTED' ||
+      err?.code === 'ETIMEDOUT' ||
+      err?.message?.includes('timeout') ||
+      err?.message?.includes('aborted') ||
+      err?.message?.includes('Connect Timeout');
     
     if (isTimeoutError) {
       // Connection or request timeout - expected for slow/unavailable CMS
       // Silently fall back to placeholders (no logging to reduce noise)
-    } else if (error?.message && !(error instanceof Error ? error.message : 'An error occurred').includes('aborted')) {
+    } else if (err?.message && !(err instanceof Error ? err.message : 'An error occurred').includes('aborted')) {
       // Log actual errors (not timeouts/connection issues)
       // Only in development to avoid production noise
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to fetch hero sliders from CMS:', error.message);
+        console.warn('Failed to fetch hero sliders from CMS:', err.message);
       }
     }
   }

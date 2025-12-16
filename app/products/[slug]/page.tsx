@@ -178,7 +178,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
 	// Convert products to ProductCardProduct format
 	const toProductCardProduct = (
-		p: Awaited<ReturnType<typeof fetchProducts>>[0]
+		p: Awaited<ReturnType<typeof fetchProducts>>['products'][0]
 	): ProductCardProduct => ({
 		id: p.id,
 		slug: p.slug,

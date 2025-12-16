@@ -115,11 +115,18 @@ export default function QuoteDetailPage() {
       // Add quote items to cart
       for (const item of data.items) {
         if (item.product_id > 0) {
+          // Generate slug from name (simple slug conversion)
+          const slug = item.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'product';
+          
           addItem({
             productId: item.product_id,
             variationId: item.variation_id,
             name: item.name,
-            price: item.price,
+            slug: slug,
+            price: String(item.price),
             qty: item.quantity,
             sku: item.sku,
             attributes: item.attributes || {},
@@ -452,7 +459,7 @@ export default function QuoteDetailPage() {
           <h3 className="text-sm font-medium text-gray-900 mb-3">Items ({quote.items.length})</h3>
           <div className="space-y-3">
             {quote.items.map((item, index) => {
-              const quantity = item.quantity || item.qty || 1;
+              const quantity = item.qty || 1;
               const price = Number(item.price) || 0;
               return (
                 <div key={index} className="flex justify-between items-start py-2 border-b border-gray-100 last:border-0">
