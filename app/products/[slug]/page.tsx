@@ -20,7 +20,7 @@ import { ProductCardProduct } from "@/lib/types/product";
 import RelatedProductsSection from "@/components/RelatedProductsSection";
 import CategoryBrandsSection from "@/components/CategoryBrandsSection";
 import { extractProductBrands } from "@/lib/utils/product";
-import { sanitizeReview, stripHTML } from "@/lib/xss-sanitizer";
+// import { sanitizeReview, stripHTML } from "@/lib/xss-sanitizer";
 import { getErrorMessage } from "@/lib/utils/errors";
 
 // ============================================================================

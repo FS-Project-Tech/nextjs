@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import bundleAnalyzer from '@next/bundle-analyzer';
 
 // Optionally include a domain from the WooCommerce API URL if provided
-const wcApiUrl = process.env.NEXT_PUBLIC_WC_API_URL;
+const wcApiUrl = process.env.NEXT_PUBLIC_WP_URL;
 let wcHost: string | undefined;
 try {
   if (wcApiUrl) {
