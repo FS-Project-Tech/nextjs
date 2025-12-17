@@ -27,8 +27,8 @@ import { getErrorMessage } from "@/lib/utils/errors";
 // ISR Configuration - Revalidate product pages every 5 minutes
 // ============================================================================
 export const revalidate = 300; // 5 minutes
-// app/products/[slug]/page.tsx
-export const dynamic = 'force-dynamic';
+// // app/products/[slug]/page.tsx
+// export const dynamic = 'force-dynamic';
 
 // Allow dynamic params for products not generated at build time
 export const dynamicParams = true;
@@ -59,7 +59,7 @@ export async function generateStaticParams() {
 }
 
 // Generate metadata for SEO
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
 	const { slug } = await params;
 	const product = await fetchProductBySlug(slug).catch(() => null);
 	
@@ -106,7 +106,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 	};
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({ params }: { params: { slug: string } }) {
 	const { slug } = await params;
 
 	const product = await fetchProductBySlug(slug).catch(() => null);
@@ -240,26 +240,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 						{/* Right 40% - Reviews */}
 						<div className="lg:col-span-2">
 							<h2 className="mb-3 text-xl font-semibold text-gray-900">Product reviews</h2>
-							{await (async () => {
-								try {
-									const res = await wcAPI.get('/products/reviews', { params: { product: product.id, per_page: 5 } });
-									const reviews = Array.isArray(res.data) ? res.data : [];
-									if (reviews.length === 0) return <div className="rounded border p-4 text-sm text-gray-600">No reviews yet.</div>;
-									return (
-										<ul className="space-y-3">
-											{reviews.map((r: any) => (
-												<li key={r.id} className="rounded border p-3">
-													<div className="text-sm font-medium text-gray-900">{stripHTML(r.reviewer)}</div>
-													<div className="text-xs text-gray-500">Rating: {r.rating || 0}/5</div>
-													<div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeReview(r.review || '') }} />
-												</li>
-											))}
-										</ul>
-									);
-								} catch {
-									return <div className="rounded border p-4 text-sm text-gray-600">Reviews unavailable.</div>;
-								}
-							})()}
+							{/* Reviews temporarily disabled to avoid SSR runtime crash */}
+							<div className="rounded border p-4 text-sm text-gray-600">
+							Reviews loading temporarily disabled.
+							</div>
+	
 						</div>
 					</div>
 				</Container>
