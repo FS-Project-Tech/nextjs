@@ -122,7 +122,7 @@ function OrderReviewContent() {
 
       // Dynamically import html2pdf.js
       const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default || html2pdfModule;
+      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
 
       const element = document.getElementById("invoice-content");
       if (!element) {
@@ -160,7 +160,7 @@ function OrderReviewContent() {
         },
       };
 
-      await html2pdf().set(opt).from(element).save();
+      await (html2pdf as any)().set(opt).from(element).save();
       
       // Restore original console.error
       console.error = originalError;

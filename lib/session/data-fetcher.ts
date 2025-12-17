@@ -16,6 +16,16 @@ import {
 } from './secure-fetch';
 import { createSessionError } from './manager';
 import { getWpBaseUrl } from '../wp-utils';
+import { 
+  normalizeError,           // For converting errors to AppError
+  getErrorMessage,          // For safe error.message access
+  getErrorName,             // For safe error.name access
+  isAbortError,             // For checking AbortError
+  isTimeoutError,           // For checking timeout errors
+  hasAxiosResponse,         // For checking axios-style errors
+  getAxiosErrorDetails,     // For safe axios error property access
+  isRetryableError          // For checking if error is retryable
+} from '@/lib/utils/errors';
 
 /**
  * Data cache with TTL support
@@ -229,12 +239,12 @@ async function wcFetch<T>(
     }
     
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       data: null,
       error: createSessionError(
         SessionErrorCode.NETWORK_ERROR,
-        error instanceof Error ? error.message : 'Request failed',
+        getErrorMessage(error),
         true
       ),
       status: 0,

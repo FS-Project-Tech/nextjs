@@ -66,7 +66,7 @@ export default function ProductBook({ products, categoryName }: ProductBookProps
     try {
       // Try to dynamically import html2pdf.js
       const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = html2pdfModule.default || html2pdfModule;
+      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
 
       const element = document.getElementById("product-book-content");
       if (!element) return;
@@ -79,7 +79,7 @@ export default function ProductBook({ products, categoryName }: ProductBookProps
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
       };
 
-      html2pdf().set(opt).from(element).save();
+      (html2pdf as any)().set(opt).from(element).save();
     } catch (error) {
       console.error("PDF library not available, using print dialog:", error);
       // Fallback to print dialog - user can save as PDF from browser

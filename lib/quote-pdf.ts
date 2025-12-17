@@ -45,7 +45,7 @@ export async function generateQuotePDF(quote: Quote): Promise<Blob> {
         </thead>
         <tbody>
           ${quote.items.map((item, index) => {
-            const qty = item.qty || item.quantity || 1;
+            const qty = item.qty || 1;
             const price = Number(item.price) || 0;
             return `
               <tr style="border-bottom: 1px solid #e5e7eb;">

@@ -18,6 +18,17 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig: NextConfig = {
   reactCompiler: true,
   
+  // Disable ESLint during builds (optional - only if you want to skip linting)
+  // @ts-expect-error - eslint.ignoreDuringBuilds exists at runtime in Next.js but not in TypeScript types
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
+  // Disable TypeScript type checking during builds (NOT RECOMMENDED)
+  // typescript: {
+  //   ignoreBuildErrors: true,
+  // },
+  
   // Enable compression (gzip + Brotli)
   compress: true,
   

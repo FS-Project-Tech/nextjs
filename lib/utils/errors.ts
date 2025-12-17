@@ -140,18 +140,148 @@ function getDefaultUserMessage(code: ErrorCode): string {
 }
 
 /**
- * Convert any error to AppError
+ * Check if error is an AbortError (timeout/cancellation)
+ */
+export function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+  if (error instanceof Error && error.name === 'AbortError') {
+    return true;
+  }
+  if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Check if error is a timeout error (various forms)
+ */
+export function isTimeoutError(error: unknown): boolean {
+  if (isAbortError(error)) {
+    return true;
+  }
+  const message = getErrorMessage(error).toLowerCase();
+  return message.includes('timeout') || 
+         message.includes('exceeded') || 
+         message.includes('aborted') ||
+         message.includes('econnaborted') ||
+         message.includes('etimedout');
+}
+
+/**
+ * Get error name safely
+ */
+export function getErrorName(error: unknown): string {
+  if (error instanceof Error) {
+    return error.name;
+  }
+  if (error && typeof error === 'object' && 'name' in error) {
+    return String(error.name);
+  }
+  return 'Unknown';
+}
+
+/**
+ * Check if error has axios-style response property
+ */
+export function hasAxiosResponse(error: unknown): error is { 
+  response?: { 
+    status?: number; 
+    statusText?: string; 
+    data?: unknown;
+  };
+  config?: { url?: string; method?: string; params?: unknown };
+  code?: string;
+  message?: string;
+} {
+  return error !== null && 
+         typeof error === 'object' && 
+         'response' in error;
+}
+
+/**
+ * Get axios error details safely
+ */
+export function getAxiosErrorDetails(error: unknown): {
+  status?: number;
+  statusText?: string;
+  data?: unknown;
+  url?: string;
+  method?: string;
+  code?: string;
+  message: string;
+} {
+  if (!hasAxiosResponse(error)) {
+    return { message: getErrorMessage(error) };
+  }
+
+  const response = error.response;
+  const config = error.config;
+  
+  return {
+    status: response?.status,
+    statusText: response?.statusText,
+    data: response?.data,
+    url: config?.url,
+    method: config?.method,
+    code: error.code,
+    message: error.message || getErrorMessage(error),
+  };
+}
+
+/**
+ * Convert any error to AppError (enhanced version)
  */
 export function normalizeError(error: unknown): AppError {
   if (error instanceof BaseError) {
     return error.toJSON();
   }
 
+  // Handle AbortError/timeout
+  if (isAbortError(error)) {
+    return new TimeoutError().toJSON();
+  }
+
+  // Handle axios-style errors
+  if (hasAxiosResponse(error)) {
+    const details = getAxiosErrorDetails(error);
+    const status = details.status || 500;
+    
+    if (status === 401 || status === 403) {
+      return new AuthError(details.message).toJSON();
+    }
+    if (status === 404) {
+      return new NotFoundError().toJSON();
+    }
+    if (status === 429) {
+      return new RateLimitError().toJSON();
+    }
+    if (status >= 500) {
+      return {
+        code: 'SERVER_ERROR',
+        message: details.message,
+        userMessage: 'A server error occurred. Please try again later.',
+        status,
+        details: { url: details.url, data: details.data },
+      };
+    }
+    
+    // Check for timeout codes
+    if (details.code === 'ECONNABORTED' || 
+        details.code === 'ETIMEDOUT' || 
+        details.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+        isTimeoutError(error)) {
+      return new TimeoutError().toJSON();
+    }
+  }
+
   if (error instanceof Error) {
-    const message = (error instanceof Error ? error.message : 'An error occurred').toLowerCase();
+    const message = error.message.toLowerCase();
     
     // Detect error type from message
-    if (message.includes('timeout') || message.includes('aborted')) {
+    if (isTimeoutError(error)) {
       return new TimeoutError().toJSON();
     }
     if (message.includes('network') || message.includes('fetch failed')) {

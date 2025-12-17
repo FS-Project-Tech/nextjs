@@ -4,6 +4,8 @@
  * Simple wrapper that logs fetch timing
  */
 
+import { getErrorMessage } from '@/lib/utils/errors';
+
 export async function timedFetch(
   url: string | URL,
   options?: RequestInit
@@ -26,10 +28,10 @@ export async function timedFetch(
     }
     
     return res;
-  } catch (error) {
+  } catch (error: unknown) {
     const t1 = Date.now();
     const duration = t1 - t0;
-    console.error('fetch', urlString, 'failed after', duration, 'ms:', (error instanceof Error ? error.message : 'An error occurred'));
+    console.error('fetch', urlString, 'failed after', duration, 'ms:', getErrorMessage(error));
     throw error;
   }
 }

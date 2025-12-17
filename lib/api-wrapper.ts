@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { applyCorsHeaders, handleCorsPreflight } from './cors';
 import { secureResponse } from './security-headers';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 export type ApiHandler = (
   req: NextRequest,
@@ -42,13 +43,13 @@ export function withApiWrapper(handler: ApiHandler): ApiHandler {
       }
 
       return corsResponse;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('API route error:', error);
       
       const errorResponse = secureResponse(
         {
           error: process.env.NODE_ENV === 'development' 
-            ? (error instanceof Error ? error.message : 'An error occurred') 
+            ? getErrorMessage(error)
             : 'An error occurred processing your request',
         },
         { status: 500 }

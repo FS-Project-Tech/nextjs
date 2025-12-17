@@ -11,6 +11,8 @@
  * - Fallback values support
  */
 
+import { normalizeError, isAbortError, isTimeoutError } from '@/lib/utils/errors';
+
 interface ApiOptions extends RequestInit {
   timeout?: number;
   retries?: number;
@@ -171,22 +173,21 @@ function logRequest(
 /**
  * Get user-friendly error message
  */
-function getUserFriendlyError(error: Error, url: string): string {
-  const errorMessage = (error instanceof Error ? error.message : 'An error occurred').toLowerCase();
-
-  if (error.name === 'AbortError' || errorMessage.includes('timeout') || errorMessage.includes('aborted')) {
+function getUserFriendlyError(error: unknown, url: string): string {
+  const normalized = normalizeError(error);
+  
+  if (isAbortError(error) || isTimeoutError(error)) {
     return 'Request timed out. Please check your connection and try again.';
   }
-
-  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+  
+  const message = normalized.message.toLowerCase();
+  if (message.includes('network') || message.includes('fetch')) {
     return 'Network connection failed. Please check your internet connection.';
   }
-
-  if (errorMessage.includes('cors')) {
+  if (message.includes('cors')) {
     return 'Cross-origin request blocked. Please contact support.';
   }
-
-  // Generic error
+  
   return 'An error occurred while loading data. Please try again later.';
 }
 
@@ -331,11 +332,11 @@ export async function apiFetch<T = any>(
         }
 
         return data;
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
 
         // Handle abort (timeout)
-        if (fetchError.name === 'AbortError' || controller.signal.aborted) {
+        if (isAbortError(fetchError) || controller.signal.aborted) {
           lastError = new Error('Request timeout');
           
           if (attempt < retries) {
@@ -347,7 +348,7 @@ export async function apiFetch<T = any>(
             continue;
           }
         } else {
-          lastError = fetchError;
+          lastError = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
           
           // Network errors - retry
           if (attempt < retries) {
@@ -360,7 +361,7 @@ export async function apiFetch<T = any>(
           }
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // #region agent log
       const errorType = error instanceof Error ? 'Error' : typeof error;
       const errorMessage = error instanceof Error ? error.message : String(error);

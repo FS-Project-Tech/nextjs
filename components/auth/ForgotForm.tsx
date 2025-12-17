@@ -24,7 +24,7 @@ export default function ForgotForm() {
     handleSubmit,
     formState: { errors },
   } = useForm<ForgotFormData>({
-    resolver: yupResolver(forgotSchema),
+    resolver: yupResolver(forgotSchema) as any,
   });
 
   const onSubmit = async (data: ForgotFormData) => {

@@ -164,7 +164,7 @@ export async function sendQuoteCreatedEmail(quote: Quote): Promise<boolean> {
   const quoteUrl = `${siteUrl}/dashboard/quotes/${quote.id}`;
 
   const itemsList = quote.items.map((item) => {
-    const qty = item.qty || item.quantity || 1;
+    const qty = item.qty || 1;
     const price = Number(item.price) || 0;
     return `
       <tr>

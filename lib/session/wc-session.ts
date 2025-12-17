@@ -22,6 +22,7 @@ import {
 } from './manager';
 import { secureFetch } from './secure-fetch';
 import { getWpBaseUrl } from '../wp-utils';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 /**
  * WooCommerce session storage key
@@ -84,10 +85,10 @@ export async function createWcSession(
         cart: cartData,
       });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     // Log but continue with empty cart
     if (process.env.NODE_ENV === 'development') {
-      console.debug('Failed to fetch existing cart:', error);
+      console.debug('Failed to fetch existing cart:', getErrorMessage(error));
     }
   }
   
@@ -137,9 +138,9 @@ export async function syncWcCart(session: SessionData): Promise<SessionData> {
     }
     
     return session;
-  } catch (error) {
+  } catch (error: unknown) {
     if (process.env.NODE_ENV === 'development') {
-      console.debug('Cart sync failed:', error);
+      console.debug('Cart sync failed:', getErrorMessage(error));
     }
     return session;
   }

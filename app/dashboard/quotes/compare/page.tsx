@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
@@ -8,7 +8,7 @@ import { formatPrice } from '@/lib/format-utils';
 import { compareQuotes, getPriceDifference, getTotalDifference, findBestQuote } from '@/lib/quote-comparison';
 import type { Quote } from '@/lib/types/quote';
 
-export default function QuoteComparisonPage() {
+function QuoteComparisonContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { error: showError } = useToast();
@@ -46,8 +46,9 @@ export default function QuoteComparisonPage() {
         }
 
         setQuotes(fetchedQuotes);
-      } catch (err: any) {
-        showError(err.message || 'Failed to load quotes');
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load quotes';
+        showError(errorMessage);
         router.push('/dashboard/quotes');
       } finally {
         setLoading(false);
@@ -374,6 +375,21 @@ export default function QuoteComparisonPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function QuoteComparisonPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">Loading quotes for comparison...</p>
+        </div>
+      </div>
+    }>
+      <QuoteComparisonContent />
+    </Suspense>
   );
 }
 

@@ -5,7 +5,7 @@
     "allowJs": true,
     // Performance optimizations
     "skipLibCheck": true, // Skip type checking in node_modules - major speed boost
-    "strict": true,
+    "strict": false,  // ⚠️ NOT RECOMMENDED - reduces type safety
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",

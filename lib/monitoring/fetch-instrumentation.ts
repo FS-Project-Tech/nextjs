@@ -8,6 +8,8 @@
  * - Error tracking
  */
 
+import { getErrorMessage } from '@/lib/utils/errors';
+
 interface FetchMetrics {
   url: string;
   method: string;
@@ -287,8 +289,9 @@ export async function instrumentedFetch(
     }
 
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     const duration = Date.now() - startTime;
+    const errorMessage = getErrorMessage(error);
     
     fetchMonitor.track(
       urlString,
@@ -297,11 +300,11 @@ export async function instrumentedFetch(
       undefined,
       route,
       false,
-      (error instanceof Error ? error.message : 'An error occurred') || 'Unknown error'
+      errorMessage || 'Unknown error'
     );
 
     if (process.env.NODE_ENV === 'development') {
-      console.error(`[Fetch Error] ${method} ${urlString} - ${duration}ms - ${error.message}`);
+      console.error(`[Fetch Error] ${method} ${urlString} - ${duration}ms - ${errorMessage}`);
     }
 
     throw error;

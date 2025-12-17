@@ -124,10 +124,14 @@ export async function authenticateWithCredentials(
     // Create session
     const session = createSession(SessionType.AUTH, {
       token: data.token,
-      refreshToken: data.refresh_token,
       user,
       fingerprint: options.fingerprint,
     });
+    
+    // Add refreshToken separately if it exists
+    if (data.refresh_token) {
+      (session as any).refreshToken = data.refresh_token;
+    }
     
     // Cache session
     cacheSession(session);

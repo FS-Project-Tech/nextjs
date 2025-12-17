@@ -117,6 +117,7 @@ export function createSession(
   type: SessionType,
   options: {
     token?: string;
+    refreshToken?: string;
     user?: SessionUser;
     customer?: SessionCustomer;
     cart?: CartSession;
@@ -144,6 +145,7 @@ export function createSession(
     expiresAt,
     lastValidated: now,
     token: options.token,
+    refreshToken: options.refreshToken,
     user: options.user,
     customer: options.customer,
     cart: options.cart,

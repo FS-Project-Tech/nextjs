@@ -8,7 +8,7 @@ import DOMPurify from 'isomorphic-dompurify';
 /**
  * DOMPurify configuration for product content
  */
-const PRODUCT_CONFIG: DOMPurify.Config = {
+const PRODUCT_CONFIG = {
   ALLOWED_TAGS: [
     'p', 'br', 'strong', 'b', 'em', 'i', 'u', 's', 'strike',
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -25,28 +25,28 @@ const PRODUCT_CONFIG: DOMPurify.Config = {
     'class', 'id',
   ],
   ALLOW_DATA_ATTR: false,
-  ADD_ATTR: ['target'], // Allow target attribute
-  ADD_TAGS: [], // No additional tags
+  ADD_ATTR: ['target'],
+  ADD_TAGS: [],
   FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'input', 'button', 'select', 'textarea', 'object', 'embed', 'applet'],
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
-};
+} as DOMPurify.Config;
 
 /**
  * Strict configuration (no HTML at all)
  */
-const STRICT_CONFIG: DOMPurify.Config = {
+const STRICT_CONFIG = {
   ALLOWED_TAGS: [],
   ALLOWED_ATTR: [],
-};
+} as DOMPurify.Config;
 
 /**
  * Configuration for reviews (more restrictive)
  */
-const REVIEW_CONFIG: DOMPurify.Config = {
+const REVIEW_CONFIG = {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'b', 'em', 'i', 'ul', 'ol', 'li'],
   ALLOWED_ATTR: [],
   ALLOW_DATA_ATTR: false,
-};
+} as DOMPurify.Config;
 
 // Configure DOMPurify hooks for additional security
 if (typeof DOMPurify.addHook === 'function') {
@@ -91,7 +91,7 @@ export function sanitizeHTML(
 
   // Use strict config if requested
   if (strict) {
-    return DOMPurify.sanitize(html, STRICT_CONFIG);
+    return String(DOMPurify.sanitize(html, STRICT_CONFIG as any));
   }
 
   // Build custom config based on options
@@ -107,7 +107,7 @@ export function sanitizeHTML(
     config.ALLOWED_ATTR = config.ALLOWED_ATTR?.filter(attr => !['src', 'alt', 'loading'].includes(attr));
   }
 
-  return DOMPurify.sanitize(html, config);
+  return String(DOMPurify.sanitize(html, config as any));
 }
 
 /**
@@ -117,7 +117,7 @@ export function sanitizeReview(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') {
     return '';
   }
-  return DOMPurify.sanitize(html, REVIEW_CONFIG);
+  return String(DOMPurify.sanitize(html, REVIEW_CONFIG as any));
 }
 
 /**

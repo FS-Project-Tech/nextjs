@@ -9,6 +9,8 @@
  * 3. Configure GraphQL endpoint in .env: NEXT_PUBLIC_GRAPHQL_URL
  */
 
+import { isAbortError } from '@/lib/utils/errors';
+
 const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL || 
   (process.env.WC_API_URL 
     ? process.env.WC_API_URL.replace('/wp-json/wc/v3', '/graphql')
@@ -70,8 +72,8 @@ export async function graphqlQuery<T = any>(
     }
 
     return result.data as T;
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (isAbortError(error)) {
       throw new Error('GraphQL request timeout');
     }
     throw error;

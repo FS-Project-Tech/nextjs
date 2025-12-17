@@ -16,6 +16,7 @@ import {
   validateSession,
   createSessionError,
 } from './manager';
+import { normalizeError, isAbortError, isTimeoutError, getErrorMessage } from '@/lib/utils/errors';
 
 /**
  * Request cache for deduplication - stores resolved data instead of promises
@@ -62,15 +63,16 @@ function getRetryDelay(attempt: number, baseDelay: number, backoff: number): num
  */
 function isRetryableError(error: unknown, status?: number): boolean {
   // Network errors are retryable
-  if (error instanceof TypeError && error.message.includes('fetch')) {
-    return true;
+  if (error instanceof TypeError) {
+    const message = getErrorMessage(error);
+    if (message.includes('fetch')) {
+      return true;
+    }
   }
   
   // Timeout errors are retryable
-  if (error instanceof Error) {
-    if (error.name === 'AbortError') return true;
-    if (error.message.includes('timeout')) return true;
-    if (error.message.includes('network')) return true;
+  if (isAbortError(error) || isTimeoutError(error)) {
+    return true;
   }
   
   // Server errors (5xx) are retryable
@@ -370,34 +372,40 @@ export async function secureFetch<T = unknown>(
         sessionValid: true,
       };
       
-    } catch (error) {
-      // Handle timeout and network errors
-      const isRetryable = isRetryableError(error, lastStatus);
+    } catch (error: unknown) {
+      const normalized = normalizeError(error);
+      const retryable = isRetryableError(error);
       
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          lastError = createSessionError(
-            SessionErrorCode.NETWORK_ERROR,
-            'Request timeout',
-            true
-          );
-        } else {
-          lastError = createSessionError(
-            SessionErrorCode.NETWORK_ERROR,
-            error.message,
-            isRetryable
-          );
-        }
-      } else {
-        lastError = createSessionError(
-          SessionErrorCode.NETWORK_ERROR,
-          'Unknown error',
-          isRetryable
-        );
+      // Map AppError code to SessionErrorCode
+      let sessionErrorCode: SessionErrorCode;
+      switch (normalized.code) {
+        case 'NETWORK_ERROR':
+          sessionErrorCode = SessionErrorCode.NETWORK_ERROR;
+          break;
+        case 'TIMEOUT':
+          sessionErrorCode = SessionErrorCode.NETWORK_ERROR;
+          break;
+        case 'AUTH_ERROR':
+          sessionErrorCode = SessionErrorCode.TOKEN_INVALID;
+          break;
+        case 'RATE_LIMITED':
+          sessionErrorCode = SessionErrorCode.RATE_LIMITED;
+          break;
+        case 'SERVER_ERROR':
+          sessionErrorCode = SessionErrorCode.SERVER_ERROR;
+          break;
+        case 'VALIDATION_ERROR':
+          sessionErrorCode = SessionErrorCode.VALIDATION_FAILED;
+          break;
+        default:
+          sessionErrorCode = SessionErrorCode.NETWORK_ERROR;
       }
       
+      lastError = createSessionError(sessionErrorCode, normalized.message, retryable);
+      lastStatus = normalized.status || 0;
+      
       // Retry if possible
-      if (isRetryable && attempt < retries) {
+      if (isRetryableError(error, lastStatus) && attempt < retries) {
         const delay = getRetryDelay(attempt, DEFAULT_SESSION_CONFIG.retryDelay, DEFAULT_SESSION_CONFIG.retryBackoff);
         await sleep(delay);
         continue;

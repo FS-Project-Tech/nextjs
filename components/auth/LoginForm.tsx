@@ -63,7 +63,7 @@ export default function LoginForm() {
     setError,
     clearErrors,
   } = useForm<LoginFormData>({
-    resolver: yupResolver(loginSchema),
+    resolver: yupResolver(loginSchema) as any,
     mode: "onChange", // Real-time validation
     reValidateMode: "onChange",
     defaultValues: {

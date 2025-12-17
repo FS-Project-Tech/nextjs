@@ -8,6 +8,7 @@
 
 import { cookies } from 'next/headers';
 import { getWpBaseUrl } from './wp-utils';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 const WC_SESSION_COOKIE_NAME = 'wc-session';
 const WC_SESSION_MAX_AGE = 48 * 60 * 60; // 48 hours (WooCommerce default)
@@ -98,10 +99,10 @@ export async function createWCSession(customerId?: number): Promise<string | nul
     }
 
     return null;
-  } catch (error) {
+  } catch (error: unknown) {
     // Only log in development - session will be created automatically on first cart operation
     if (process.env.NODE_ENV === 'development') {
-      console.debug('WooCommerce session creation skipped:', error instanceof Error ? error.message : 'Store API not available');
+      console.debug('WooCommerce session creation skipped:', getErrorMessage(error));
     }
     return null;
   }

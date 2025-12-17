@@ -218,7 +218,7 @@ export async function withTimeout<T>(
   
   try {
     return await Promise.race([promise, timeoutPromise]);
-  } catch (error) {
+  } catch (error: unknown) {
     // If it's a timeout error, log additional context
     if (error instanceof Error && (error instanceof Error ? error.message : 'An error occurred').includes('timeout')) {
       console.warn(`[Timeout] Operation "${operationName || 'unknown'}" exceeded ${timeoutMs}ms`);

@@ -9,6 +9,8 @@
  * - Request counts
  */
 
+import { hasAxiosResponse, getAxiosErrorDetails, getErrorName } from '@/lib/utils/errors';
+
 interface Metric {
   name: string;
   value: number;
@@ -154,11 +156,15 @@ export async function trackApiPerformance<T>(
     const duration = Date.now() - start;
     metricsCollector.recordApiTime(endpoint, duration, status);
     return result;
-  } catch (error) {
-    status = error.response?.status || 500;
+  } catch (error: unknown) {
+    let status = 500;
+    if (hasAxiosResponse(error)) {
+      const details = getAxiosErrorDetails(error);
+      status = details.status || 500;
+    }
     const duration = Date.now() - start;
     metricsCollector.recordApiTime(endpoint, duration, status);
-    metricsCollector.recordError(endpoint, error.name || 'Unknown');
+    metricsCollector.recordError(endpoint, getErrorName(error) || 'Unknown');
     throw error;
   }
 }

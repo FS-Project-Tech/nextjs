@@ -21,6 +21,7 @@ import RelatedProductsSection from "@/components/RelatedProductsSection";
 import CategoryBrandsSection from "@/components/CategoryBrandsSection";
 import { extractProductBrands } from "@/lib/utils/product";
 import { sanitizeReview, stripHTML } from "@/lib/xss-sanitizer";
+import { getErrorMessage } from "@/lib/utils/errors";
 
 // ============================================================================
 // ISR Configuration - Revalidate product pages every 5 minutes
@@ -128,25 +129,15 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 	const [topSelling, similar] = await Promise.all([
 		(async () => {
 			if (!firstCategoryId) return [];
-			// Try popularity first, fallback to date if popularity fails
 			try { 
-				const result = await fetchProducts({ per_page: 6, category: firstCategoryId, orderby: 'popularity' });
-				const products = result?.products || [];
-				// If popularity returns empty, try date ordering
-				if (products.length === 0) {
-					const fallback = await fetchProducts({ per_page: 6, category: firstCategoryId, orderby: 'date', order: 'desc' });
-					return fallback?.products || [];
+				// Use date ordering instead of popularity
+				const result = await fetchProducts({ per_page: 6, category: firstCategoryId, orderby: 'date', order: 'desc' });
+				return result?.products || [];
+			} catch (error: unknown) {
+				if (process.env.NODE_ENV === 'development') {
+					console.warn('Error fetching top selling products:', getErrorMessage(error));
 				}
-				return products;
-			} catch (error) { 
-				console.error('Error fetching top selling products:', error);
-				// Fallback to date ordering
-				try {
-					const fallback = await fetchProducts({ per_page: 6, category: firstCategoryId, orderby: 'date', order: 'desc' });
-					return fallback?.products || [];
-				} catch {
-					return [];
-				}
+				return [];
 			}
 		})(),
 		(async () => {
@@ -154,8 +145,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 			try { 
 				const result = await fetchProducts({ per_page: 6, category: firstCategoryId, orderby: 'date', order: 'desc' });
 				return result?.products || [];
-			} catch (error) { 
-				console.error('Error fetching similar products:', error);
+			} catch (error: unknown) {
+				// Only log in development
+				if (process.env.NODE_ENV === 'development') {
+					console.warn('Error fetching similar products:', getErrorMessage(error));
+				}
 				return []; 
 			}
 		})(),

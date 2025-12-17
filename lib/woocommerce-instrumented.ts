@@ -7,6 +7,7 @@
 import wcAPI from './woocommerce';
 import { fetchMonitor } from './monitoring/fetch-instrumentation';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { hasAxiosResponse, getAxiosErrorDetails, getErrorMessage } from '@/lib/utils/errors';
 
 const getRouteFromConfig = (config?: AxiosRequestConfig): string | undefined => {
   if (!config) {
@@ -39,9 +40,14 @@ const instrumentedWcAPI = {
       );
       
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const status = error.response?.status;
+      let status: number | undefined;
+      
+      if (hasAxiosResponse(error)) {
+        const details = getAxiosErrorDetails(error);
+        status = details.status;
+      }
       
       fetchMonitor.track(
         fullUrl,
@@ -50,7 +56,7 @@ const instrumentedWcAPI = {
         status,
         route,
         false,
-        (error instanceof Error ? error.message : 'An error occurred') || 'Unknown error'
+        getErrorMessage(error) || 'Unknown error'
       );
       
       throw error;
@@ -77,9 +83,14 @@ const instrumentedWcAPI = {
       );
       
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const status = error.response?.status;
+      let status: number | undefined;
+      
+      if (hasAxiosResponse(error)) {
+        const details = getAxiosErrorDetails(error);
+        status = details.status;
+      }
       
       fetchMonitor.track(
         fullUrl,
@@ -88,7 +99,7 @@ const instrumentedWcAPI = {
         status,
         route,
         false,
-        error.message || 'Unknown error'
+        getErrorMessage(error) || 'Unknown error'
       );
       
       throw error;
@@ -115,9 +126,14 @@ const instrumentedWcAPI = {
       );
       
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const status = error.response?.status;
+      let status: number | undefined;
+      
+      if (hasAxiosResponse(error)) {
+        const details = getAxiosErrorDetails(error);
+        status = details.status;
+      }
       
       fetchMonitor.track(
         fullUrl,
@@ -126,7 +142,7 @@ const instrumentedWcAPI = {
         status,
         route,
         false,
-        error.message || 'Unknown error'
+        getErrorMessage(error) || 'Unknown error'
       );
       
       throw error;
@@ -153,9 +169,14 @@ const instrumentedWcAPI = {
       );
       
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const duration = Date.now() - startTime;
-      const status = error.response?.status;
+      let status: number | undefined;
+      
+      if (hasAxiosResponse(error)) {
+        const details = getAxiosErrorDetails(error);
+        status = details.status;
+      }
       
       fetchMonitor.track(
         fullUrl,
@@ -164,7 +185,7 @@ const instrumentedWcAPI = {
         status,
         route,
         false,
-        error.message || 'Unknown error'
+        getErrorMessage(error) || 'Unknown error'
       );
       
       throw error;

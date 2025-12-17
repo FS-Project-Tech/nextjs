@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, optionalAuth, rateLimit, withTimeout, API_TIMEOUT as API_TIMEOUT_CONFIG } from './api-security';
 import { sanitizeResponse, sanitizeError } from './sanitize';
+import { getErrorMessage, isTimeoutError } from '@/lib/utils/errors';
 
 // Export API_TIMEOUT for convenience (re-exported from api-security)
 export const API_TIMEOUT = API_TIMEOUT_CONFIG;
@@ -91,11 +92,11 @@ export function createApiHandler<T = any>(
       }
 
       return response;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('API handler error:', error);
 
       // Handle timeout errors
-      if ((error instanceof Error ? error.message : 'An error occurred')?.includes('timeout')) {
+      if (isTimeoutError(error)) {
         return NextResponse.json(
           {
             error: 'Request timeout',
