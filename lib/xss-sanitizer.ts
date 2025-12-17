@@ -1,8 +1,20 @@
 /**
  * XSS Sanitization Utilities
- * Uses DOMPurify for enterprise-grade HTML sanitization
+ * Server-safe (NO jsdom)
  */
 
+// import xss from 'xss';
+
+// export function sanitizeReview(html: string): string {
+//   return xss(html);
+// }
+
+// export function stripHTML(input: string): string {
+//   return input.replace(/<[^>]*>/g, '');
+// }
+
+
+// Add this instead:
 import DOMPurify from 'isomorphic-dompurify';
 
 /**
