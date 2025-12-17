@@ -27,6 +27,8 @@ import { getErrorMessage } from "@/lib/utils/errors";
 // ISR Configuration - Revalidate product pages every 5 minutes
 // ============================================================================
 export const revalidate = 300; // 5 minutes
+// app/products/[slug]/page.tsx
+export const dynamic = 'force-dynamic';
 
 // Allow dynamic params for products not generated at build time
 export const dynamicParams = true;
