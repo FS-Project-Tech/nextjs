@@ -7,6 +7,7 @@ import wcAPI, {
 import ProductGallery from "@/components/ProductGallery";
 import ProductDetailPanel from "@/components/ProductDetailPanel";
 import ProductInfoAccordion from "@/components/ProductInfoAccordion";
+import { getActivePromotions } from "@/lib/getActivePromotions";	
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -18,7 +19,7 @@ import type { Metadata } from "next";
 import Container from "@/components/Container";
 import { ProductCardProduct } from "@/lib/types/product";
 import RelatedProductsSection from "@/components/RelatedProductsSection";
-import CategoryBrandsSection from "@/components/CategoryBrandsSection";
+import CategoryBrandsSection from "@/components/CategoryBrandsSection";	
 import { extractProductBrands } from "@/lib/utils/product";
 // import { sanitizeReview, stripHTML } from "@/lib/xss-sanitizer";
 import { getErrorMessage } from "@/lib/utils/errors";
@@ -32,6 +33,8 @@ export const revalidate = 300; // 5 minutes
 
 // Allow dynamic params for products not generated at build time
 export const dynamicParams = true;
+
+
 
 /**
  * Generate static params for popular/featured products at build time
@@ -113,6 +116,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
 	if (!product) {
 		notFound();
 	}
+
+	const activePromotions = getActivePromotions(product);
 
 	// Fetch variations server-side and pass to client panel
 	const variations: WooCommerceVariation[] = await (async () => {
@@ -213,18 +218,30 @@ export default async function ProductPage({ params }: { params: { slug: string }
 				<div className="lg:col-span-2">
 					<ProductDetailPanel product={product} variations={variations} />
 				</div>
+				
 				{/* Right: Vertical placeholder (20%) */}
-				<div className="lg:col-span-1">
-					<div className="relative overflow-hidden rounded-xl border border-gray-200 aspect-[3/5] sm:aspect-[2/3] lg:h-[28rem]">
-						<Image 
-							src="https://picsum.photos/600/1200?random=31"
-							alt="Promotional"
-							fill
-							sizes="(max-width: 1024px) 100vw, 20vw"
-							className="object-cover"
-						/>
-					</div>
-				</div>
+				<div className="lg:col-span-1 product-page-promotion space-y-4">
+  {activePromotions.length > 0 ? (
+    activePromotions.map((promo: any, index: number) => (
+      <a
+        key={index}
+        href={promo.link?.url}
+        target={promo.link?.target || "_self"}
+        className="relative block overflow-hidden rounded-xl border border-gray-200 aspect-[3/5] sm:aspect-[2/3] lg:h-[28rem]"
+      >
+        <Image
+          src={promo.image?.url}
+          alt={promo.image?.alt || "Promotion"}
+          fill
+          sizes="(max-width: 1024px) 100vw, 20vw"
+          className="object-cover"
+          priority={index === 0}
+        />
+      </a>
+    ))
+  ) : null}
+</div>
+
 				</Container>
 
 			{/* Full-width description section */}
