@@ -55,7 +55,7 @@ export default function ProductsPage() {
 
   return (
     <>
-      <BreadcrumbStructuredData items={breadcrumbItems} />
+      {/* <BreadcrumbStructuredData items={breadcrumbItems} /> */}
       <ProductsPageClient />
     </>
   );
