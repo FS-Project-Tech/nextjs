@@ -1,17 +1,19 @@
-export function getActivePromotions(product: any) {
-    // WooCommerce categories
-    const productCategorySlugs =
-      product.categories?.map((cat: any) => cat.slug) || [];
-  
-    const promotions = product.acf?.promotional_section || [];
-  
-    return promotions.filter((promo: any) => {
-      const promoCategorySlugs =
-        promo.category?.map((cat: any) => cat.slug) || [];
-  
-      return promoCategorySlugs.some((slug: string) =>
-        productCategorySlugs.includes(slug)
-      );
-    });
-  }
-  
+// lib/getActivePromotions.ts
+export function getActivePromotions(
+  promotions: any[],
+  productCategoryIds: number[]
+) {
+  const matched = promotions.filter((promo) =>
+    promo.categories?.some((cat: any) =>
+      productCategoryIds.includes(cat.term_id)
+    )
+  );
+
+  // Category-specific promos first
+  if (matched.length > 0) return matched;
+
+  // Fallback to GENERAL (no category assigned)
+  return promotions.filter(
+    (promo) => !promo.categories || promo.categories.length === 0
+  );
+}

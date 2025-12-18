@@ -23,6 +23,9 @@ import CategoryBrandsSection from "@/components/CategoryBrandsSection";
 import { extractProductBrands } from "@/lib/utils/product";
 // import { sanitizeReview, stripHTML } from "@/lib/xss-sanitizer";
 import { getErrorMessage } from "@/lib/utils/errors";
+import { fetchProductSEO } from "@/lib/wordpress";
+import { fetchGlobalPromotions } from "@/lib/promotions";
+
 
 // ============================================================================
 // ISR Configuration - Revalidate product pages every 5 minutes
@@ -61,63 +64,67 @@ export async function generateStaticParams() {
   }
 }
 
-// Generate metadata for SEO
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-	const { slug } = await params;
-	const product = await fetchProductBySlug(slug).catch(() => null);
-	
-	if (!product) {
-		return {
-			title: 'Product Not Found',
-		};
+// Generate metadata for Yoast SEO
+
+export async function generateMetadata(
+	{ params }: { params: { slug: string } }
+  ): Promise<Metadata> {
+
+	const wpProduct = await fetchProductSEO(params.slug);
+  
+	const yoast = wpProduct?.yoast_head_json;
+  
+	if (!yoast) {
+	  return { title: wpProduct?.title?.rendered || "Product" };
 	}
-
-	const price = product.on_sale && product.sale_price 
-		? product.sale_price 
-		: product.price || product.regular_price;
-	
-	const imageUrl = product.images?.[0]?.src || '';
-	const description = product.short_description 
-		? product.short_description.replace(/<[^>]*>/g, '').substring(0, 160)
-		: `${product.name} - ${product.price ? `$${price}` : 'View product details'}`;
-
+  
 	return {
-		title: `${product.name} | WooCommerce Store`,
-		description: description,
-		openGraph: {
-			title: product.name,
-			description: description,
-			images: imageUrl ? [
-				{
-					url: imageUrl,
-					width: 1200,
-					height: 1200,
-					alt: product.images?.[0]?.alt || product.name,
-				}
-			] : [],
-			type: 'website',
-		},
-		twitter: {
-			card: 'summary_large_image',
-			title: product.name,
-			description: description,
-			images: imageUrl ? [imageUrl] : [],
-		},
-		alternates: {
-			canonical: `/products/${slug}`,
-		},
+	  title: yoast.title,
+	  description: yoast.description,
+	  openGraph: {
+		title: yoast.og_title,
+		description: yoast.og_description,
+		images: yoast.og_image?.map((img: any) => ({
+		  url: img.url,
+		  width: img.width,
+		  height: img.height,
+		})),
+	  },
+	  twitter: {
+		title: yoast.twitter_title,
+		description: yoast.twitter_description,
+		images: yoast.twitter_image ? [yoast.twitter_image] : [],
+	  },
+	  alternates: {
+		canonical: yoast.canonical,
+	  },
 	};
-}
+  }
+  
 
 export default async function ProductPage({ params }: { params: { slug: string } }) {
-	const { slug } = await params;
+	const { slug } = params;
 
 	const product = await fetchProductBySlug(slug).catch(() => null);
 	if (!product) {
 		notFound();
 	}
 
-	const activePromotions = getActivePromotions(product);
+	// 1. Fetch global promotions from ACF Options Page
+	const promotions = await fetchGlobalPromotions();
+
+	// 2. Get product category IDs
+	const productCategoryIds =
+	product.categories?.map((cat) => cat.id) || [];
+
+	// 3. Resolve active promotions (category → fallback)
+	const activePromotions = getActivePromotions(
+	promotions,
+	productCategoryIds
+	);
+
+	
+
 
 	// Fetch variations server-side and pass to client panel
 	const variations: WooCommerceVariation[] = await (async () => {
@@ -201,8 +208,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
 	return (
 		<>
 			{/* Structured Data for SEO */}
-			<ProductStructuredData product={product} />
-			<BreadcrumbStructuredData items={breadcrumbItems} />
+			{/* <ProductStructuredData product={product} />
+			<BreadcrumbStructuredData items={breadcrumbItems} /> */}
 			
 			<div className="min-h-screen py-12">
 				<Container>
@@ -221,26 +228,24 @@ export default async function ProductPage({ params }: { params: { slug: string }
 				
 				{/* Right: Vertical placeholder (20%) */}
 				<div className="lg:col-span-1 product-page-promotion space-y-4">
-  {activePromotions.length > 0 ? (
-    activePromotions.map((promo: any, index: number) => (
-      <a
-        key={index}
-        href={promo.link?.url}
-        target={promo.link?.target || "_self"}
-        className="relative block overflow-hidden rounded-xl border border-gray-200 aspect-[3/5] sm:aspect-[2/3] lg:h-[28rem]"
-      >
-        <Image
-          src={promo.image?.url}
-          alt={promo.image?.alt || "Promotion"}
-          fill
-          sizes="(max-width: 1024px) 100vw, 20vw"
-          className="object-cover"
-          priority={index === 0}
-        />
-      </a>
-    ))
-  ) : null}
-</div>
+					{activePromotions.map((promo: any, index: number) => (
+						<a
+						key={index}
+						href={promo.link?.url}
+						target={promo.link?.target || "_self"}
+						className="relative block overflow-hidden rounded-xl border border-gray-200 aspect-[3/5] lg:h-[28rem]"
+						>
+						<Image
+							src={promo.image?.url}
+							alt={promo.image?.alt || "Promotion"}
+							fill
+							className="object-cover"
+							priority={index === 0}
+						/>
+						</a>
+					))}
+				</div>
+
 
 				</Container>
 
