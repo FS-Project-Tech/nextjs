@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
@@ -9,6 +9,8 @@ import withAuth, { WithAuthProps } from '@/lib/withAuth';
 function MyAccountPage({ user }: WithAuthProps) {
   const { logout } = useAuth();
   const router = useRouter();
+
+  const [loggingOut, setLoggingOut] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -39,7 +41,8 @@ function MyAccountPage({ user }: WithAuthProps) {
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Role</dt>
                     <dd className="mt-1 text-sm text-gray-900">
-                      {user.roles.join(', ') || 'Customer'}
+                      {user.roles?.length ? user.roles.join(', ') : 'Customer'}
+
                     </dd>
                   </div>
                 </dl>
@@ -56,14 +59,23 @@ function MyAccountPage({ user }: WithAuthProps) {
                     Continue Shopping
                   </Link>
                   <button
+                    disabled={loggingOut}
                     onClick={async () => {
-                      await logout();
-                      router.push('/login');
+                      if (loggingOut) return; // extra safety
+                      setLoggingOut(true);
+
+                      try {
+                        await logout();
+                        router.push('/login');
+                      } finally {
+                        setLoggingOut(false);
+                      }
                     }}
-                    className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                    className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Sign Out
+                    {loggingOut ? 'Signing out...' : 'Sign Out'}
                   </button>
+
                 </div>
               </div>
             </div>

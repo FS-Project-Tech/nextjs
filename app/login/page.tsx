@@ -14,19 +14,29 @@ function LoginPageContent() {
   const params = useSearchParams();
   const { user, status } = useAuth();
 
+  // ✅ Secure redirect resolver
   const resolveRedirect = useCallback(() => {
     if (!params) return '/dashboard';
     const nextParam = params.get('next');
-    // Use secure redirect validation
     return validateNextParam(nextParam, ALLOWED_REDIRECT_PATHS, '/dashboard');
   }, [params]);
 
+  // ✅ Redirect authenticated users
   useEffect(() => {
-    if (status === 'authenticated' && user) {
-      router.replace(resolveRedirect());
-    }
-  }, [status, user, router, resolveRedirect]);
+    if (status !== 'authenticated' || !user) return;
+    router.replace(resolveRedirect());
+  }, [status, user, resolveRedirect]);
 
+  // ✅ Loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-gray-600 text-sm">Checking session…</p>
+      </div>
+    );
+  }
+
+  // ✅ Already authenticated fallback
   if (status === 'authenticated' && user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -35,6 +45,7 @@ function LoginPageContent() {
     );
   }
 
+  // ✅ Login form UI
   return (
     <div className="h-screen flex overflow-hidden bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Left side - Form */}
@@ -42,12 +53,8 @@ function LoginPageContent() {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome
-            </h1>
-            <p className="text-gray-600">
-              Sign in to your account to continue
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome</h1>
+            <p className="text-gray-600">Sign in to your account to continue</p>
           </div>
 
           {/* Login Form Card */}
@@ -59,7 +66,10 @@ function LoginPageContent() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link href="/register" className="font-semibold text-gray-900 hover:text-gray-700 transition-colors">
+              <Link
+                href="/register"
+                className="font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+              >
                 Create one now
               </Link>
             </p>
@@ -67,7 +77,7 @@ function LoginPageContent() {
 
           {/* Security Badge */}
           <div className="mt-8 flex items-center justify-center gap-2 text-xs text-gray-500">
-            <Shield className="w-4 h-4" />
+            <Shield className="w-4 h-4" aria-hidden="true" />
             <span>Secure login with encrypted connection</span>
           </div>
         </div>
@@ -85,13 +95,11 @@ function LoginPageContent() {
         />
         {/* Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-        
-        {/* Optional: Add some text overlay */}
+
+        {/* Optional: Add text overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-12 text-white">
           <div className="max-w-md">
-            <h2 className="text-3xl font-bold mb-3">
-              Secure & Fast Access
-            </h2>
+            <h2 className="text-3xl font-bold mb-3">Secure & Fast Access</h2>
             <p className="text-lg text-gray-200 leading-relaxed">
               Sign in to access your account and manage your orders and more
             </p>
@@ -104,14 +112,16 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <LoginPageContent />
     </Suspense>
   );
