@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 // Import ProductsPageClientWrapper - client component wrapper that handles dynamic import
 import ProductsPageClientWrapper from "@/components/ProductsPageClientWrapper";
-import { bgGradient } from "tailwindcss/defaultTheme";
+//  import { bgGradient } from "tailwindcss/defaultTheme";
 import ProductSection from "@/components/ProductSection";
 import RecommendedSection from "@/components/RecommendedSection";
 import CategoriesSection from "@/components/CategoriesSection";
