@@ -14,6 +14,7 @@ interface ProductSectionProps {
   title: string;
   subtitle?: string;
   viewAllHref: string;
+  bgClassName?: string; // Add this
   query?: {
     categorySlug?: string;
     orderby?: string;
@@ -26,6 +27,7 @@ export default async function ProductSection({
   title,
   subtitle,
   viewAllHref,
+  bgClassName, // Add this
   query,
 }: ProductSectionProps) {
   let categoryId: number | undefined;
@@ -85,6 +87,7 @@ export default async function ProductSection({
       subtitle={subtitle}
       viewAllHref={viewAllHref}
       products={products}
+      bgClassName={bgClassName} // Add this
     />
   );
 }
