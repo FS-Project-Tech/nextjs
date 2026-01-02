@@ -111,27 +111,28 @@ export default function AllCategoriesDrawer({ className = "" }: { className?: st
 
   const toggleExpand = useCallback(async (catId: number) => {
     setExpanded((prev) => ({ ...prev, [catId]: !prev[catId] }));
-    
-    // Check if already loaded
-    setChildrenMap((current) => {
-      if (current[catId]) return current;
-      
-      // Fetch children asynchronously
-      fetch(`/api/categories?per_page=100&parent=${catId}&hide_empty=true`)
-        .then((res) => res.json())
-        .then((data) => {
-          setChildrenMap((m) => ({ 
-            ...m, 
-            [catId]: Array.isArray(data) ? data : data.categories || [] 
-          }));
-        })
-        .catch(() => {
-          setChildrenMap((m) => ({ ...m, [catId]: [] }));
-        });
-      
-      return current;
-    });
-  }, []);
+  
+    // Already loaded → do nothing
+    if (childrenMap[catId]) return;
+  
+    try {
+      const res = await fetch(
+        `/api/categories?per_page=100&parent=${catId}&hide_empty=true`
+      );
+      const data = await res.json();
+  
+      setChildrenMap((prev) => ({
+        ...prev,
+        [catId]: Array.isArray(data) ? data : data.categories || [],
+      }));
+    } catch {
+      setChildrenMap((prev) => ({
+        ...prev,
+        [catId]: [],
+      }));
+    }
+  }, [childrenMap]);
+  
 
   return (
     <>

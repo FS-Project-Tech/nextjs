@@ -1,13 +1,19 @@
-import Link from "next/link";
-import ProductCard from "@/components/ProductCard";
-import { fetchCategoryBySlug, fetchProducts } from "@/lib/woocommerce";
+// app/components/ProductSection.tsx
+
 import ProductSectionWrapper from "@/components/ProductSectionWrapper";
+import { fetchCategoryBySlug, fetchProducts } from "@/lib/woocommerce";
+import { Product } from "@/lib/types/product";
+
+/**
+ * Revalidate this section every 5 minutes
+ * (Ideal for homepage / category sections)
+ */
+export const revalidate = 300;
 
 interface ProductSectionProps {
   title: string;
   subtitle?: string;
   viewAllHref: string;
-  bgClassName?: string; // e.g., 'bg-rose-50'
   query?: {
     categorySlug?: string;
     orderby?: string;
@@ -16,56 +22,69 @@ interface ProductSectionProps {
   };
 }
 
-export default async function ProductSection(props: ProductSectionProps) {
-  const { title, subtitle, viewAllHref, bgClassName, query } = props;
+export default async function ProductSection({
+  title,
+  subtitle,
+  viewAllHref,
+  query,
+}: ProductSectionProps) {
+  let categoryId: number | undefined;
+  let products: Product[] = [];
 
-  // Resolve category by slug if provided
-  let categoryId: string | undefined;
+  /**
+   * Resolve category ID (optional)
+   */
   if (query?.categorySlug) {
-    const cat = await fetchCategoryBySlug(query.categorySlug).catch(() => null);
-    if (cat) categoryId = String(cat.id);
+    try {
+      const category = await fetchCategoryBySlug(query.categorySlug);
+      if (category?.id) {
+        categoryId = category.id;
+      }
+    } catch {
+      // Silent fail — fallback handled below
+    }
   }
 
-  const products = await (async () => {
-    try {
-      const result = await fetchProducts({
-        per_page: 10,
-        category: categoryId,
-        orderby: query?.orderby,
-        order: query?.order,
-        featured: query?.featured,
-      });
-      
-      const fetchedProducts = result?.products || [];
-      if (fetchedProducts.length > 0) {
-        return fetchedProducts;
-      }
-    } catch (error) {
-      // Don't log here - errors are already logged by the interceptor
-      if (process.env.NODE_ENV === 'development' && !(error as any)?.response) {
-        console.error(`[ProductSection: ${title}] primary fetch error`, error);
-      }
-    }
+  /**
+   * Primary fetch
+   */
+  try {
+    const result = await fetchProducts({
+      per_page: 10,
+      category: categoryId,
+      orderby: query?.orderby,
+      order: query?.order,
+      featured: query?.featured,
+    });
 
-    // Fallback: fetch popular products to keep the section populated
+    products = result?.products ?? [];
+  } catch {
+    // Ignore — fallback below
+  }
+
+  /**
+   * Fallback: Popular products
+   */
+  if (products.length === 0) {
     try {
-      const result = await fetchProducts({
+      const fallback = await fetchProducts({
         per_page: 10,
         orderby: "popularity",
         order: "desc",
       });
-      return result?.products || [];
-    } catch (fallbackError) {
-      if (process.env.NODE_ENV === 'development' && !(fallbackError as any)?.response) {
-        console.error(`[ProductSection: ${title}] fallback fetch error`, fallbackError);
-      }
-      return [];
+
+      products = fallback?.products ?? [];
+    } catch {
+      products = [];
     }
-  })();
+  }
 
   return (
-    <ProductSectionWrapper title={title} subtitle={subtitle} viewAllHref={viewAllHref} products={products} />
+    <ProductSectionWrapper
+      title={title}
+      subtitle={subtitle}
+      viewAllHref={viewAllHref}
+      products={products}
+    />
   );
 }
-
-

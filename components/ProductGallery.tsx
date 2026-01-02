@@ -99,6 +99,8 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
                     fill
                     sizes="(max-width: 768px) 25vw, 12vw"
                     className="object-cover"
+                    loading="lazy"
+                    unoptimized
                   />
                 </div>
               </SwiperSlide>

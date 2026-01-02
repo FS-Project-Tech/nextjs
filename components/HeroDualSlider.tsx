@@ -75,7 +75,7 @@ export default function HeroDualSlider({
   };
 
   return (
-    <div className="hidden md:block mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
+    <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
       <div className="grid gap-4 md:grid-cols-4">
         <div className="md:col-span-3">
           <Swiper

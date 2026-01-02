@@ -32,8 +32,8 @@ export default function NDISCTASection() {
                 </h2>
                 <div className="space-y-4 text-gray-700">
                   <p className="text-lg leading-relaxed">
-                    <strong className="text-teal-600">NDIS</strong> stands for the{" "}
-                    <strong className="text-teal-600">National Disability Insurance Scheme</strong>.
+                    <strong className="text-ndis">NDIS</strong> stands for the{" "}
+                    <strong className="text-ndis">National Disability Insurance Scheme</strong>.
                   </p>
                   <p className="text-base leading-relaxed">
                     The NDIS is Australia's national scheme for supporting people with permanent and significant disability. 
@@ -50,7 +50,7 @@ export default function NDISCTASection() {
               <div className="mt-6">
                 <Link
                   href="/shop"
-                  className="inline-flex items-center justify-center rounded-lg bg-teal-600 px-8 py-4 text-base font-semibold text-white hover:bg-teal-700 transition-colors shadow-lg hover:shadow-xl"
+                  className="inline-flex items-center justify-center rounded-lg bg-ndis px-8 py-4 text-base font-semibold text-white hover:bg-teal-700 transition-colors shadow-lg hover:shadow-xl"
                 >
                   Shop Now
                   <svg
@@ -72,7 +72,7 @@ export default function NDISCTASection() {
               {/* Optional: NDIS Logo or Badge */}
               <div className="mt-6 flex items-center gap-2 text-sm text-gray-600">
                 <svg
-                  className="w-5 h-5 text-teal-600"
+                  className="w-5 h-5 text-ndis"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >

@@ -102,14 +102,14 @@ export default function ProductsSlider({ products: rawProducts, variant = 'defau
   // Desktop: Swiper carousel
   const swiperBreakpoints: Record<number, { slidesPerView: number; spaceBetween: number }> = variant === 'mini' 
     ? {
-        640: { slidesPerView: 2.75, spaceBetween: 12 },
-        768: { slidesPerView: 3.75, spaceBetween: 14 },
+        640: { slidesPerView: 1, spaceBetween: 12 },
+        768: { slidesPerView: 2, spaceBetween: 14 },
         1024: { slidesPerView: 5.5, spaceBetween: 16 },
         1280: { slidesPerView: 5.5, spaceBetween: 16 },
       }
     : {
-        640: { slidesPerView: 2.75, spaceBetween: 14 },
-        768: { slidesPerView: 3.75, spaceBetween: 16 },
+        640: { slidesPerView: 1, spaceBetween: 14 },
+        768: { slidesPerView: 2, spaceBetween: 16 },
         1024: { slidesPerView: 5.75, spaceBetween: 16 },
       };
 

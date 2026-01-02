@@ -131,3 +131,9 @@ body {
   width: 100%;
   display: flex;
 }
+.text-ndis{
+  color: #6a2875;
+}
+.bg-ndis{
+  background-color: #6a2875;
+}

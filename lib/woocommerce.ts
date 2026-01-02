@@ -395,7 +395,8 @@ export const fetchProducts = async (params?: {
   minPrice?: string;
   maxPrice?: string;
   sortBy?: string;
-  include?: number[];  // Fetch specific product IDs
+  include?: number[];
+  on_sale?: boolean;  // Fetch specific product IDs
 }): Promise<PaginatedProductResponse> => {
   try {
     // Clean up params

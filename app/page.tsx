@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 // Import ProductsPageClientWrapper - client component wrapper that handles dynamic import
 import ProductsPageClientWrapper from "@/components/ProductsPageClientWrapper";
-
+import { bgGradient } from "tailwindcss/defaultTheme";
 import ProductSection from "@/components/ProductSection";
 import RecommendedSection from "@/components/RecommendedSection";
 import CategoriesSection from "@/components/CategoriesSection";
@@ -34,7 +34,7 @@ import NDISCTASection from "@/components/NDISCTASection";
 import RecentlyViewedSection from "@/components/RecentlyViewedSection";
 import TrendingSection from "@/components/TrendingSection";
 import NewsletterSection from "@/components/NewsletterSection";
-import MedicalBackgroundPattern from "@/components/MedicalBackgroundPattern";
+// import MedicalBackgroundPattern from "@/components/MedicalBackgroundPattern";
 import AnimatedSection from "@/components/AnimatedSection";
 import HomePageClient from "@/components/HomePageClient";
 
@@ -72,7 +72,7 @@ export default async function Home({
       <HomePageClient continenceSlug={continenceSlug}>
       <div className="min-h-screen relative" suppressHydrationWarning>
       {/* Medical Background Pattern */}
-      <MedicalBackgroundPattern />
+      {/* <MedicalBackgroundPattern /> */}
       
       {/* Header dual sliders */}
       <AnimatedSection>
@@ -103,11 +103,11 @@ export default async function Home({
       </AnimatedSection>
 
       {/* Clearance products (on sale) */}
-      <AnimatedSection>
+      {/* <AnimatedSection>
         <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
           <TrendingSection />
         </Suspense>
-      </AnimatedSection>
+      </AnimatedSection> */}
 
       {/* Marketing & Updates Section */}
       <AnimatedSection>

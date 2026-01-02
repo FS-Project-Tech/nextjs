@@ -123,37 +123,37 @@ export default function Header() {
 
 
 	return (
-		<header className="bg-white" suppressHydrationWarning>
+		<header className="bg-white" role="banner" suppressHydrationWarning>
 			{/* Top tagline bar */}
 			
 			{/* Secondary tagline bar above searchbar */}
-			<div className="bg-teal-600 text-white py-2 px-4" suppressHydrationWarning>
+			<div className="head-section bg-teal-600 text-white py-2 px-4" role="region" aria-label="Tagline bar" suppressHydrationWarning>
 				<div className="mx-auto w-full sm:w-[85vw] flex items-center justify-between text-sm">
-					<div className="flex items-center">
+					<div className="flex items-center tagline-section">
 					{tagline ? (
-						<div className="bg-teal-600 text-center text-sm text-white py-1 px-2" suppressHydrationWarning>{tagline}</div>
+						<div className="bg-teal-600 text-center text-sm text-white py-1 px-2" role="heading" aria-level={2} aria-live="polite" suppressHydrationWarning>{tagline}</div>
 					) : null}
 					</div>
-					<div className="hidden lg:flex items-center gap-4">
+					<div className="hidden lg:flex items-center gap-4 nav-section" role="navigation" aria-label="Secondary navigation">
 						<PrefetchLink href="/ndis" critical className="hover:underline">NDIS</PrefetchLink>
-						<span>|</span>
+						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/health-professional" critical className="hover:underline">Health Professional</PrefetchLink>
-						<span>|</span>
+						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/nursing" critical className="hover:underline">Nursing</PrefetchLink>
-						<span>|</span>
+						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/catalogue" critical className="hover:underline">Catalogue</PrefetchLink>
 					</div>
 				</div>
 			</div>
-				<nav className="mx-auto w-full sm:w-[85vw] grid grid-cols-2 items-center gap-3 border-y border-gray-200 p-4 sm:px-6 lg:grid-cols-12 lg:px-8" aria-label="Global" suppressHydrationWarning>
+				<nav className="mx-auto w-full sm:w-[85vw] grid grid-cols-2 items-center gap-3 border-y border-gray-200 p-4 sm:px-6 lg:grid-cols-12 lg:px-8 navbar-section" aria-label="Primary Navigation" suppressHydrationWarning>
                 <div className="flex items-center gap-3 lg:col-span-2" suppressHydrationWarning>
-					<PrefetchLink href="/" critical className="-m-1.5 p-1.5 flex items-center gap-2">
+					<PrefetchLink href="/" critical className="-m-1.5 p-1.5 flex items-center gap-2" role="link" aria-label="Home">
 						<span className="sr-only">Joya Medical Supplies</span>
 						{logoUrl && logoUrl.trim() !== '' ? (
-							<div className="relative w-40 h-16 overflow-hidden rounded" suppressHydrationWarning>
+							<div className="relative w-40 h-16 overflow-hidden rounded" role="img" aria-label="Logo" suppressHydrationWarning>
 								<Image 
 									src={logoUrl} 
-									alt="Logo" 
+									alt={"Logo"} 
 									fill 
 									sizes="32px" 
 									className="object-contain"
@@ -168,7 +168,7 @@ export default function Header() {
 								/>
 							</div>
 						) : (
-							<div className="h-8 w-8 rounded bg-blue-600 text-white grid place-items-center font-bold" suppressHydrationWarning>W</div>
+							<div className="h-8 w-8 rounded bg-blue-600 text-white grid place-items-center font-bold" suppressHydrationWarning>Joya</div>
 						)} 
 						
 					</PrefetchLink>
@@ -196,10 +196,10 @@ export default function Header() {
 					
                 </div>
                 {/* Right: Icons */}
-					<div className="hidden lg:col-span-3 lg:flex lg:items-center lg:justify-end lg:gap-3" suppressHydrationWarning>
+					<div className="hidden lg:col-span-3 lg:flex lg:items-center lg:justify-end lg:gap-3 hotline-section" suppressHydrationWarning>
 					
 					
-					<div className="hidden items-center gap-2 md:flex" suppressHydrationWarning>
+					<div className="hidden items-center gap-2 md:flex phone" suppressHydrationWarning>
 						<svg viewBox="0 0 24 24" className="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 						<path d="M3 5a2 2 0 0 1 2-2h3.28a1 1 0 0 1 .948.684l1.498 4.493a1 1 0 0 1-.502 1.21l-2.257 1.13a11.042 11.042 0 0 0 5.516 5.516l1.13-2.257a1 1 0 0 1 1.21-.502l4.493 1.498a1 1 0 0 1 .684.949V19a2 2 0 0 1-2 2h-1C9.716 21 3 14.284 3 6V5z" />
 						</svg>
@@ -212,7 +212,7 @@ export default function Header() {
 						<PrefetchLink 
 							href="/dashboard/wishlist" 
 							aria-label="Wishlist" 
-							className="relative rounded p-2 text-gray-700 hover:bg-gray-100"
+							className="relative rounded p-2 text-gray-700 hover:bg-gray-100 wishlist-button" role="link"
 						>
 							<svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
 								<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
@@ -236,7 +236,7 @@ export default function Header() {
 								}
 							}} 
 							aria-label="Open cart" 
-							className="relative rounded p-2 text-gray-700 hover:bg-gray-100"
+							className="relative rounded p-2 text-gray-700 hover:bg-gray-100 mini-cart-button"
 							suppressHydrationWarning
 						>
 							<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">

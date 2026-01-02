@@ -250,7 +250,7 @@ function ProductCardComponent({
   // Render
   return (
     <article
-      className="group relative flex h-full flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="group relative flex h-[525px] flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
       style={{ contain: "layout style paint" }}
     >
       {/* Image Section */}
@@ -282,7 +282,7 @@ function ProductCardComponent({
         <div className="min-h-0 flex-1">
           <Link
             href={productUrl}
-            className={`block font-medium text-gray-900 line-clamp-2 transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline ${
+            className={`block font-medium text-gray-900 line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline ${
               compact ? "text-sm" : "text-sm md:text-base"
             }`}
             prefetch={false}
@@ -290,13 +290,19 @@ function ProductCardComponent({
             {name}
           </Link>
 
-          {sku && <p className="mt-1 text-xs text-gray-500 truncate">SKU: {sku}</p>}
+          <p className="mt-1 min-h-[1rem] text-xs text-gray-500 truncate">
+            {sku ? `SKU: ${sku}` : "\u00A0"}
+          </p>
 
-          {ratingData && <StarRating rating={ratingData} />}
+
+          <div className="min-h-[1.25rem]">
+            {ratingData && <StarRating rating={ratingData} />}
+          </div>
+
         </div>
 
         {/* Pricing */}
-        <div className="space-y-1">
+        <div className="space-y-1 min-h-[3.5rem]">
           {priceData.isOnSale && (
             <div className="flex items-center gap-2">
               <p className="text-xs text-gray-500 line-through">{priceData.formattedRegular}</p>
@@ -324,7 +330,7 @@ function ProductCardComponent({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-1">
+        <div className="mt-auto flex items-center gap-2 pt-2">
           <button
             type="button"
             onClick={handleAddToCart}

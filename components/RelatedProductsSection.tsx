@@ -3,17 +3,17 @@
 import dynamic from "next/dynamic";
 import ProductsSliderSkeleton from "@/components/skeletons/ProductsSliderSkeleton";
 import { ProductCardProduct } from "@/lib/types/product";
+import Link from "next/link";
 
-// Dynamically import ProductsSlider for client-side only
 const ProductsSlider = dynamic(() => import("@/components/ProductsSlider"), {
   loading: () => <ProductsSliderSkeleton />,
   ssr: false,
 });
 
-interface RelatedProductsSectionProps {
+export interface RelatedProductsSectionProps {
   title: string;
-  viewAllHref: string;
-  products: ProductCardProduct[] | null | undefined;
+  products: ProductCardProduct[];
+  viewAllHref?: string;
 }
 
 export default function RelatedProductsSection({
@@ -21,21 +21,21 @@ export default function RelatedProductsSection({
   viewAllHref,
   products,
 }: RelatedProductsSectionProps) {
-  if (!products || !Array.isArray(products) || products.length === 0) return null;
+  if (!products || products.length === 0) return null;
 
   return (
     <section>
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <a
-          href={viewAllHref}
-          className="text-sm font-medium text-blue-600 hover:text-blue-700"
-        >
-          View all
-        </a>
+
+        {viewAllHref && (
+          <Link href={viewAllHref} className="text-sm font-medium">
+            View all
+          </Link>
+        )}
       </div>
+
       <ProductsSlider products={products} variant="default" />
     </section>
   );
 }
-

@@ -1,17 +1,21 @@
 import { fetchProducts } from "@/lib/woocommerce";
-import TrendingSectionClient from "./TrendingSectionClient";
+import TrendingSectionClient from "@/components/TrendingSectionClient";
+import { ProductCardProduct } from "@/lib/types/product";
+
+export const revalidate = 300; // ISR – 5 minutes
 
 export default async function TrendingSection() {
-  let products: any[] = [];
+  let products: ProductCardProduct[] = [];
+
   try {
-    // Fetch more products to ensure we have enough on-sale items
-    const result = await fetchProducts({ per_page: 50, orderby: "popularity" as any });
-    const allProducts = result?.products || [];
-    // Filter to only show products that are on sale
-    products = allProducts.filter((product: any) => product.on_sale === true);
+    const result = await fetchProducts({
+      per_page: 12,
+      orderby: "popularity",
+      on_sale: true,
+    });
+
+    products = (result?.products || []) as ProductCardProduct[];
   } catch {}
-  
+
   return <TrendingSectionClient products={products} />;
 }
-
-

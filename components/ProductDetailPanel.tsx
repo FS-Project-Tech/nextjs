@@ -63,7 +63,7 @@ const attributes = useMemo(() => {
 	return (
 		<div className="space-y-6">
 			<div>
-				<h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+				<h1 id="product-details-heading" className="text-3xl font-bold text-gray-900">{product.name}</h1>
 				<div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-gray-500">
 					{currentSku || product.sku ? (
 						<span>SKU: {currentSku || product.sku}</span>

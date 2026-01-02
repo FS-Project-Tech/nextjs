@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import HeroDualSlider, { SliderImage } from './HeroDualSlider';
+import HeroDualSlider, { SliderImage } from '@/components/HeroDualSlider';
 import { getWpBaseUrl } from '@/lib/wp-utils';
 
 interface ACFImageField {

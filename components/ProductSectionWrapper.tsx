@@ -1,51 +1,54 @@
 "use client";
 
+// components/ProductSectionWrapper.tsx
+
 import Link from "next/link";
-import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
+import { motion } from "framer-motion";
+
 import AnimatedSection from "@/components/AnimatedSection";
 import Container from "@/components/Container";
 import ProductsSliderSkeleton from "@/components/skeletons/ProductsSliderSkeleton";
+import { Product } from "@/lib/types/product";
 
-// Dynamically import ProductsSlider - heavy component with Swiper
-const ProductsSlider = dynamic(() => import("@/components/ProductsSlider"), {
-  loading: () => <ProductsSliderSkeleton />,
-  ssr: false, // Client-side only for Swiper
-});
+// Client-only slider (Swiper safe)
+const ProductsSlider = dynamic(
+  () => import("@/components/ProductsSlider"),
+  {
+    ssr: false,
+    loading: () => <ProductsSliderSkeleton />,
+  }
+);
 
 interface ProductSectionWrapperProps {
   title: string;
   subtitle?: string;
   viewAllHref: string;
-  products: any[] | { products?: any[] } | null | undefined;
+  products: Product[];
 }
 
-export default function ProductSectionWrapper(props: ProductSectionWrapperProps) {
-  const { title, subtitle, viewAllHref, products: rawProducts } = props;
-  
-  // Normalize products to always be an array
-  const products = (() => {
-    if (!rawProducts) return [];
-    if (Array.isArray(rawProducts)) return rawProducts;
-    if (typeof rawProducts === 'object' && 'products' in rawProducts && Array.isArray(rawProducts.products)) {
-      return rawProducts.products;
-    }
-    return [];
-  })();
-
+export default function ProductSectionWrapper({
+  title,
+  subtitle,
+  viewAllHref,
+  products,
+}: ProductSectionWrapperProps) {
   return (
     <AnimatedSection>
-      <section className="mb-16" suppressHydrationWarning>
-        <Container className="py-6" suppressHydrationWarning>
+      <section className="mb-16">
+        <Container className="py-6">
+          {/* Header */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0, x: -16 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35 }}
             className="mb-3 flex items-center justify-between"
-            suppressHydrationWarning
           >
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              {title}
+            </h2>
+
             <Link
               href={viewAllHref}
               className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
@@ -53,6 +56,8 @@ export default function ProductSectionWrapper(props: ProductSectionWrapperProps)
               View all →
             </Link>
           </motion.div>
+
+          {/* Subtitle */}
           {subtitle && (
             <motion.p
               initial={{ opacity: 0 }}
@@ -60,14 +65,24 @@ export default function ProductSectionWrapper(props: ProductSectionWrapperProps)
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
               className="mb-6 text-sm text-gray-600"
-              suppressHydrationWarning
             >
               {subtitle}
             </motion.p>
           )}
 
-          {(!products || products.length === 0) ? (
-            <div className="rounded-lg bg-white p-8 text-center text-gray-600">No products found.</div>
+          {/* Content */}
+          {products.length === 0 ? (
+            <div className="rounded-lg border bg-white p-8 text-center">
+              <p className="mb-3 text-gray-600">
+                No products available at the moment.
+              </p>
+              <Link
+                href={viewAllHref}
+                className="inline-block text-sm font-medium text-blue-600 hover:underline"
+              >
+                Browse all products →
+              </Link>
+            </div>
           ) : (
             <ProductsSlider products={products} />
           )}
@@ -76,4 +91,3 @@ export default function ProductSectionWrapper(props: ProductSectionWrapperProps)
     </AnimatedSection>
   );
 }
-

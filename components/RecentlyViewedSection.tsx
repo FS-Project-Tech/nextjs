@@ -1,46 +1,93 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useMounted } from "@/hooks/useMounted";
-import { ProductCardProduct } from "@/lib/types/product";
+import { useEffect, useState } from "react";
 import ProductSectionCard from "@/components/ProductSectionCard";
+import { ProductCardProduct } from "@/lib/types/product";
 
-function getViewedIds(): number[] {
-  try {
-    if (typeof window === 'undefined') return [];
-    const raw = window.localStorage.getItem('_viewed_products');
-    const list: Array<{ id: number; cats: number[] }> = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list.map((x) => x.id) : [];
-  } catch { return []; }
+/* ============================================================================
+   Constants
+============================================================================ */
+
+const STORAGE_KEY = "_viewed_products";
+const MAX_STORAGE_ITEMS = 20;
+const FETCH_LIMIT = 10;
+
+/* ============================================================================
+   Types
+============================================================================ */
+
+interface ViewedProduct {
+  id: number;
+  cats?: number[];
 }
 
+/* ============================================================================
+   Helpers (SSR-safe)
+============================================================================ */
+
+function getRecentlyViewedIds(): number[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw) as ViewedProduct[];
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((item) => typeof item?.id === "number")
+      .map((item) => item.id)
+      .slice(0, MAX_STORAGE_ITEMS);
+  } catch {
+    return [];
+  }
+}
+
+/* ============================================================================
+   Component
+============================================================================ */
+
 export default function RecentlyViewedSection() {
-  const isMounted = useMounted();
-  const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<ProductCardProduct[]>([]);
-  const mountedRef = useRef(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isMounted) return;
-    mountedRef.current = true;
-    const ids = getViewedIds();
+    const ids = getRecentlyViewedIds().slice(0, FETCH_LIMIT);
     if (!ids.length) return;
-    (async () => {
-      try {
-        if (mountedRef.current) setLoading(true);
-        const res = await fetch(`/api/products-by-ids?ids=${ids.slice(0, 10).join(',')}`, { cache: 'no-store' });
-        const json = await res.json();
-        if (mountedRef.current) setProducts(json.products || []);
-      } catch {
-        if (mountedRef.current) setProducts([]);
-      } finally {
-        if (mountedRef.current) setLoading(false);
-      }
-    })();
-    return () => { mountedRef.current = false; };
-  }, [isMounted]);
 
-  if (!isMounted) return null;
+    const controller = new AbortController();
+
+    async function fetchProducts() {
+      try {
+        setLoading(true);
+
+        const res = await fetch(
+          `/api/products-by-ids?ids=${ids.join(",")}`,
+          {
+            signal: controller.signal,
+            cache: "no-store",
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch products");
+
+        const data = await res.json();
+        setProducts(Array.isArray(data?.products) ? data.products : []);
+      } catch (err) {
+        if (!(err instanceof DOMException)) {
+          setProducts([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProducts();
+    return () => controller.abort();
+  }, []);
+
   if (!loading && products.length === 0) return null;
 
   return (
@@ -54,5 +101,3 @@ export default function RecentlyViewedSection() {
     />
   );
 }
-
-
