@@ -250,13 +250,13 @@ function ProductCardComponent({
   // Render
   return (
     <article
-      className="group relative flex h-[525px] flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
       style={{ contain: "layout style paint" }}
     >
       {/* Image Section */}
       <Link
         href={productUrl}
-        className="block overflow-hidden rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+        className="block rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
         aria-label={`View ${name}`}
         prefetch={false}
       >
@@ -264,13 +264,12 @@ function ProductCardComponent({
           <Image
             src={imageSrc}
             alt={imageAlt || name}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-            className="object-cover transition-transform duration-300 will-change-transform group-hover:scale-105"
+            width={1000}
+            height={1000}
+            className="object-contain transition-transform duration-300 will-change-transform"
             loading={priority ? "eager" : "lazy"}
             priority={priority}
             onError={handleImageError}
-            quality={75}
           />
           {priceData.isOnSale && <DiscountBadge discount={priceData.discount} />}
         </div>
@@ -279,7 +278,7 @@ function ProductCardComponent({
       {/* Content Section */}
       <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-4"}`}>
         {/* Product Info */}
-        <div className="min-h-0 flex-1">
+        <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
           <Link
             href={productUrl}
             className={`block font-medium text-gray-900 line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline ${

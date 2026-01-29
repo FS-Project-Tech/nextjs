@@ -8,7 +8,7 @@ export default function NDISCTASection() {
 
   return (
     <section id="ndis" className="mb-16">
-      <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8" suppressHydrationWarning>
+      <div className="mx-auto container" suppressHydrationWarning>
         <div className="rounded-2xl overflow-hidden bg-gradient-to-r from-teal-50 to-blue-50 shadow-xl" suppressHydrationWarning>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" suppressHydrationWarning>
             {/* Left Side - Image */}

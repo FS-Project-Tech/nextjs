@@ -129,14 +129,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Validate current session
+   * Note: Only sets status to 'loading' on initial load, not on periodic checks
    */
-  const validateSession = useCallback(async () => {
+  const validateSession = useCallback(async (isInitialLoad = false) => {
     try {
-      setStatus('loading');
+      // Only set loading status on initial load to avoid UI flicker
+      if (isInitialLoad) {
+        setStatus('loading');
+      }
       setError(null);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000); // Increased timeout
 
       try {
         const response = await fetch('/api/auth/validate', {
@@ -171,8 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
 
         if (fetchError.name === 'AbortError' || controller.signal.aborted) {
-          setUser(null);
-          setStatus('unauthenticated');
+          // On timeout, keep existing state if we have a user, otherwise set unauthenticated
+          if (!user) {
+            setUser(null);
+            setStatus('unauthenticated');
+          }
           return;
         }
 
@@ -190,11 +197,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         setStatus('error');
       } else {
-        setUser(null);
-        setStatus('unauthenticated');
+        // On network error, keep existing state if we have a user
+        if (!user) {
+          setUser(null);
+          setStatus('unauthenticated');
+        }
       }
     }
-  }, [broadcastAuthChange]);
+  }, [broadcastAuthChange, user]);
 
   /**
    * Refresh session token
@@ -422,7 +432,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
-      validateSession();
+      validateSession(true); // Pass true for initial load
     }
   }, [validateSession]);
 

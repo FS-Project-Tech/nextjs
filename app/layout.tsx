@@ -128,7 +128,7 @@ export default function RootLayout({
                         <CategoriesNav />
                       </div>
                       <main suppressHydrationWarning>
-                        <div className="mx-auto w-full px-4 sm:px-6 md:w-[85vw] pb-16 md:pb-0" suppressHydrationWarning>
+                        <div className="container mx-auto" suppressHydrationWarning>
                           {children}
                         </div>
                       </main>

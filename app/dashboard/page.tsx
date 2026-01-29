@@ -79,7 +79,7 @@ function DashboardOverview({ user: authUser }: WithAuthProps) {
                 <div className="h-8 w-16 bg-gray-200 animate-pulse rounded mt-1"></div>
               ) : (
                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {customerData?.orders_count ?? 0}
+                  {customerData?.orders_count ?? customerData?.order_count ?? 0}
                 </p>
               )}
             </div>

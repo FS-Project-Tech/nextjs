@@ -44,8 +44,8 @@ async function CategoriesNavContent() {
   );
 
   return (
-    <nav className="border-b bg-white">
-      <div className="mx-auto w-full sm:w-[85vw] px-4 sm:px-6 lg:px-8">
+    <nav className="border-b bg-white hidden md:block">
+      <div className="container mx-auto w-full sm:w-[85vw]">
         <ul
           className="flex items-center gap-3 py-3 text-sm"
           aria-label="Category navigation"

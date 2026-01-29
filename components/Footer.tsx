@@ -1,76 +1,49 @@
-"use client";
-
+// components/Footer.tsx (Server Component)
 import PrefetchLink from "@/components/PrefetchLink";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { cache } from "react";
 
-export default function Footer() {
-	// Year is consistent between server and client during the same request
-	const currentYear = new Date().getFullYear();
-	
-	// Dynamic logo + site name with fallback
-	const [logoUrl, setLogoUrl] = useState<string | null>(process.env.NEXT_PUBLIC_FOOTER_LOGO || null);
-	const [siteName, setSiteName] = useState<string | null>(null);
-	const [isMounted, setIsMounted] = useState(false);
-	
-	useEffect(() => {
-		setIsMounted(true);
-		// Load footer data after initial render to avoid blocking
-		let isMounted = true;
-		
-		const timer = setTimeout(async () => {
-			try {
-				const { apiFetchJson } = await import('@/lib/api');
-				const { safeLogoUrl } = await import('@/lib/api-fallbacks');
-				
-				const json = await apiFetchJson<{
-					footerLogo?: string;
-					logo?: string;
-					siteName?: string;
-				}>('/api/cms/header', {
-					timeout: 5000,
-					retries: 2,
-					fallback: {
-						footerLogo: process.env.NEXT_PUBLIC_FOOTER_LOGO || process.env.NEXT_PUBLIC_HEADER_LOGO || null,
-						logo: process.env.NEXT_PUBLIC_HEADER_LOGO || null,
-						siteName: 'WooCommerce Store',
-					},
-					enableLogging: true,
-				});
-				
-				// Use footer logo specifically, fallback to header logo if not set
-				if (isMounted) {
-					const footerLogo = json.footerLogo || json.logo;
-					if (footerLogo) {
-						setLogoUrl(safeLogoUrl(footerLogo));
-					}
-					setSiteName(json.siteName || 'WooCommerce Store');
-				}
-			} catch (error) {
-				// Error already logged by apiFetch, use fallback
-				if (isMounted) {
-					const { safeLogoUrl } = await import('@/lib/api-fallbacks');
-					setLogoUrl(safeLogoUrl(process.env.NEXT_PUBLIC_FOOTER_LOGO || process.env.NEXT_PUBLIC_HEADER_LOGO || null));
-					setSiteName('WooCommerce Store');
-				}
-			}
-		}, 100); // Small delay to not block initial render
-		
-		return () => {
-			isMounted = false;
-			clearTimeout(timer);
-		};
-	}, []);
+const currentYear = new Date().getFullYear();
+
+// Cache the header data fetch
+const fetchHeaderData = cache(async () => {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_WORDPRESS_URL || process.env.WORDPRESS_URL;
+    if (!baseUrl) return null;
+    
+    const res = await fetch(`${baseUrl}/wp-json/acf/v3/options/options`, {
+      next: { revalidate: 3600 }, // Cache for 1 hour
+    });
+    
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      footerLogo: data?.acf?.footer_logo || data?.acf?.logo || process.env.NEXT_PUBLIC_FOOTER_LOGO,
+      siteName: data?.acf?.site_name || 'WooCommerce Store',
+    };
+  } catch {
+    return {
+      footerLogo: process.env.NEXT_PUBLIC_FOOTER_LOGO || process.env.NEXT_PUBLIC_HEADER_LOGO,
+      siteName: 'WooCommerce Store',
+    };
+  }
+});
+
+export default async function Footer() {
+  const headerData = await fetchHeaderData();
+  const logoUrl = headerData?.footerLogo || null;
+  const siteName = headerData?.siteName || 'WooCommerce Store';
+
 
 	return (
 		<footer className="text-white border-t border-teal-600" style={{ backgroundColor: '#1f605f' }} suppressHydrationWarning>
-			<div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8 py-16" suppressHydrationWarning>
+			<div className="py-16 container mx-auto" suppressHydrationWarning>
 				{/* 4 Column Layout */}
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12" suppressHydrationWarning>
 					{/* Column 1: Image/Logo */}
 					<div className="space-y-4" suppressHydrationWarning>
 						<div className="flex items-center" suppressHydrationWarning>
-							{isMounted && logoUrl ? (
+							{logoUrl ? (
 								<div className="relative w-full">
 									<Image 
 										src={logoUrl} 

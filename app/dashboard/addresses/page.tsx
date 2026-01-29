@@ -63,30 +63,32 @@ export default function DashboardAddresses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Addresses</h1>
           <p className="text-gray-600 mt-1">
             Manage multiple billing and shipping addresses. You can add as many addresses as you need for different locations.
           </p>
         </div>
         {!showAddForm && !editingAddress && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-shrink-0">
             <button
+              type="button"
               onClick={() => {
                 setDefaultAddressType('billing');
                 setShowAddForm(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
               Add Billing Address
             </button>
             <button
+              type="button"
               onClick={() => {
                 setDefaultAddressType('shipping');
                 setShowAddForm(true);
               }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
             >
               Add Shipping Address
             </button>
@@ -104,6 +106,7 @@ export default function DashboardAddresses() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Address</h2>
           <AddressForm
+            key={`add-${defaultAddressType}`}
             onSubmit={handleAdd}
             onCancel={() => setShowAddForm(false)}
             isLoading={isAdding}
@@ -116,6 +119,7 @@ export default function DashboardAddresses() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Address</h2>
           <AddressForm
+            key={`edit-${editingAddress.id}`}
             address={editingAddress}
             onSubmit={(address) => {
               if (editingAddress.id) {
@@ -133,8 +137,9 @@ export default function DashboardAddresses() {
           <span className="text-6xl mb-4 block">📍</span>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No addresses saved</h3>
           <p className="text-gray-600 mb-6">Add your first address to get started</p>
-          <div className="flex gap-2 justify-center">
+          <div className="flex gap-2 justify-center flex-wrap">
             <button
+              type="button"
               onClick={() => {
                 setDefaultAddressType('billing');
                 setShowAddForm(true);
@@ -144,6 +149,7 @@ export default function DashboardAddresses() {
               Add Billing Address
             </button>
             <button
+              type="button"
               onClick={() => {
                 setDefaultAddressType('shipping');
                 setShowAddForm(true);
@@ -154,7 +160,10 @@ export default function DashboardAddresses() {
             </button>
           </div>
         </div>
-      ) : (
+      ) : null}
+
+      {/* Address grid - always show when there are addresses and not in add/edit mode */}
+      {addresses.length > 0 && !showAddForm && !editingAddress && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {addresses.map((address) => {
             const isDefault = address.id === 'default-billing' || address.id === 'default-shipping';
@@ -186,6 +195,7 @@ export default function DashboardAddresses() {
                   {!isDefault && (
                     <div className="flex space-x-2">
                       <button
+                        type="button"
                         onClick={() => setEditingAddress(address)}
                         className="text-teal-600 hover:text-teal-700 text-sm font-medium"
                         disabled={isUpdating || isDeleting}
@@ -193,6 +203,7 @@ export default function DashboardAddresses() {
                         Edit
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(address.id!)}
                         className="text-red-600 hover:text-red-700 text-sm font-medium"
                         disabled={isUpdating || isDeleting}

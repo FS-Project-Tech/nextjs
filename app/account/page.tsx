@@ -1,14 +1,16 @@
 "use client";
-
+ 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import withAuth, { WithAuthProps } from '@/lib/withAuth';
-
+import { useCart } from "@/components/CartProvider";
+ 
 function AccountPage({ user }: WithAuthProps) {
   const { logout } = useAuth();
+   const { clear } = useCart();
   const router = useRouter();
-
+ 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -16,7 +18,7 @@ function AccountPage({ user }: WithAuthProps) {
           <div className="px-6 py-5 border-b border-gray-200">
             <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
           </div>
-          
+         
           <div className="px-6 py-5">
             <div className="space-y-6">
               {/* User Info */}
@@ -43,7 +45,7 @@ function AccountPage({ user }: WithAuthProps) {
                   </div>
                 </dl>
               </div>
-
+ 
               {/* Quick Actions */}
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -56,8 +58,8 @@ function AccountPage({ user }: WithAuthProps) {
                   </Link>
                   <button
                     onClick={async () => {
-                      await logout();
-                      router.push('/login');
+                      clear();            // 🔥 cart reset (fixes shared cart)
+                      await logout();     // 🔐 auth logout
                     }}
                     className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                   >
@@ -72,7 +74,6 @@ function AccountPage({ user }: WithAuthProps) {
     </div>
   );
 }
-
+ 
 // Export the protected component
 export default withAuth(AccountPage);
-

@@ -52,7 +52,7 @@ export default async function ProductSection({
    */
   try {
     const result = await fetchProducts({
-      per_page: 10,
+      per_page: 5,
       category: categoryId,
       orderby: query?.orderby,
       order: query?.order,
@@ -70,7 +70,7 @@ export default async function ProductSection({
   if (products.length === 0) {
     try {
       const fallback = await fetchProducts({
-        per_page: 10,
+        per_page: 5,
         orderby: "popularity",
         order: "desc",
       });

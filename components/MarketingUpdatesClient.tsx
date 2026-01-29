@@ -22,8 +22,8 @@ export default function MarketingUpdatesClient({
   updates: MarketingUpdate[];
 }) {
   return (
-    <section className="mb-10">
-      <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
+    <section className="mb-10 marketing-section">
+      <div className="mx-auto container">
         <div className="mb-4">
           <h2 className="text-2xl font-bold text-gray-900">
             Marketing & Updates

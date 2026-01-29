@@ -344,7 +344,7 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
   // Loading skeleton
   if (state.isInitialLoad && state.loading) {
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {Array.from({ length: 12 }, (_, i) => (
           <div key={i} className="animate-pulse">
             <div className="aspect-square rounded-lg bg-gray-200 mb-3" />
@@ -436,7 +436,7 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
         {state.products.map((product) => (
           <ProductCard
             key={product.id}

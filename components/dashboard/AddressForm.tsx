@@ -58,6 +58,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isLoading, de
     resolver: yupResolver(addressSchema) as any,
     mode: 'onSubmit',
     reValidateMode: 'onSubmit',
+    shouldUnregister: true,
     shouldFocusError: false,
     defaultValues: address || {
       type: defaultType,
@@ -296,6 +297,7 @@ export default function AddressForm({ address, onSubmit, onCancel, isLoading, de
       <div className="flex space-x-4 pt-4">
         <button
           type="submit"
+          onClick={() => setHasAttemptedSubmit(true)}
           disabled={isLoading}
           className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >

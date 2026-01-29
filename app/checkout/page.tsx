@@ -506,7 +506,7 @@ function CheckoutPageContent() {
 
   if (!isMounted) {
     return (
-      <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
+      <div className="container min-h-screen bg-gray-50 py-10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -517,8 +517,8 @@ function CheckoutPageContent() {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 py-10">
-        <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
+      <div className="container min-h-screen py-10">
+
           <div className="text-center py-20">
             <h1 className="text-2xl font-semibold mb-4">Your cart is empty</h1>
             <Link
@@ -528,14 +528,12 @@ function CheckoutPageContent() {
               Continue Shopping
             </Link>
           </div>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-10 container">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Checkout</h1>
           <Link
@@ -1165,7 +1163,6 @@ function CheckoutPageContent() {
             </div>
           </div>
         </form>
-      </div>
     </div>
   );
 }
@@ -1174,7 +1171,7 @@ export default function CheckoutPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
+        <div className="min-h-screen bg-gray-50 py-10 container flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
             <p className="mt-4 text-gray-600">Loading...</p>

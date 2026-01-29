@@ -8,7 +8,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import { useToast } from "@/components/ToastProvider";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/components/AuthProvider";	
 
 export default function Header() {
 	const [open, setOpen] = useState(false);
@@ -128,7 +128,7 @@ export default function Header() {
 			
 			{/* Secondary tagline bar above searchbar */}
 			<div className="head-section bg-teal-600 text-white py-2 px-4" role="region" aria-label="Tagline bar" suppressHydrationWarning>
-				<div className="mx-auto w-full sm:w-[85vw] flex items-center justify-between text-sm">
+				<div className="mx-auto w-full sm:w-[85vw] flex items-center justify-between text-sm container">
 					<div className="flex items-center tagline-section">
 					{tagline ? (
 						<div className="bg-teal-600 text-center text-sm text-white py-1 px-2" role="heading" aria-level={2} aria-live="polite" suppressHydrationWarning>{tagline}</div>
@@ -145,7 +145,7 @@ export default function Header() {
 					</div>
 				</div>
 			</div>
-				<nav className="mx-auto w-full sm:w-[85vw] grid grid-cols-2 items-center gap-3 border-y border-gray-200 p-4 sm:px-6 lg:grid-cols-12 lg:px-8 navbar-section" aria-label="Primary Navigation" suppressHydrationWarning>
+				<nav className="mx-auto w-full sm:w-[85vw] grid grid-cols-2 items-center gap-3 border-y border-gray-200 py-4 lg:grid-cols-12 container navbar-section" aria-label="Primary Navigation" suppressHydrationWarning>
                 <div className="flex items-center gap-3 lg:col-span-2" suppressHydrationWarning>
 					<PrefetchLink href="/" critical className="-m-1.5 p-1.5 flex items-center gap-2" role="link" aria-label="Home">
 						<span className="sr-only">Joya Medical Supplies</span>
@@ -192,7 +192,7 @@ export default function Header() {
 				</div>
                 {/* Center: Search + Hotline */}
                 <div className="hidden lg:col-span-7 lg:flex lg:items-center lg:gap-6" suppressHydrationWarning>
-					<SearchBar className="w-full max-w-xl" />
+					{/* <SearchBar className="w-full max-w-xl" /> */}
 					
                 </div>
                 {/* Right: Icons */}

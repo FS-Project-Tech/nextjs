@@ -34,7 +34,6 @@ import NDISCTASection from "@/components/NDISCTASection";
 import RecentlyViewedSection from "@/components/RecentlyViewedSection";
 import TrendingSection from "@/components/TrendingSection";
 import NewsletterSection from "@/components/NewsletterSection";
-// import MedicalBackgroundPattern from "@/components/MedicalBackgroundPattern";
 import AnimatedSection from "@/components/AnimatedSection";
 import HomePageClient from "@/components/HomePageClient";
 
@@ -138,7 +137,7 @@ export default async function Home({
       </AnimatedSection>
 
       {/* Interstitial CTA banner (hidden on mobile) */}
-      <div className="hidden sm:block mx-auto w-[85vw] px-4 sm:px-6 lg:px-8 mb-16">
+      <div className="hidden sm:block container mx-auto mb-16">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-gray-900 to-gray-700 p-8">
           <div className="max-w-xl">
             <h3 className="text-2xl font-bold text-white">Save more with bundles</h3>
@@ -160,7 +159,7 @@ export default async function Home({
       </Suspense>
 
       {/* Interstitial image/banner (hidden on mobile) */}
-      <div className="hidden sm:block mx-auto w-[85vw] px-4 sm:px-6 lg:px-8 mb-16">
+      <div className="hidden sm:block container mx-auto mb-16">
         <div className="relative overflow-hidden rounded-2xl">
           <img src="https://picsum.photos/1600/320?random=21" alt="Promotional banner" className="h-40 w-full object-cover" />
         </div>

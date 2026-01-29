@@ -42,7 +42,7 @@ export default function NewsletterSection() {
 
   return (
     <section className="mt-10">
-      <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto container">
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-600 to-blue-600 p-8 md:p-12">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">

@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
 
       // Fetch all pages of orders
       while (hasMorePages && page <= 10) { // Limit to 10 pages (1000 orders max)
-        const gatewayUrl = new URL(`${wpBase}/wp-json/api/v1/my-orders`);
+        const gatewayUrl = new URL(`${wpBase}/wp-json/wc/v3/orders?customer=${user.id}`);
         gatewayUrl.searchParams.set('per_page', perPage.toString());
         gatewayUrl.searchParams.set('page', page.toString());
 

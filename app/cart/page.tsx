@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
 import Image from "next/image";
 import { validateAccessToken, getStoredToken, getCartUrl } from "@/lib/access-token";
@@ -14,6 +14,7 @@ import { getDeliveryFrequencyLabel } from "@/lib/delivery-utils";
 
 function CartPageContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { items, updateItemQty, removeItem } = useCart();
   const [coupon, setCoupon] = useState<string>("");
@@ -50,7 +51,15 @@ function CartPageContent() {
     
     // Authorized - allow access
     setIsAuthorized(true);
-  }, [isMounted, searchParams, router, items.length]);
+    
+    // Remove token from URL after validation (clean URL)
+    if (searchParams.has("token")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("token");
+      const cleanUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+      router.replace(cleanUrl);
+    }
+  }, [isMounted, searchParams, router, items.length, pathname]);
 
   const subtotal = useMemo(() => calculateSubtotal(items), [items]);
 
@@ -75,19 +84,16 @@ function CartPageContent() {
   // Show loading if not mounted or not authorized
   if (!isMounted || !isAuthorized) {
     return (
-      <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
         <div className="text-center">
           <div className="text-gray-600 mb-2">Redirecting...</div>
           <div className="text-sm text-gray-500">Please add items to cart first</div>
         </div>
-      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
-        <h1 className="mb-6 text-2xl font-semibold">Shopping Cart</h1>
+      <div className="px-4 sm:px-6 lg:px-8">
+        <h1 className="mb-6 text-2xl font-semibold pt-4">Shopping Cart</h1>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Cart Items Section */}
@@ -265,7 +271,6 @@ function CartPageContent() {
           </div>
         </div>
       </div>
-    </div>
   );
 }
 

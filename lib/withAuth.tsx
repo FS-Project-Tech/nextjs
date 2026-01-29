@@ -121,8 +121,7 @@ function AuthLoadingSpinner({ message = 'Verifying authentication...' }: { messa
  * @returns Protected component with authentication check
  * 
  * Features:
- * - Validates authToken existence
- * - Checks token expiration via API
+ * - Uses AuthContext for authentication state (no duplicate API calls)
  * - Shows loading spinner during verification
  * - Redirects to login with 'next' parameter
  * - Passes user data to wrapped component
@@ -144,246 +143,51 @@ export default function withAuth<P extends object>(
     const router = useRouter();
     const pathname = usePathname();
     const { user, status, isLoading, validateSession } = useAuth();
-    const loading = isLoading;
-    const refresh = validateSession;
-    const [isVerifying, setIsVerifying] = useState(true);
-    const [verificationError, setVerificationError] = useState<string | null>(null);
-    const [hasTimedOut, setHasTimedOut] = useState(false);
-    const [retryKey, setRetryKey] = useState(0); // Force re-render on retry
-    const verificationInProgress = useRef(false);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const abortControllerRef = useRef<AbortController | null>(null);
+    const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+    const [roleError, setRoleError] = useState<string | null>(null);
+    const redirectedRef = useRef(false);
 
-    // Verify authentication and token validity
+    // Handle authentication state changes
     useEffect(() => {
-      // Prevent multiple concurrent verifications
-      if (verificationInProgress.current) {
+      // Skip if already redirected
+      if (redirectedRef.current) {
         return;
       }
 
-      const verifyAuth = async () => {
-        // Clean up any existing timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
+      // Wait for auth to finish loading
+      if (status === 'loading' || isLoading) {
+        return;
+      }
+
+      // Mark that we've checked auth
+      setHasCheckedAuth(true);
+
+      // Redirect if not authenticated
+      if (status === 'unauthenticated' || status === 'error' || !user) {
+        redirectedRef.current = true;
+        const currentPath = pathname || window.location.pathname;
+        const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
+        router.replace(redirectUrl);
+        return;
+      }
+
+      // Check role-based access if required
+      if (requireRoles.length > 0 && user.roles) {
+        const hasRequiredRole = requireRoles.some((role) =>
+          user.roles.includes(role)
+        );
+
+        if (!hasRequiredRole) {
+          setRoleError('You do not have permission to access this page.');
+          redirectedRef.current = true;
+          router.replace('/');
+          return;
         }
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
+      }
+    }, [user, status, isLoading, router, pathname, redirectTo, requireRoles]);
 
-        verificationInProgress.current = true;
-        setIsVerifying(true);
-        setVerificationError(null);
-        setHasTimedOut(false);
-
-        try {
-          // Immediate redirect if already unauthenticated (before any API calls)
-          if (status === 'unauthenticated') {
-            const currentPath = pathname || window.location.pathname;
-            const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-            router.replace(redirectUrl);
-            return;
-          }
-
-          // Wait for auth context to initialize (but with timeout)
-          if (status === 'loading') {
-            // Set a timeout for the loading state
-            timeoutRef.current = setTimeout(() => {
-              setHasTimedOut(true);
-              setIsVerifying(false);
-              setVerificationError('Page took too long to load. Please try again.');
-              verificationInProgress.current = false;
-            }, 5000);
-            // Don't return - let the effect re-run when status changes
-            // The cleanup will handle the timeout
-            verificationInProgress.current = false;
-            return;
-          }
-
-          // Check if user is authenticated
-          if (!user) {
-            const currentPath = pathname || window.location.pathname;
-            const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-            router.replace(redirectUrl);
-            return;
-          }
-
-          // Verify token is still valid by calling the API with timeout
-          const controller = new AbortController();
-          abortControllerRef.current = controller;
-
-          // Set 5-second timeout
-          timeoutRef.current = setTimeout(() => {
-            controller.abort();
-            setHasTimedOut(true);
-            setIsVerifying(false);
-            setVerificationError('Page took too long to load. Please try again.');
-            verificationInProgress.current = false;
-          }, 5000);
-
-          try {
-            const response = await fetch('/api/auth/me', {
-              method: 'GET',
-              credentials: 'include',
-              cache: 'no-store',
-              signal: controller.signal,
-            });
-
-            // Clear timeout on successful response
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = null;
-            }
-
-            if (!response.ok) {
-              // Token is invalid or expired
-              const currentPath = pathname || window.location.pathname;
-              const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-              router.replace(redirectUrl);
-              return;
-            }
-
-            const data = await response.json();
-            
-            // Check if user data is valid
-            if (!data?.user) {
-              const currentPath = pathname || window.location.pathname;
-              const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-              router.replace(redirectUrl);
-              return;
-            }
-
-            // Check role-based access if required
-            if (requireRoles.length > 0 && data.user.roles) {
-              const hasRequiredRole = requireRoles.some((role) =>
-                data.user.roles.includes(role)
-              );
-
-              if (!hasRequiredRole) {
-                setVerificationError('You do not have permission to access this page.');
-                router.replace('/');
-                return;
-              }
-            }
-
-            // All checks passed
-            setIsVerifying(false);
-            verificationInProgress.current = false;
-          } catch (error) {
-            // Clear timeout on error
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
-              timeoutRef.current = null;
-            }
-
-            // Handle abort (timeout)
-            const isAbort =
-              (error instanceof DOMException && error.name === 'AbortError') ||
-              (error instanceof Error && error.name === 'AbortError') ||
-              controller.signal.aborted;
-            if (isAbort) {
-              setHasTimedOut(true);
-              setVerificationError('Page took too long to load. Please try again.');
-              setIsVerifying(false);
-              verificationInProgress.current = false;
-              return;
-            }
-
-            console.error('Token verification error:', error);
-            // Network error or other issue - redirect to login
-            const currentPath = pathname || window.location.pathname;
-            const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-            router.replace(redirectUrl);
-          }
-        } catch (error) {
-          console.error('Auth verification error:', error);
-          const message = error instanceof Error ? error.message : 'Authentication verification failed';
-          setVerificationError(message);
-          setIsVerifying(false);
-          verificationInProgress.current = false;
-        }
-      };
-
-      verifyAuth();
-
-      // Cleanup function
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
-        verificationInProgress.current = false;
-      };
-    }, [user, status, router, pathname, redirectTo, requireRoles, retryKey]);
-
-    // Show timeout error state with retry
-    if (hasTimedOut || (verificationError && hasTimedOut)) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-          <div className="text-center max-w-md p-6">
-            <div className="mb-4">
-              <svg
-                className="mx-auto h-12 w-12 text-yellow-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Page Took Too Long to Load
-            </h2>
-            <p className="text-gray-600 mb-6">
-              {verificationError || 'The page took longer than expected to load. Please try again.'}
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={async () => {
-                  // Reset all state
-                  setHasTimedOut(false);
-                  setVerificationError(null);
-                  verificationInProgress.current = false;
-                  setIsVerifying(true);
-                  
-                  // Refresh auth context
-                  try {
-                    await refresh();
-                  } catch (error) {
-                    console.error('Failed to refresh auth:', error);
-                  }
-                  
-                  // Force re-render by updating retryKey to trigger useEffect
-                  setRetryKey(prev => prev + 1);
-                }}
-                className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-              >
-                Try Again
-              </button>
-              <button
-                onClick={() => {
-                  const currentPath = pathname || window.location.pathname;
-                  const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-                  router.replace(redirectUrl);
-                }}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Go to Login
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Show loading state (with timeout protection)
-    if (loading || isVerifying || status === 'loading') {
+    // Show loading state while auth is being checked
+    if (status === 'loading' || isLoading || !hasCheckedAuth) {
       if (fallback) {
         return <>{fallback}</>;
       }
@@ -393,8 +197,8 @@ export default function withAuth<P extends object>(
       return null;
     }
 
-    // Show other error states
-    if (verificationError) {
+    // Show role error
+    if (roleError) {
       return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50">
           <div className="text-center max-w-md p-6">
@@ -414,27 +218,23 @@ export default function withAuth<P extends object>(
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Authentication Error
+              Access Denied
             </h2>
-            <p className="text-gray-600 mb-6">{verificationError}</p>
+            <p className="text-gray-600 mb-6">{roleError}</p>
             <button
-              onClick={() => {
-                const currentPath = pathname || window.location.pathname;
-                const redirectUrl = `${redirectTo}?next=${encodeURIComponent(currentPath)}`;
-                router.replace(redirectUrl);
-              }}
+              onClick={() => router.replace('/')}
               className="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
             >
-              Go to Login
+              Go to Home
             </button>
           </div>
         </div>
       );
     }
 
-    // Check authentication status
-    if (status === 'unauthenticated' || !user) {
-      return null; // Will redirect in useEffect
+    // Check authentication status - if not authenticated, show nothing (redirect is happening)
+    if (status === 'unauthenticated' || status === 'error' || !user) {
+      return null;
     }
 
     // Render protected component with user prop
@@ -449,77 +249,57 @@ export default function withAuth<P extends object>(
 /**
  * Hook for protected pages (alternative to HOC)
  * Returns user data and handles redirects
+ * Uses AuthContext directly - no duplicate API calls
  */
 export function useProtectedPage(options: WithAuthOptions = {}) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, status, isLoading, validateSession } = useAuth();
-  const loading = isLoading;
-  const refresh = validateSession;
-  const [isVerifying, setIsVerifying] = useState(true);
+  const { user, status, isLoading } = useAuth();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const redirectedRef = useRef(false);
 
   const { redirectTo = '/login', requireRoles = [] } = options;
 
   useEffect(() => {
-    const verify = async () => {
-      if (status === 'loading') return;
+    // Skip if already redirected
+    if (redirectedRef.current) {
+      return;
+    }
 
-      if (status === 'unauthenticated' || !user) {
-        const currentPath = pathname || window.location.pathname;
-        router.replace(`${redirectTo}?next=${encodeURIComponent(currentPath)}`);
+    // Wait for auth to finish loading
+    if (status === 'loading' || isLoading) {
+      return;
+    }
+
+    // Mark that we've checked auth
+    setHasCheckedAuth(true);
+
+    // Redirect if not authenticated
+    if (status === 'unauthenticated' || status === 'error' || !user) {
+      redirectedRef.current = true;
+      const currentPath = pathname || window.location.pathname;
+      router.replace(`${redirectTo}?next=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+
+    // Check role-based access if required
+    if (requireRoles.length > 0 && user.roles) {
+      const hasRole = requireRoles.some((role) => user.roles.includes(role));
+      if (!hasRole) {
+        setError('Insufficient permissions');
+        redirectedRef.current = true;
+        router.replace('/');
         return;
       }
-
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
-          const currentPath = pathname || window.location.pathname;
-          router.replace(`${redirectTo}?next=${encodeURIComponent(currentPath)}`);
-          return;
-        }
-
-        const data = await response.json();
-        if (!data?.user) {
-          const currentPath = pathname || window.location.pathname;
-          router.replace(`${redirectTo}?next=${encodeURIComponent(currentPath)}`);
-          return;
-        }
-
-        if (requireRoles.length > 0 && data.user.roles) {
-          const hasRole = requireRoles.some((role) => data.user.roles.includes(role));
-          if (!hasRole) {
-            setError('Insufficient permissions');
-            router.replace('/');
-            return;
-          }
-        }
-
-        setIsVerifying(false);
-      } catch (err: any) {
-        console.error('Verification error:', err);
-        await refresh();
-        // After refresh, redirect if still unauthenticated
-        // We can't read status here due to React rules, so just redirect on error
-        const currentPath = pathname || window.location.pathname;
-        router.replace(`${redirectTo}?next=${encodeURIComponent(currentPath)}`);
-      } finally {
-        setIsVerifying(false);
-      }
-    };
-
-    verify();
-  }, [user, status, loading, router, pathname, redirectTo, requireRoles, refresh]);
+    }
+  }, [user, status, isLoading, router, pathname, redirectTo, requireRoles]);
 
   return {
     user,
-    loading: loading || isVerifying,
+    loading: status === 'loading' || isLoading || !hasCheckedAuth,
     error,
-    isAuthenticated: status === 'authenticated' && !!user && !isVerifying,
+    isAuthenticated: status === 'authenticated' && !!user && hasCheckedAuth,
   };
 }
 
