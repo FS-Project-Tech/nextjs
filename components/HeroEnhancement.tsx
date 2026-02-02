@@ -57,8 +57,12 @@ export default function HeroEnhancement() {
       </motion.div>
 
       <motion.div className="max-w-2xl mx-auto mb-8" variants={itemVariants}>
+<<<<<<< HEAD
         {/* SearchBar disabled - search UI temporarily off
         <SearchBar className="w-full" />
+=======
+        {/* <SearchBar className="w-full" /> */}
+>>>>>>> 38c972d24e0af2081dc488cb920e3f534b2b14ad
         <p className="text-xs text-gray-500 text-center mt-2">
           Search among 9,000+ trusted medical products
         </p>
