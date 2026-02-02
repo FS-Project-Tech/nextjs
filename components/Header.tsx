@@ -346,7 +346,9 @@ export default function Header() {
 				aria-hidden={!open}
 			>
                 <div className="space-y-4 p-4">
+						{/* SearchBar disabled - search UI temporarily off
 						<SearchBar />
+						*/}
                         <a href="tel:+1234567890" className="block text-sm text-gray-700">Hotline: +1 234 567 890</a>
                         <div className="flex flex-wrap gap-2 text-sm text-gray-700 border-b pb-3">
                             <PrefetchLink href="/ndis" critical className="hover:underline">NDIS</PrefetchLink>

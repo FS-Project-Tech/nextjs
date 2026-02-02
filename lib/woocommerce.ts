@@ -534,7 +534,10 @@ export const fetchProducts = async (params?: {
     if (params?.featured !== undefined) {
       cleanParams.featured = params.featured ? 1 : 0;
     }
-    
+    if (params?.on_sale === true) {
+      cleanParams.on_sale = true;
+    }
+
     // Handle include parameter (fetch specific product IDs)
     if (params?.include && params.include.length > 0) {
       cleanParams.include = params.include.join(',');

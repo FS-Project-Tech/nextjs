@@ -1,31 +1,31 @@
 import type { WooCommerceProduct, WooCommerceVariation } from "@/lib/woocommerce";
-
+ 
 export interface ProductBrandInfo {
   id?: number;
   name: string;
   slug?: string;
   image?: string;
 }
-
+ 
 // Extended product type with optional brands field
 interface ProductWithBrands extends WooCommerceProduct {
   brands?: Array<
     string | { id?: number; name?: string; slug?: string; image?: { src?: string } | string }
   >;
 }
-
+ 
 // Meta data item type
 interface MetaDataItem {
   key: string;
   value: unknown;
 }
-
+ 
 // Product attribute type
 interface ProductAttribute {
   name: string;
   options?: string[];
 }
-
+ 
 /**
  * Match a variation based on selected attributes
  */
@@ -41,7 +41,7 @@ export function matchVariation(
     ) || null
   );
 }
-
+ 
 /**
  * Find brand from product_brand taxonomy or attributes
  * WooCommerce REST API may include brands in the product response similar to categories
@@ -63,7 +63,7 @@ export function findBrand(product: WooCommerceProduct): string | null {
       return firstBrand.name;
     }
   }
-
+ 
   // Check meta_data for product_brand taxonomy data
   const metaData = product.meta_data as MetaDataItem[] | undefined;
   if (metaData && Array.isArray(metaData)) {
@@ -92,7 +92,7 @@ export function findBrand(product: WooCommerceProduct): string | null {
       }
     }
   }
-
+ 
   // Fallback: check attributes (for backward compatibility with attribute-based brands)
   const attributes = product.attributes as ProductAttribute[] | undefined;
   const attr = (attributes || []).find(
@@ -102,10 +102,10 @@ export function findBrand(product: WooCommerceProduct): string | null {
     const opts = attr.options || [];
     if (opts.length > 0) return opts[0];
   }
-
+ 
   return null;
 }
-
+ 
 /**
  * Extract all brand entries from a product.
  */
@@ -119,7 +119,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
     seen.add(key);
     brands.push(brand);
   };
-
+ 
   const productWithBrands = product as ProductWithBrands;
   if (Array.isArray(productWithBrands.brands)) {
     productWithBrands.brands.forEach((brand) => {
@@ -136,7 +136,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       });
     });
   }
-
+ 
   const metaData = product.meta_data as MetaDataItem[] | undefined;
   if (Array.isArray(metaData)) {
     metaData.forEach((meta) => {
@@ -169,7 +169,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       }
     });
   }
-
+ 
   // Fallback to attribute-based brands
   const attributes = product.attributes as ProductAttribute[] | undefined;
   (attributes || []).forEach((attr) => {
@@ -178,7 +178,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       opts.forEach((opt) => addBrand({ name: opt }));
     }
   });
-
+ 
   // If we still have no brands, use the first brand name
   if (brands.length === 0) {
     const single = findBrand(product);
@@ -186,17 +186,17 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       addBrand({ name: single });
     }
   }
-
+ 
   return brands;
 }
-
+ 
 /**
  * Case-insensitive string equality
  */
 export function eq(a?: string, b?: string): boolean {
   return (a || "").toLowerCase() === (b || "").toLowerCase();
 }
-
+ 
 /**
  * Check if all required attributes are selected
  */
@@ -206,4 +206,23 @@ export function isAllSelected(
 ): boolean {
   if (!attrs || attrs.length === 0) return true;
   return attrs.every((a) => !!selected[a.name]);
+}
+
+/**
+ * Calculate sale percentage from WooCommerce prices
+ * This is the ONLY reliable source of discount
+ */
+export function getSalePercentageFromProduct(product: {
+  on_sale?: boolean;
+  regular_price?: string;
+  sale_price?: string;
+}): number | null {
+  if (!product?.on_sale) return null;
+
+  const regular = parseFloat(product.regular_price || "0");
+  const sale = parseFloat(product.sale_price || "0");
+
+  if (!regular || !sale || sale >= regular) return null;
+
+  return Math.round(((regular - sale) / regular) * 100);
 }

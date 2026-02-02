@@ -18,6 +18,7 @@ export default function TrendingSectionClient({ products }: Props) {
       loading={false}
       variant="mini"
       bgColor="indigo"
+      viewAllHref="/clearance"
     />
   );
 }

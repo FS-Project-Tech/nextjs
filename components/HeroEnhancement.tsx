@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import SearchBar from "@/components/SearchBar";
+// import SearchBar from "@/components/SearchBar"; // Search UI disabled
 
 const floatingChips = [
   { label: "Gloves", emoji: "🧤", href: "/shop?category=gloves" },
@@ -57,10 +57,12 @@ export default function HeroEnhancement() {
       </motion.div>
 
       <motion.div className="max-w-2xl mx-auto mb-8" variants={itemVariants}>
+        {/* SearchBar disabled - search UI temporarily off
         <SearchBar className="w-full" />
         <p className="text-xs text-gray-500 text-center mt-2">
           Search among 9,000+ trusted medical products
         </p>
+        */}
       </motion.div>
 
       <motion.div

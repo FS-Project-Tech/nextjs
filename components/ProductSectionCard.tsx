@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import ProductsSliderSkeleton from "@/components/skeletons/ProductsSliderSkeleton";
 import Container from "@/components/Container";
@@ -20,6 +20,8 @@ interface ProductSectionCardProps {
   bgColor?: 'violet' | 'blue' | 'indigo' | 'rose' | 'sky' | 'emerald';
   emptyMessage?: string;
   className?: string;
+  /** Link for "View all" button (e.g. /clearance) */
+  viewAllHref?: string;
 }
 
 /**
@@ -35,6 +37,7 @@ export default function ProductSectionCard({
   bgColor = 'violet',
   emptyMessage = "No products found.",
   className = "",
+  viewAllHref,
 }: ProductSectionCardProps) {
   // Normalize products to always be an array
   const products = (() => {
@@ -70,6 +73,14 @@ export default function ProductSectionCard({
                 <p className="text-sm text-gray-600">{subtitle}</p>
               )}
             </div>
+            {viewAllHref && (
+              <Link
+                href={viewAllHref}
+                className="shrink-0 rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:border-indigo-300"
+              >
+                View all
+              </Link>
+            )}
           </div>
           {loading && products.length === 0 ? (
             <ProductsSliderSkeleton />

@@ -31,6 +31,8 @@ export interface ProductCardProps {
   priority?: boolean;
   /** Compact mode for smaller displays */
   compact?: boolean;
+  /** Sale/discount % from backend; shown in corner badge when on sale */
+  sale_percentage?: number | null;
 }
 
 interface PriceData {
@@ -40,6 +42,7 @@ interface PriceData {
   discount: number;
   savings: string;
   formattedRegular: string;
+  formattedRegularWithLabel: string;
   formattedCurrent: string;
   label: string;
   exclPrice: string | null;
@@ -65,6 +68,7 @@ const STAR_ICON_PATH = "M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.564-.954L10 0l
 // Helper Functions (outside component to avoid recreation)
 // ============================================================================
 
+
 function calculatePriceData(
   price: string,
   salePrice?: string,
@@ -73,30 +77,39 @@ function calculatePriceData(
   taxClass?: string,
   taxStatus?: string
 ): PriceData {
-  const regular = parseFloat(regularPrice || "0") || 0;
-  const sale = parseFloat(salePrice || price || "0") || 0;
-  const current = sale || 0;
-  const isOnSale = Boolean(onSale && regular > 0 && sale > 0 && sale < regular);
-  const discount = isOnSale ? Math.round(((regular - sale) / regular) * 100) : 0;
+  const regular = regularPrice ? parseFloat(regularPrice) : 0;
+  const sale = salePrice ? parseFloat(salePrice) : 0;
+
+  const current = sale > 0 ? sale : parseFloat(price || "0");
+
+  const isOnSale =
+    regular > 0 &&
+    sale > 0 &&
+    sale < regular;
+
+  const discount = isOnSale
+    ? Math.round(((regular - sale) / regular) * 100)
+    : 0;
+
   const savingsAmount = isOnSale ? regular - sale : 0;
   const savings = savingsAmount > 0 ? `$${savingsAmount.toFixed(2)}` : "";
 
-  let formattedPrice = "$0.00";
+  let formattedPrice = `$${current.toFixed(2)}`;
   let label = "Price";
   let exclPrice: string | null = null;
   let isGstFree = false;
-  
-  if (current > 0) {
-    try {
-      const priceInfo = formatPriceWithLabel(current, taxClass, taxStatus);
-      formattedPrice = priceInfo.price;
-      label = priceInfo.label || "Price";
-      exclPrice = priceInfo.exclPrice || null;
-      isGstFree = priceInfo.taxType === "gst_free";
-    } catch {
-      formattedPrice = `$${current.toFixed(2)}`;
-    }
-  }
+
+  let formattedRegularWithLabel = `$${regular.toFixed(2)}`;
+  try {
+    const priceInfo = formatPriceWithLabel(current, taxClass, taxStatus);
+    formattedPrice = priceInfo.price;
+    label = priceInfo.label || label;
+    exclPrice = priceInfo.exclPrice || null;
+    isGstFree = priceInfo.taxType === "gst_free";
+    const regularInfo = formatPriceWithLabel(regular, taxClass, taxStatus);
+    formattedRegularWithLabel =
+      regularInfo.label ? `${regularInfo.label}: ${regularInfo.price}` : regularInfo.price;
+  } catch {}
 
   return {
     regular,
@@ -105,12 +118,14 @@ function calculatePriceData(
     discount,
     savings,
     formattedRegular: `$${regular.toFixed(2)}`,
+    formattedRegularWithLabel,
     formattedCurrent: formattedPrice,
     label,
     exclPrice,
     isGstFree,
   };
 }
+
 
 function calculateRatingData(ratingCount?: number, averageRating?: string): RatingData | null {
   const count = Number(ratingCount || 0);
@@ -146,16 +161,26 @@ const StarRating = memo(function StarRating({ rating }: { rating: RatingData }) 
   );
 });
 
-const DiscountBadge = memo(function DiscountBadge({ discount }: { discount: number }) {
+const DiscountBadge = memo(function DiscountBadge({
+  discount,
+  saleOnly,
+}: {
+  discount: number;
+  saleOnly?: boolean;
+}) {
+  const showPercent = discount > 0;
+  const showSale = saleOnly && discount <= 0;
+  if (!showPercent && !showSale) return null;
   return (
     <span
-      className="absolute left-2 top-2 z-10 rounded-md bg-red-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm"
-      aria-label={`${discount}% off`}
+      className="absolute right-2 top-2 z-10 rounded-md bg-red-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+      aria-label={showPercent ? `${discount}% off` : "On sale"}
     >
-      -{discount}%
+      {showPercent ? `${discount}% OFF` : "Sale"}
     </span>
   );
 });
+
 
 const LoadingSpinner = memo(function LoadingSpinner() {
   return (
@@ -187,7 +212,9 @@ function ProductCardComponent({
   rating_count,
   priority = false,
   compact = false,
+  sale_percentage: salePercentageFromBackend,
 }: ProductCardProps) {
+
   // Hooks
   const { addItem, open: openCart } = useCart();
   const { success, error: showError } = useToast();
@@ -271,7 +298,22 @@ function ProductCardComponent({
             priority={priority}
             onError={handleImageError}
           />
-          {priceData.isOnSale && <DiscountBadge discount={priceData.discount} />}
+          {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
+          priceData.isOnSale ||
+          on_sale ? (
+            <DiscountBadge
+              discount={
+                salePercentageFromBackend != null && salePercentageFromBackend > 0
+                  ? salePercentageFromBackend
+                  : priceData.discount
+              }
+              saleOnly={
+                on_sale &&
+                !priceData.isOnSale &&
+                (salePercentageFromBackend == null || salePercentageFromBackend <= 0)
+              }
+            />
+          ) : null}
         </div>
       </Link>
 
@@ -303,8 +345,8 @@ function ProductCardComponent({
         {/* Pricing */}
         <div className="space-y-1 min-h-[3.5rem]">
           {priceData.isOnSale && (
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-gray-500 line-through">{priceData.formattedRegular}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularWithLabel}</p>
               <span className="text-xs font-semibold text-green-600">
                 Save {priceData.savings}
               </span>
@@ -360,6 +402,7 @@ function ProductCardComponent({
   );
 }
 
+
 // ============================================================================
 // Export with memo + custom comparison
 // ============================================================================
@@ -381,7 +424,8 @@ function propsAreEqual(prev: ProductCardProps, next: ProductCardProps): boolean 
     prev.average_rating === next.average_rating &&
     prev.rating_count === next.rating_count &&
     prev.priority === next.priority &&
-    prev.compact === next.compact
+    prev.compact === next.compact &&
+    prev.sale_percentage === next.sale_percentage
   );
 }
 

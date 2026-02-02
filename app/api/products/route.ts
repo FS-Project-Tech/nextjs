@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchProducts } from '@/lib/woocommerce';
+import { fetchProducts, fetchProduct, fetchProductVariations } from '@/lib/woocommerce';
+import type { WooCommerceProduct } from '@/lib/woocommerce';
 import {
   cached,
   productsKey,
@@ -113,6 +114,12 @@ export async function GET(request: NextRequest) {
       params.featured = true;
     }
 
+    // On sale (clearance)
+    const onSale = searchParams.get('on_sale');
+    if (onSale === 'true' || onSale === '1') {
+      params.on_sale = true;
+    }
+
     // Include product IDs
     const include = searchParams.get('include');
     if (include) {
@@ -154,7 +161,71 @@ export async function GET(request: NextRequest) {
 
     const result = await cached(
       cacheKey,
-      () => fetchProducts(stableParams),
+      async () => {
+        const raw = await fetchProducts(stableParams);
+        if (!stableParams.on_sale || !raw?.products?.length) {
+          return raw;
+        }
+        const enrichedProducts = await Promise.all(
+          raw.products.map(async (p: WooCommerceProduct) => {
+            const hasPrices =
+              p.regular_price != null &&
+              p.regular_price !== '' &&
+              p.sale_price != null &&
+              p.sale_price !== '';
+            if (hasPrices) return p;
+            try {
+              const full = await fetchProduct(p.id);
+              const fullAny = full as unknown as Record<string, unknown>;
+              let regular =
+                full.regular_price != null && full.regular_price !== ''
+                  ? String(full.regular_price)
+                  : p.regular_price;
+              let sale =
+                full.sale_price != null && full.sale_price !== ''
+                  ? String(full.sale_price)
+                  : p.sale_price;
+              const displayPrice =
+                full.price != null && full.price !== '' ? String(full.price) : p.price;
+
+              if (
+                (!regular || !sale) &&
+                fullAny.type === 'variable' &&
+                Array.isArray(fullAny.variations) &&
+                (fullAny.variations as number[]).length > 0
+              ) {
+                try {
+                  const variations = await fetchProductVariations(p.id, {
+                    per_page: 50,
+                    page: 1,
+                  });
+                  const onSaleVar = variations.find((v) => v.on_sale && v.regular_price && v.sale_price);
+                  const v = onSaleVar ?? variations[0];
+                  if (v) {
+                    if (v.regular_price) regular = String(v.regular_price);
+                    if (v.sale_price) sale = String(v.sale_price);
+                  }
+                } catch {
+                  // keep existing
+                }
+              }
+
+              return {
+                ...p,
+                regular_price: regular ?? p.regular_price,
+                sale_price: sale ?? p.sale_price,
+                price: displayPrice ?? p.price,
+              };
+            } catch {
+              return p;
+            }
+          })
+        );
+        return {
+          ...raw,
+          products: enrichedProducts,
+        };
+      },
       {
         ttl: CACHE_TTL.PRODUCTS,
         tags: [CACHE_TAGS.PRODUCTS],

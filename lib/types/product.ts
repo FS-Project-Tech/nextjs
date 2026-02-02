@@ -13,6 +13,8 @@ export interface ProductCardProduct {
   regular_price?: string;
   sale_price?: string;
   on_sale?: boolean;
+  /** Sale/discount percentage from backend (meta or description). Shown on card when set. */
+  sale_percentage?: number | null;
   tax_class?: string;
   tax_status?: string;
   average_rating?: string;

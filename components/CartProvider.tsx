@@ -62,12 +62,22 @@ export default function CartProvider({
  
 useEffect(() => {
   if (typeof window === "undefined") return;
- 
+
   try {
     const raw = localStorage.getItem(cartKey);
+
     if (raw) {
       const parsed = JSON.parse(raw);
-      setItems(Array.isArray(parsed) ? parsed : []);
+
+      setItems(
+        Array.isArray(parsed)
+          ? parsed.map((item) => ({
+              ...item,
+              // 🔥 normalize price so Woo sale price always wins
+              price: Number(item.price).toFixed(2),
+            }))
+          : []
+      );
     } else {
       setItems([]);
     }
@@ -77,6 +87,7 @@ useEffect(() => {
     setIsHydrated(true);
   }
 }, [cartKey]);
+
  
   // 💾 Persist cart (only when logged in)
   useEffect(() => {
@@ -89,9 +100,8 @@ useEffect(() => {
     } catch {}
   }, [items, isHydrated, cartKey, user?.id]);
  
-  const open = useCallback(() => {
-    if (items.length > 0) setIsOpen(true);
-  }, [items.length]);
+
+  
  
   const close = useCallback(() => setIsOpen(false), []);
  
@@ -175,9 +185,17 @@ const addItem = useCallback(
           setItems((prev) =>
             prev.map((item) => {
               const updatedPrice = priceMap.get(item.id);
-              return updatedPrice ? { ...item, price: updatedPrice } : item;
+          
+              if (updatedPrice === undefined) return item;
+          
+              return {
+                ...item,
+                // 🔥 force Woo price + correct decimals
+                price: Number(updatedPrice).toFixed(2),
+              };
             })
           );
+          
         }
       } catch (error) {
         const message =
@@ -193,6 +211,14 @@ const addItem = useCallback(
     [items]
   );
  
+  const open = useCallback(() => {
+    if (items.length > 0) {
+      setIsOpen(true);
+      syncWithWooCommerce().catch(() => {});
+    }
+  }, [items.length, syncWithWooCommerce]);
+  
+  
   const validateCart = useCallback(async () => {
     if (items.length === 0) return { valid: true, errors: [] };
  

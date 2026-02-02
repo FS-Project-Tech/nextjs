@@ -3,9 +3,12 @@
 import { useEffect, useState, useRef, useMemo, useReducer } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
+import { getSalePercentageFromProduct } from "@/lib/utils/product";
 
 interface ProductGridProps {
   categorySlug?: string;
+  /** When true, only fetch products on sale (clearance page) */
+  onSaleOnly?: boolean;
 }
 
 interface Product {
@@ -17,11 +20,15 @@ interface Product {
   sale_price?: string;
   regular_price?: string;
   on_sale?: boolean;
+  sale_percentage?: number | null;
   tax_class?: string;
   tax_status?: string;
   average_rating?: string;
   rating_count?: number;
   images?: Array<{ src: string; alt?: string }>;
+  meta_data?: Array<{ key?: string; value?: unknown }>;
+  description?: string;
+  short_description?: string;
 }
 
 interface GridState {
@@ -91,7 +98,7 @@ function gridReducer(state: GridState, action: GridAction): GridState {
   }
 }
 
-export default function ProductGrid({ categorySlug }: ProductGridProps) {
+export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [state, dispatch] = useReducer(gridReducer, initialState);
@@ -122,9 +129,10 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
     if (maxPrice) params.maxPrice = maxPrice;
     if (sortBy) params.sortBy = sortBy;
     if (search) params.search = search.trim();
+    if (onSaleOnly) params.on_sale = "true";
     
     return params;
-  }, [categorySlug, searchParams]);
+  }, [categorySlug, searchParams, onSaleOnly]);
 
   // Fetch products with abort support
   const fetchProducts = async (pageNum: number, append: boolean = false) => {
@@ -448,6 +456,7 @@ export default function ProductGrid({ categorySlug }: ProductGridProps) {
             sale_price={product.sale_price}
             regular_price={product.regular_price}
             on_sale={product.on_sale}
+            sale_percentage={product.sale_percentage ?? getSalePercentageFromProduct(product) ?? undefined}
             tax_class={product.tax_class}
             tax_status={product.tax_status}
             average_rating={product.average_rating}

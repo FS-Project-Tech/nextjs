@@ -1,7 +1,6 @@
 "use client";
 
 import { algoliasearch } from "algoliasearch";
-// import AlgoliaHitWrapper from "@/components/AlgoliaHitWrapper";
 import {
   InstantSearch,
   SearchBox,
@@ -15,8 +14,13 @@ const searchClient = algoliasearch(
   process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
 );
 
-export default function ProductSearch() {
+interface SearchBarProps {
+  className?: string;
+}
+
+export default function ProductSearch({ className }: SearchBarProps) {
   return (
+    <div className={className}>
     <InstantSearch
       searchClient={searchClient}
       indexName="wp_searchable_posts"
@@ -26,7 +30,6 @@ export default function ProductSearch() {
       <RefinementList attribute="categories" />
 
       <Hits
-        // hitComponent={AlgoliaHitWrapper}
         classNames={{
           list: "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6",
           item: "h-full"
@@ -36,5 +39,6 @@ export default function ProductSearch() {
 
       <Pagination />
     </InstantSearch>
+    </div>
   );
 }
