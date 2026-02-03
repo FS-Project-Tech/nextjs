@@ -49,10 +49,8 @@ export default function ProductsSlider({ products: rawProducts, variant = 'defau
     />
   );
 
-  // Grid layout: equal-height rows so cards align and don't crop
-  const gridClass = variant === 'mini' 
-    ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-4 items-stretch"
-    : "grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 items-stretch";
+  // Grid layout: 4 cards per row (like Clearance section) — 2 cols on mobile, 4 cols from md up
+  const gridClass = "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 items-stretch";
 
   return (
     <div className={gridClass}>

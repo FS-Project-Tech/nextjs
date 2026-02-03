@@ -37,11 +37,13 @@ const mapToProductCardProducts = (items: unknown[]): ProductCardProduct[] => {
     }));
 };
 
+const RECOMMENDED_SECTION_SIZE = 4;
+
 const fetchFallbackProducts = async (
   signal: AbortSignal
 ): Promise<ProductCardProduct[]> => {
   const res = await fetch(
-    "/api/products?per_page=10&sortBy=popularity",
+    `/api/products?per_page=${RECOMMENDED_SECTION_SIZE}&sortBy=popularity`,
     {
       signal,
       next: { revalidate: 300 },
@@ -50,7 +52,7 @@ const fetchFallbackProducts = async (
 
   if (!res.ok) return [];
   const data = await res.json();
-  return mapToProductCardProducts(data.products).slice(0, 10);
+  return mapToProductCardProducts(data.products).slice(0, RECOMMENDED_SECTION_SIZE);
 };
 
 /* ================================
@@ -84,7 +86,7 @@ export default function RecommendedSection() {
 
           if (res.ok) {
             const data = await res.json();
-            recommended = mapToProductCardProducts(data.products);
+            recommended = mapToProductCardProducts(data.products).slice(0, RECOMMENDED_SECTION_SIZE);
           }
         }
 
@@ -116,8 +118,9 @@ export default function RecommendedSection() {
       subtitle="Based on your recent searches"
       products={products}
       loading={loading}
-      variant="default"
+      variant="mini"
       bgColor="violet"
+      viewAllHref="/recommended?sortBy=popularity"
     />
   );
 }

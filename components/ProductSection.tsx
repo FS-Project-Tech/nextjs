@@ -1,6 +1,6 @@
 // app/components/ProductSection.tsx
 
-import ProductSectionWrapper from "@/components/ProductSectionWrapper";
+import ProductSectionCard from "@/components/ProductSectionCard";
 import { fetchCategoryBySlug, fetchProducts } from "@/lib/woocommerce";
 import { Product } from "@/lib/types/product";
 
@@ -10,11 +10,23 @@ import { Product } from "@/lib/types/product";
  */
 export const revalidate = 300;
 
+const SECTION_SIZE = 4;
+
+function bgClassNameToColor(bgClassName?: string): "violet" | "blue" | "indigo" | "rose" | "sky" | "emerald" {
+  if (!bgClassName) return "violet";
+  if (bgClassName.includes("rose")) return "rose";
+  if (bgClassName.includes("sky")) return "sky";
+  if (bgClassName.includes("emerald")) return "emerald";
+  if (bgClassName.includes("indigo")) return "indigo";
+  if (bgClassName.includes("blue")) return "blue";
+  return "violet";
+}
+
 interface ProductSectionProps {
   title: string;
   subtitle?: string;
   viewAllHref: string;
-  bgClassName?: string; // Add this
+  bgClassName?: string;
   query?: {
     categorySlug?: string;
     orderby?: string;
@@ -27,54 +39,41 @@ export default async function ProductSection({
   title,
   subtitle,
   viewAllHref,
-  bgClassName, // Add this
+  bgClassName,
   query,
 }: ProductSectionProps) {
   let categoryId: number | undefined;
   let products: Product[] = [];
 
-  /**
-   * Resolve category ID (optional)
-   */
   if (query?.categorySlug) {
     try {
       const category = await fetchCategoryBySlug(query.categorySlug);
-      if (category?.id) {
-        categoryId = category.id;
-      }
+      if (category?.id) categoryId = category.id;
     } catch {
-      // Silent fail — fallback handled below
+      // fallback below
     }
   }
 
-  /**
-   * Primary fetch
-   */
   try {
     const result = await fetchProducts({
-      per_page: 5,
+      per_page: SECTION_SIZE,
       category: categoryId,
       orderby: query?.orderby,
       order: query?.order,
       featured: query?.featured,
     });
-
     products = result?.products ?? [];
   } catch {
-    // Ignore — fallback below
+    products = [];
   }
 
-  /**
-   * Fallback: Popular products
-   */
   if (products.length === 0) {
     try {
       const fallback = await fetchProducts({
-        per_page: 5,
+        per_page: SECTION_SIZE,
         orderby: "popularity",
         order: "desc",
       });
-
       products = fallback?.products ?? [];
     } catch {
       products = [];
@@ -82,12 +81,14 @@ export default async function ProductSection({
   }
 
   return (
-    <ProductSectionWrapper
+    <ProductSectionCard
       title={title}
       subtitle={subtitle}
       viewAllHref={viewAllHref}
       products={products}
-      bgClassName={bgClassName} // Add this
+      variant="mini"
+      bgColor={bgClassNameToColor(bgClassName)}
+      emptyMessage="No products available at the moment."
     />
   );
 }

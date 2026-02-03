@@ -86,7 +86,7 @@ export default function ProductSectionWrapper({
               </Link>
             </div>
           ) : (
-            <ProductsSlider products={products} />
+            <ProductsSlider products={products} variant="mini" />
           )}
         </Container>
       </section>
