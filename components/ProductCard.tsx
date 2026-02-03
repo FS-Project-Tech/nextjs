@@ -318,7 +318,7 @@ function ProductCardComponent({
       </Link>
 
       {/* Content Section */}
-      <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-4"}`}>
+      <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-3 sm:p-4"}`}>
         {/* Product Info */}
         <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
           <Link
@@ -331,19 +331,19 @@ function ProductCardComponent({
             {name}
           </Link>
 
-          <p className="mt-1 min-h-[1rem] text-xs text-gray-500 truncate">
+          <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs">
             {sku ? `SKU: ${sku}` : "\u00A0"}
           </p>
 
 
-          <div className="min-h-[1.25rem]">
+          <div className="hidden min-h-[1.25rem] sm:block">
             {ratingData && <StarRating rating={ratingData} />}
           </div>
 
         </div>
 
         {/* Pricing */}
-        <div className="space-y-1 min-h-[3.5rem]">
+        <div className="space-y-1 min-h-[2.75rem] sm:min-h-[3.5rem]">
           {priceData.isOnSale && (
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularWithLabel}</p>
@@ -359,7 +359,9 @@ function ProductCardComponent({
             </p>
 
             {priceData.exclPrice && (
-              <p className="text-xs text-gray-600">Excl. GST: {priceData.exclPrice}</p>
+              <p className="hidden text-xs text-gray-600 sm:block">
+                Excl. GST: {priceData.exclPrice}
+              </p>
             )}
           </div>
 
