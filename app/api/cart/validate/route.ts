@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateCartItems } from "@/lib/cart-sync";
 import type { CartItem } from "@/lib/types/cart";
 import { rateLimit } from "@/lib/api-security";
 import { secureResponse } from "@/lib/security-headers";
