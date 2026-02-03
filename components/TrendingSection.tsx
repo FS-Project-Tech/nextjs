@@ -1,4 +1,4 @@
-import { fetchProducts, fetchProduct, fetchProductVariations } from "@/lib/woocommerce";
+import { fetchProducts, fetchProduct, fetchProductVariations, type WooCommerceProduct } from "@/lib/woocommerce";
 import TrendingSectionClient from "@/components/TrendingSectionClient";
 import { ProductCardProduct } from "@/lib/types/product";
 
@@ -15,7 +15,7 @@ export default async function TrendingSection() {
     });
 
     const raw = result?.products || [];
-    const normalized = raw.map((p: Record<string, unknown>) => ({
+    const normalized = raw.map((p: WooCommerceProduct) => ({
       ...p,
       id: Number(p.id),
       name: String(p.name ?? ""),
@@ -37,7 +37,7 @@ export default async function TrendingSection() {
       normalized.map(async (p) => {
         try {
           const full = await fetchProduct(p.id);
-          const fullAny = full as Record<string, unknown>;
+          const fullAny = full as unknown as Record<string, unknown>;
           let regular = full.regular_price != null && full.regular_price !== "" ? String(full.regular_price) : p.regular_price;
           let sale = full.sale_price != null && full.sale_price !== "" ? String(full.sale_price) : p.sale_price;
           const displayPrice = full.price != null && full.price !== "" ? String(full.price) : p.price;
