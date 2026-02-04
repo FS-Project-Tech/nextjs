@@ -143,8 +143,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('[auth/login] error', error);
-    const message = error instanceof Error ? (error instanceof Error ? error.message : 'An error occurred') : 'Unable to sign in right now.';
-    const status = message.toLowerCase().includes('credential') ? 401 : 500;
+    let message = error instanceof Error ? error.message : 'Unable to sign in right now.';
+    if (typeof message !== 'string') message = 'An error occurred';
+    if (message.includes('No route was found matching the URL and request method') || message.includes('rest_no_route')) {
+      message = 'Login service is not available. Please ensure the WordPress JWT Authentication plugin is installed and the REST API is enabled.';
+    }
+    const status = message.toLowerCase().includes('credential') || message.toLowerCase().includes('invalid') ? 401 : 500;
 
     return NextResponse.json(
       {

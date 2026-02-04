@@ -1,6 +1,7 @@
 import {
 	fetchProductBySlug,
 	fetchProductVariations,
+	fetchProductReviews,
 	fetchProducts,
 	WooCommerceVariation,
   } from "@/lib/woocommerce";
@@ -8,6 +9,7 @@ import {
   import ProductGallery from "@/components/ProductGallery";
   import ProductDetailPanel from "@/components/ProductDetailPanel";
   import ProductInfoAccordion from "@/components/ProductInfoAccordion";
+  import ProductReviews from "@/app/products/[slug]/ProductReviews";
   import Breadcrumbs from "@/components/Breadcrumbs";
   import RelatedProductsSection from "@/components/RelatedProductsSection";
   import Container from "@/components/Container";
@@ -141,14 +143,19 @@ import {
 			const brandAttr = p.attributes?.find(
 			  (attr: any) => attr.slug === "product_brand"
 			);
-  
+
 			const brandId = brandAttr?.options?.[0]
 			  ? Number(brandAttr.options[0])
 			  : null;
-  
+
 			return brandId && brandId !== currentBrandId;
 		  })
 		: [];
+
+	// =======================================================
+	// REVIEWS
+	// =======================================================
+	const initialReviews = await fetchProductReviews(product.id, { per_page: 20 });
   
 	// =======================================================
 	// MAPPER
@@ -224,9 +231,13 @@ import {
 		{/* Product info */}
 		<Container className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
 		  <ProductInfoAccordion product={product} variations={variations} />
-		  <div className="border rounded p-4 text-sm text-gray-600">
-			Reviews are loading temporarily.
-		  </div>
+		  <ProductReviews
+			productId={product.id}
+			averageRating={product.average_rating || "0"}
+			ratingCount={product.rating_count || 0}
+			reviewsAllowed={product.reviews_allowed !== false}
+			initialReviews={initialReviews}
+		  />
 		</Container>
   
 		{/* Related products */}

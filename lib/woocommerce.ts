@@ -1,6 +1,7 @@
 import axios, { AxiosRequestHeaders } from 'axios';
 import { validateEnvironmentVariables } from './env-validation';
 import { normalizeError, getErrorMessage, hasAxiosResponse, getAxiosErrorDetails, isTimeoutError } from '@/lib/utils/errors';
+import { getWpBaseUrl } from '@/lib/wp-utils';
 
 // Validate environment variables (server-side only)
 if (typeof window === 'undefined') {
@@ -649,6 +650,136 @@ export const fetchProductVariations = async (
     throw error;
   }
 };
+
+export interface WooCommerceProductReview {
+  id: number;
+  date_created: string;
+  reviewer: string;
+  reviewer_email: string;
+  review: string;
+  rating: number;
+  verified: boolean;
+}
+
+// Fetch product reviews. Tries WooCommerce first; if that fails or returns empty, uses custom GET endpoint.
+export const fetchProductReviews = async (
+  productId: number,
+  params?: { per_page?: number; page?: number }
+): Promise<WooCommerceProductReview[]> => {
+  const perPage = params?.per_page ?? 10;
+  const page = params?.page ?? 1;
+  try {
+    const response = await wcAPI.get(`/products/${productId}/reviews`, {
+      params: { per_page: perPage, page },
+    });
+    const data = response.data ?? [];
+    if (Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+    const custom = await fetchProductReviewsCustomEndpoint(productId, { per_page: perPage, page });
+    return custom.length > 0 ? custom : data;
+  } catch (error: unknown) {
+    const isNoRoute =
+      hasAxiosResponse(error) &&
+      typeof getAxiosErrorDetails(error).data === 'object' &&
+      getAxiosErrorDetails(error).data !== null &&
+      'message' in (getAxiosErrorDetails(error).data as object) &&
+      String((getAxiosErrorDetails(error).data as { message?: string }).message || '').includes('No route was found');
+    const isTimeout = isTimeoutError(error) || (hasAxiosResponse(error) && ['ECONNABORTED', 'ETIMEDOUT'].includes(getAxiosErrorDetails(error).code || ''));
+    if (isNoRoute || isTimeout) {
+      const custom = await fetchProductReviewsCustomEndpoint(productId, { per_page: perPage, page });
+      return custom;
+    }
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Error fetching product reviews:', getErrorMessage(error));
+    }
+    const custom = await fetchProductReviewsCustomEndpoint(productId, { per_page: perPage, page });
+    return custom;
+  }
+};
+
+async function fetchProductReviewsCustomEndpoint(
+  productId: number,
+  params: { per_page: number; page: number }
+): Promise<WooCommerceProductReview[]> {
+  const wpBase = getWpBaseUrl();
+  if (!wpBase) return [];
+  const url = `${wpBase}/wp-json/custom/v1/products/${productId}/reviews?per_page=${params.per_page}&page=${params.page}`;
+  try {
+    const res = await fetch(url, { method: 'GET', cache: 'no-store' });
+    if (!res.ok) return [];
+    const body = await res.json();
+    return Array.isArray(body) ? (body as WooCommerceProductReview[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Create a product review. Tries WooCommerce first; if "No route" (wc/v3 not exposed), uses custom WordPress endpoint.
+export const createProductReview = async (
+  productId: number,
+  data: { reviewer: string; reviewer_email: string; review: string; rating: number }
+): Promise<{ created: WooCommerceProductReview | null; error?: string }> => {
+  try {
+    const response = await wcAPI.post(`/products/${productId}/reviews`, data);
+    return { created: response.data };
+  } catch (wcError: unknown) {
+    let message = getErrorMessage(wcError);
+    if (hasAxiosResponse(wcError)) {
+      const details = getAxiosErrorDetails(wcError);
+      const errData = details.data;
+      if (errData && typeof errData === 'object' && 'message' in errData && typeof (errData as { message: string }).message === 'string') {
+        message = (errData as { message: string }).message;
+      }
+    }
+    const isNoRoute = typeof message === 'string' && (message.includes('No route was found') || message.includes('rest_no_route'));
+    if (isNoRoute) {
+      const custom = await createProductReviewCustomEndpoint(productId, data);
+      if (custom.created) return { created: custom.created };
+      if (custom.error) return { created: null, error: custom.error };
+    }
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Error creating product review:', message);
+    }
+    return { created: null, error: message };
+  }
+};
+
+/** Call custom WordPress REST endpoint when WooCommerce wc/v3 product reviews route is not registered. */
+async function createProductReviewCustomEndpoint(
+  productId: number,
+  data: { reviewer: string; reviewer_email: string; review: string; rating: number }
+): Promise<{ created: WooCommerceProductReview | null; error?: string }> {
+  const wpBase = getWpBaseUrl();
+  if (!wpBase) return { created: null, error: 'WordPress URL not configured.' };
+  const url = `${wpBase}/wp-json/custom/v1/products/${productId}/reviews`;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      cache: 'no-store',
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = (body && typeof body === 'object' && 'message' in body && typeof (body as { message: string }).message === 'string')
+        ? (body as { message: string }).message
+        : res.statusText || 'Failed to submit review.';
+      return { created: null, error: msg };
+    }
+    const created = body as WooCommerceProductReview;
+    if (created && (created.id != null || created.review != null)) {
+      return { created };
+    }
+    return { created: null, error: 'Invalid response from review endpoint.' };
+  } catch (err: unknown) {
+    const msg = getErrorMessage(err);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Custom review endpoint failed:', msg);
+    }
+    return { created: null, error: msg };
+  }
+}
 
 export interface WooCommerceCategory {
   id: number;

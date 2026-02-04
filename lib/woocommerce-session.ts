@@ -81,16 +81,21 @@ export async function createWCSession(customerId?: number): Promise<string | nul
     });
 
     if (!response.ok) {
-      // If Store API is not available, fall back to creating session via cart
-      // WooCommerce will create session automatically on first cart operation
-      // Only log in development - this is expected for many WooCommerce setups
+      // Store API (wc/store/v1/sessions) may not exist on all WordPress sites;
+      // WordPress returns "No route was found matching the URL and request method" in that case.
+      // Session will be created automatically on first cart operation. Do not surface this to the user.
       if (process.env.NODE_ENV === 'development') {
         console.debug('WooCommerce Store API session not available, using cart-based session instead');
       }
       return null;
     }
 
-    const data = await response.json();
+    let data: { token?: string; session_token?: string } = {};
+    try {
+      data = await response.json();
+    } catch {
+      return null;
+    }
     const sessionToken = data?.token || data?.session_token || null;
 
     if (sessionToken) {
