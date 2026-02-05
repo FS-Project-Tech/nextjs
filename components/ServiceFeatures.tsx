@@ -27,18 +27,18 @@ export default function ServiceFeatures() {
 
   return (
     <div className="w-full">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
         {features.map((feature, index) => (
           <div
             key={index}
-            className="flex flex-1 items-center gap-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+            className="flex flex-1 items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
               {feature.icon}
             </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-800">{feature.label}</p>
-              <p className="text-xs text-gray-500">{feature.description}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900">{feature.label}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{feature.description}</p>
             </div>
           </div>
         ))}

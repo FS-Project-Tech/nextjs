@@ -46,6 +46,17 @@ function formatReviewDate(dateStr: string): string {
   }
 }
 
+/** Show display name only; never show email. Use reviewer name or, if it looks like email, the part before @. */
+function getReviewerDisplayName(reviewer: string | undefined): string {
+  if (!reviewer || !reviewer.trim()) return 'Reviewer';
+  const trimmed = reviewer.trim();
+  if (trimmed.includes('@')) {
+    const beforeAt = trimmed.split('@')[0];
+    return beforeAt && beforeAt.length > 0 ? beforeAt : 'Reviewer';
+  }
+  return trimmed;
+}
+
 interface ProductReviewsProps {
   productId: number;
   averageRating: string;
@@ -141,11 +152,11 @@ export default function ProductReviews({
   const displayCount = hasReviewsFromList ? reviews.length : productCount;
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-      <h3 className="text-lg font-semibold text-gray-900 sm:text-xl">Reviews</h3>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+      <h3 className="text-base font-semibold text-gray-900 sm:text-lg">Reviews</h3>
 
       {/* Summary */}
-      <div className="mt-4 flex flex-wrap items-center gap-4 border-b border-gray-100 pb-4">
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-gray-100 pb-3">
         <div className="flex items-center gap-2">
           <StarRating rating={displayRating} size="md" />
           <span className="text-sm font-medium text-gray-700">
@@ -157,24 +168,24 @@ export default function ProductReviews({
         </span>
       </div>
 
-      {/* List */}
-      <ul className="mt-4 space-y-4">
+      {/* List - show up to ~3 reviews before scrolling */}
+      <ul className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
         {reviews.length === 0 ? (
-          <li className="rounded-lg bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+          <li className="rounded-lg bg-gray-50 px-4 py-4 text-center text-sm text-gray-500">
             No reviews yet. Be the first to review this product.
           </li>
         ) : (
           reviews.map((r) => (
-            <li key={r.id} className="rounded-lg border border-gray-100 bg-gray-50/50 p-4">
+            <li key={r.id} className="rounded-lg border border-gray-100 bg-gray-50/50 px-3 py-2.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium text-gray-900">{r.reviewer}</span>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="text-sm font-medium text-gray-900">{getReviewerDisplayName(r.reviewer)}</span>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
                   <StarRating rating={r.rating} size="sm" />
                   <time dateTime={r.date_created}>{formatReviewDate(r.date_created)}</time>
                 </div>
               </div>
               <div
-                className="mt-2 text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-1"
+                className="mt-1.5 text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-0.5 prose-p:leading-snug"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(r.review, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'] }),
                 }}
@@ -186,24 +197,24 @@ export default function ProductReviews({
 
       {/* Add review: require login */}
       {reviewsAllowed && !isLoggedIn && (
-        <div className="mt-6 border-t border-gray-200 pt-6">
+        <div className="mt-4 border-t border-gray-200 pt-4">
           <p className="text-sm text-gray-600">
             Please log in to add a review for this product.
           </p>
           <Link
             href={`/login?next=${encodeURIComponent(pathname || '/')}`}
-            className="mt-3 inline-block rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+            className="mt-2 inline-block rounded-lg bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
           >
             Log in
           </Link>
         </div>
       )}
       {reviewsAllowed && isLoggedIn && (
-        <form onSubmit={handleSubmit} className="mt-6 border-t border-gray-200 pt-6">
-          <h4 className="text-base font-semibold text-gray-900">Add a review</h4>
+        <form onSubmit={handleSubmit} className="mt-4 border-t border-gray-200 pt-4">
+          <h4 className="text-sm font-semibold text-gray-900">Add a review</h4>
 
           {/* Your rating */}
-          <div className="mt-4">
+          <div className="mt-3">
             <p className="text-sm font-medium text-gray-700">Your rating of this product</p>
             <div className="mt-2 flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((value) => (
@@ -232,13 +243,13 @@ export default function ProductReviews({
             </div>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3">
             <label htmlFor="review-text" className="block text-sm font-medium text-gray-700">
               Your review
             </label>
             <textarea
               id="review-text"
-              rows={4}
+              rows={3}
               className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
               placeholder="Share your experience with this product..."
               value={reviewText}
@@ -249,18 +260,18 @@ export default function ProductReviews({
 
           {submitMessage && (
             <p
-              className={`mt-3 text-sm ${submitMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}
+              className={`mt-2 text-sm ${submitMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}
               role="alert"
             >
               {submitMessage.text}
             </p>
           )}
 
-          <div className="mt-4">
+          <div className="mt-3">
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? 'Submitting…' : 'Submit review'}
             </button>

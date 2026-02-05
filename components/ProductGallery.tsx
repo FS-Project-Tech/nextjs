@@ -42,7 +42,7 @@ export default function ProductGallery({ images }: ProductGalleryProps) {
   return (
     <div className="space-y-4" suppressHydrationWarning>
       {/* Main Image Swiper */}
-      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <Swiper
           modules={[Navigation, Thumbs]}
           navigation

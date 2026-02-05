@@ -198,7 +198,7 @@ import {
 		</Container>
   
 		{/* Product header */}
-		<Container className="grid grid-cols-1 gap-6 lg:grid-cols-5 mt-6">
+		<Container className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-5 lg:gap-10">
 		  <section className="lg:col-span-2">
 			<ProductGallery
 			  images={product.images.map((img) => ({
@@ -209,23 +209,87 @@ import {
 			  }))}
 			/>
 		  </section>
-  
+
 		  <section className="lg:col-span-2">
 			<ProductDetailPanel product={product} variations={variations} />
 		  </section>
-  
-		  <aside className="lg:col-span-1 space-y-4">
+
+		  <aside className="flex flex-col lg:col-span-1">
 			{activePromotions.map((promo: any, i: number) => (
-			  <a key={i} href={promo.link?.url}>
+			  <a
+				key={i}
+				href={promo.link?.url}
+				className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
+			  >
 				<Image
 				  src={promo.image?.url}
 				  alt={promo.image?.alt || ""}
-				  width={300}
-				  height={500}
+				  width={320}
+				  height={520}
+				  className="h-[550px] w-full object-cover"
 				/>
 			  </a>
 			))}
 		  </aside>
+		</Container>
+
+		{/* 4 tabs in one line: Australia wide | Delivery time | NDIS Payment option | 24/7 Customer Support */}
+		<Container className="mt-6">
+		  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+		    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+		      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+		        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+		          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+		          <circle cx="12" cy="10" r="3" />
+		        </svg>
+		      </div>
+		      <div className="min-w-0">
+		        <p className="text-sm font-semibold text-gray-900">Australia wide</p>
+		        <p className="mt-0.5 text-xs text-gray-500">We deliver nationwide</p>
+		      </div>
+		    </div>
+		    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+		      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+		        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+		          <rect x="1" y="3" width="15" height="13" />
+		          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+		          <circle cx="5.5" cy="18.5" r="2.5" />
+		          <circle cx="18.5" cy="18.5" r="2.5" />
+		        </svg>
+		      </div>
+		      <div className="min-w-0">
+		        <p className="text-sm font-semibold text-gray-900">Delivery time</p>
+		        <p className="mt-0.5 text-xs text-gray-500">3–7 business days</p>
+		      </div>
+		    </div>
+		    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+		      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+		        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+		          <rect x="3" y="6" width="18" height="12" rx="2" />
+		          <path d="M3 10h18M9 14h6" />
+		          <path d="M13 10l2 2 4-4" strokeWidth="2" />
+		        </svg>
+		      </div>
+		      <div className="min-w-0">
+		        <p className="text-sm font-semibold text-gray-900">NDIS Payment option</p>
+		        <p className="mt-0.5 text-xs text-gray-500">Claim-friendly</p>
+		      </div>
+		    </div>
+		    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow-md">
+		      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+		        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
+		          <path d="M3 14v-2a9 9 0 0 1 18 0v2" />
+		          <path d="M3 14v2a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2v-2M21 14v2a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-2" />
+		          <circle cx="7" cy="16" r="2" />
+		          <circle cx="17" cy="16" r="2" />
+		        </svg>
+		      </div>
+		      <div className="min-w-0">
+		        <p className="text-sm font-semibold text-gray-900">24/7 Customer Support</p>
+		        <p className="mt-0.5 text-xs text-gray-500">Here to help</p>
+		      </div>
+		    </div>
+		  </div>
 		</Container>
   
 		{/* Product info */}
@@ -240,12 +304,12 @@ import {
 		  />
 		</Container>
   
-		{/* Related products */}
+		{/* Related products: show first row (3) here; "View all" goes to shop for the rest */}
 		{firstCategoryId && (
 		  <Container className="mt-10 space-y-10">
 			<RelatedProductsSection
 			  title="Top most selling products"
-			  products={topSellingProducts.map(toProductCardProduct)}
+			  products={topSellingProducts.slice(0, 4).map(toProductCardProduct)}
 			  viewAllHref={`/shop?category=${firstCategoryId}&orderby=popularity`}
 			/>
   
