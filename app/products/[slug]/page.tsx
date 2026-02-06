@@ -209,7 +209,7 @@ import {
 				  alt={promo.image?.alt || ""}
 				  width={320}
 				  height={520}
-				  className="h-[550px] w-full object-cover"
+				  className="h-[590px] w-full object-cover"
 				/>
 			  </a>
 			))}
