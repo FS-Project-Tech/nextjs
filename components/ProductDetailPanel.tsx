@@ -47,8 +47,18 @@ const attributes = useMemo(() => {
 	}, [product.downloads, product.meta_data]);
 
 	const displayPrice = matchedVariation?.price || matched?.price || product.price;
-	const displayRegular = matchedVariation?.regular_price || matched?.regular_price || product.regular_price;
+	const displayRegularRaw = matchedVariation?.regular_price || matched?.regular_price || product.regular_price;
 	const onSale = matchedVariation ? matchedVariation.on_sale : (matched ? matched.on_sale : product.on_sale);
+	const regularFromProduct = product.regular_price && String(product.regular_price).trim() ? product.regular_price : "";
+	const regularFromFirstVariation = variations?.[0]?.regular_price && String(variations[0].regular_price).trim() ? variations[0].regular_price : "";
+	const displayRegular =
+		displayRegularRaw && String(displayRegularRaw).trim() !== ""
+			? displayRegularRaw
+			: onSale && regularFromProduct && String(regularFromProduct) !== String(displayPrice)
+				? regularFromProduct
+				: onSale && regularFromFirstVariation && String(regularFromFirstVariation) !== String(displayPrice)
+					? regularFromFirstVariation
+					: displayRegularRaw;
     const { addItem, open: openCart } = useCart();
     const { success, error: showError } = useToast();
 	const [quantity, setQuantity] = useState<number>(1);
@@ -77,58 +87,74 @@ const attributes = useMemo(() => {
 				</div>
 			</div>
 
-			{/* Price */}
-			<div className="flex flex-wrap items-baseline gap-4">
-				<div className="text-gray-900">
-					{(() => {
-						const raw = Number(displayPrice || 0);
-						if (isNaN(raw) || raw <= 0) {
-							return <span className="text-2xl font-semibold text-[#1f605f]">${displayPrice}</span>;
-						}
+			{/* Price — same treatment as product card: strikethrough original + Save $X when on sale */}
+			<div className="space-y-2">
+				{(() => {
+					const raw = Number(displayPrice || 0);
+					const taxClass = matchedVariation?.tax_class || matched?.tax_class || product.tax_class;
+					const taxStatus = matchedVariation?.tax_status || matched?.tax_status || product.tax_status;
+					const regularNum = Number(displayRegular || 0);
+					const isOnSale = onSale && regularNum > 0 && raw > 0 && raw < regularNum;
+					const savingsAmount = isOnSale ? regularNum - raw : 0;
+					const savings = savingsAmount > 0 ? `$${savingsAmount.toFixed(2)}` : "";
 
-						const taxClass = matchedVariation?.tax_class || matched?.tax_class || product.tax_class;
-						const taxStatus = matchedVariation?.tax_status || matched?.tax_status || product.tax_status;
-						const priceInfo = formatPriceWithLabel(raw, taxClass, taxStatus);
+					if (isNaN(raw) || raw <= 0) {
+						return <span className="text-2xl font-semibold text-[#1f605f]">${displayPrice}</span>;
+					}
 
-						if (priceInfo.taxType === "gst_free") {
-							return (
-								<div className="flex flex-wrap items-baseline gap-2">
-									<span className="text-2xl font-semibold text-[#1f605f]">
-										{priceInfo.label}: {priceInfo.price}
-									</span>
-									<span className="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-										GST FREE
-									</span>
+					const priceInfo = formatPriceWithLabel(raw, taxClass, taxStatus);
+					const regularInfo = isOnSale ? formatPriceWithLabel(regularNum, taxClass, taxStatus) : null;
+					const formattedRegularWithLabel = regularInfo?.label
+						? `${regularInfo.label}: ${regularInfo.price}`
+						: regularInfo?.price ?? "";
+
+					return (
+						<>
+							{isOnSale && formattedRegularWithLabel && (
+								<div className="flex flex-wrap items-center gap-2">
+									<span className="text-sm text-gray-500 line-through">{formattedRegularWithLabel}</span>
+									{savings && (
+										<span className="text-sm font-semibold text-green-600">Save {savings}</span>
+									)}
 								</div>
-							);
-						}
-
-						return (
-							<div className="space-y-0.5">
-								<div className="text-2xl font-semibold text-[#1f605f]">
-									{priceInfo.label}: {priceInfo.price}
+							)}
+							<div className="flex flex-wrap items-baseline gap-3">
+								<div className="text-gray-900">
+									{priceInfo.taxType === "gst_free" ? (
+										<div className="flex flex-wrap items-baseline gap-2">
+											<span className="text-2xl font-semibold text-[#1f605f]">
+												{priceInfo.label}: {priceInfo.price}
+											</span>
+											<span className="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+												GST FREE
+											</span>
+										</div>
+									) : (
+										<div className="space-y-0.5">
+											<div className="text-2xl font-semibold text-[#1f605f]">
+												{priceInfo.label}: {priceInfo.price}
+											</div>
+											{priceInfo.exclPrice ? (
+												<div className="text-sm text-gray-600">Excl. GST: {priceInfo.exclPrice}</div>
+											) : null}
+										</div>
+									)}
 								</div>
-								{priceInfo.exclPrice ? (
-									<div className="text-sm text-gray-600">Excl. GST: {priceInfo.exclPrice}</div>
-								) : null}
+								{onSale && (
+									<span className="rounded-md bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">
+										Sale
+									</span>
+								)}
 							</div>
-						);
-					})()}
-				</div>
-				<div className="flex items-center gap-3">
-					{displayRegular && displayRegular !== displayPrice && (
-						<span className="text-lg text-gray-400 line-through">${displayRegular}</span>
-					)}
-					{onSale && (
-						<span className="rounded-md bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800">Sale</span>
-					)}
-				</div>
+						</>
+					);
+				})()}
 			</div>
 
 			{/* Packaging / Variations */}
 			{attributes.length > 0 && (
 				<div>
-					<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500"></p>
+					<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Packaging</p>
 					<ProductVariations
 						attributes={attributes}
 						variations={variations}
@@ -145,7 +171,7 @@ const attributes = useMemo(() => {
 
 			{/* Delivery plan */}
 			<div>
-				<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500"></p>
+				<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Delivery</p>
 				<RecurringSelect onChange={setPlan} value={plan} />
 			</div>
 

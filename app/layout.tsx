@@ -14,6 +14,7 @@ import BottomNav from "@/components/BottomNav";
 import PWARegister from "@/components/PWARegister";
 import AnalyticsInitializer from "@/components/AnalyticsInitializer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import NavigationProgress from "@/components/NavigationProgress";
 import "./globals.css";
 
 // Validate environment variables at startup (server-side only)
@@ -115,6 +116,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <AnalyticsInitializer />
+        <NavigationProgress />
         <ErrorBoundary>
           <QueryProvider>
             <ToastProvider>

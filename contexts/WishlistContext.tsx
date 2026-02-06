@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   ReactNode,
 } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -95,6 +96,7 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const wasAuthenticatedRef = useRef<boolean | undefined>(undefined);
 
   /**
    * Load wishlist from API or cookie
@@ -175,6 +177,18 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Clear wishlist state and cookie when user logs out (so header count resets)
+  useEffect(() => {
+    if (!isMounted || authLoading) return;
+    const wasAuthenticated = wasAuthenticatedRef.current;
+    if (wasAuthenticated === true && !isAuthenticated) {
+      setItems([]);
+      setProducts([]);
+      saveWishlistToCookie([]);
+    }
+    wasAuthenticatedRef.current = isAuthenticated;
+  }, [isMounted, authLoading, isAuthenticated]);
 
   // Load wishlist when mounted or auth state changes
   useEffect(() => {

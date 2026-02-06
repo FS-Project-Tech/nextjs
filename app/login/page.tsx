@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, Suspense } from 'react';
+import { useCallback, useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
 import { Shield } from 'lucide-react';
@@ -9,10 +9,18 @@ import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
 import { validateNextParam, ALLOWED_REDIRECT_PATHS } from '@/lib/redirectUtils';
 
+/** Only show loading UI if the operation takes longer than this (ms). Fast loads show nothing. */
+const SESSION_LOADING_DELAY_MS = 700;
+const REDIRECT_LOADING_DELAY_MS = 400;
+
 function LoginPageContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { user, status } = useAuth();
+  const [showSessionLoading, setShowSessionLoading] = useState(false);
+  const [showRedirecting, setShowRedirecting] = useState(false);
+  const sessionDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const redirectDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ✅ Secure redirect resolver
   const resolveRedirect = useCallback(() => {
@@ -27,17 +35,62 @@ function LoginPageContent() {
     router.replace(resolveRedirect());
   }, [status, user, resolveRedirect]);
 
-  // ✅ Loading state
-  if (status === 'loading') {
+  // ✅ Show "Checking session…" only if session check takes longer than delay (avoids flash when fast)
+  useEffect(() => {
+    if (status !== 'loading') {
+      if (sessionDelayRef.current) {
+        clearTimeout(sessionDelayRef.current);
+        sessionDelayRef.current = null;
+      }
+      setShowSessionLoading(false);
+      return;
+    }
+    sessionDelayRef.current = setTimeout(() => {
+      sessionDelayRef.current = null;
+      setShowSessionLoading(true);
+    }, SESSION_LOADING_DELAY_MS);
+    return () => {
+      if (sessionDelayRef.current) {
+        clearTimeout(sessionDelayRef.current);
+        sessionDelayRef.current = null;
+      }
+    };
+  }, [status]);
+
+  // ✅ Show "Redirecting…" only if redirect takes longer than delay
+  useEffect(() => {
+    if (status !== 'authenticated' || !user) {
+      if (redirectDelayRef.current) {
+        clearTimeout(redirectDelayRef.current);
+        redirectDelayRef.current = null;
+      }
+      setShowRedirecting(false);
+      return;
+    }
+    redirectDelayRef.current = setTimeout(() => {
+      redirectDelayRef.current = null;
+      setShowRedirecting(true);
+    }, REDIRECT_LOADING_DELAY_MS);
+    return () => {
+      if (redirectDelayRef.current) {
+        clearTimeout(redirectDelayRef.current);
+        redirectDelayRef.current = null;
+      }
+    };
+  }, [status, user]);
+
+  // ✅ Loading state: only show after delay (so fast session check never shows this)
+  if (status === 'loading' && showSessionLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-gray-600 text-sm">Checking session…</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-white">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-teal-600" aria-hidden />
+        <p className="text-gray-600 text-sm">Loading…</p>
       </div>
     );
   }
 
-  // ✅ Already authenticated fallback
-  if (status === 'authenticated' && user) {
+  // ✅ Already authenticated: only show redirect message after delay
+  if (status === 'authenticated' && user && showRedirecting) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <p className="text-gray-600 text-sm">Redirecting to your account…</p>

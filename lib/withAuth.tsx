@@ -1,6 +1,9 @@
 "use client";
 
 import { Component, useEffect, useState, useRef, ReactNode, ErrorInfo } from 'react';
+
+/** Only show auth loading UI if verification takes longer than this (ms). */
+const AUTH_LOADING_DELAY_MS = 400;
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth, type AuthStatus } from '@/contexts/AuthContext';
 
@@ -146,6 +149,32 @@ export default function withAuth<P extends object>(
     const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
     const [roleError, setRoleError] = useState<string | null>(null);
     const redirectedRef = useRef(false);
+    const [showLoadingUI, setShowLoadingUI] = useState(false);
+    const loadingDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const isAuthPending = status === 'loading' || isLoading || !hasCheckedAuth;
+
+    // Only show "Verifying authentication..." after a delay (avoids flash when auth is fast)
+    useEffect(() => {
+      if (!isAuthPending) {
+        if (loadingDelayRef.current) {
+          clearTimeout(loadingDelayRef.current);
+          loadingDelayRef.current = null;
+        }
+        setShowLoadingUI(false);
+        return;
+      }
+      loadingDelayRef.current = setTimeout(() => {
+        loadingDelayRef.current = null;
+        setShowLoadingUI(true);
+      }, AUTH_LOADING_DELAY_MS);
+      return () => {
+        if (loadingDelayRef.current) {
+          clearTimeout(loadingDelayRef.current);
+          loadingDelayRef.current = null;
+        }
+      };
+    }, [isAuthPending]);
 
     // Handle authentication state changes
     useEffect(() => {
@@ -186,12 +215,12 @@ export default function withAuth<P extends object>(
       }
     }, [user, status, isLoading, router, pathname, redirectTo, requireRoles]);
 
-    // Show loading state while auth is being checked
-    if (status === 'loading' || isLoading || !hasCheckedAuth) {
+    // Show loading state only after delay (so fast auth never shows spinner)
+    if (isAuthPending) {
       if (fallback) {
         return <>{fallback}</>;
       }
-      if (showLoading) {
+      if (showLoading && showLoadingUI) {
         return <AuthLoadingSpinner message="Verifying authentication..." />;
       }
       return null;

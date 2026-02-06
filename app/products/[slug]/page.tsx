@@ -87,53 +87,43 @@ import {
   
 	const product = await fetchProductBySlug(decodedSlug);
 	if (!product) notFound();
-  
+
 	// =======================================================
-	// CATEGORY
+	// CATEGORY & BRAND (from product)
 	// =======================================================
 	const firstCategoryId = product.categories?.[0]?.id;
-  
-	// =======================================================
-	// BRAND (pa_brand attribute)
-  // =======================================================
 	const brandAttribute = product.attributes?.find(
 	  (attr: any) => attr.slug === "product_brand"
 	);
-  
 	const currentBrandId = brandAttribute?.options?.[0]
 	  ? Number(brandAttribute.options[0])
 	  : undefined;
-  
+
 	// =======================================================
-	// PROMOTIONS
+	// PARALLEL FETCH: promotions, variations, category products, reviews
+	// (reduces total wait vs sequential fetches)
 	// =======================================================
-	const promotions = await fetchGlobalPromotions();
+	const [promotions, variations, categoryProductsResult, initialReviews] =
+	  await Promise.all([
+		fetchGlobalPromotions(),
+		product.variations?.length
+		  ? fetchProductVariations(product.id).catch(() => [] as WooCommerceVariation[])
+		  : Promise.resolve([] as WooCommerceVariation[]),
+		firstCategoryId
+		  ? fetchProducts({ per_page: 20, category: firstCategoryId })
+		  : Promise.resolve({ products: [] as any[] }),
+		fetchProductReviews(product.id, { per_page: 20 }),
+	  ]);
+
 	const categoryIds = product.categories?.map((c) => c.id) || [];
 	const activePromotions = getActivePromotions(promotions, categoryIds);
-  
-	// =======================================================
-	// VARIATIONS
-	// =======================================================
-	const variations: WooCommerceVariation[] =
-	  product.variations?.length
-		? await fetchProductVariations(product.id).catch(() => [])
-		: [];
-  
-	// =======================================================
-	// FETCH CATEGORY PRODUCTS (ONCE)
-	// =======================================================
-	const categoryProducts = firstCategoryId
-	  ? await fetchProducts({
-		  per_page: 20,
-		  category: firstCategoryId,
-		}).then((r) => r.products || [])
-	  : [];
-  
+	const categoryProducts = categoryProductsResult?.products ?? [];
+
 	// =======================================================
 	// TOP SELLING (same category)
 	// =======================================================
 	const topSellingProducts = categoryProducts.slice(0, 6);
-  
+
 	// =======================================================
 	// OTHER BRAND PRODUCTS (KEY LOGIC)
 	// =======================================================
@@ -143,19 +133,12 @@ import {
 			const brandAttr = p.attributes?.find(
 			  (attr: any) => attr.slug === "product_brand"
 			);
-
 			const brandId = brandAttr?.options?.[0]
 			  ? Number(brandAttr.options[0])
 			  : null;
-
 			return brandId && brandId !== currentBrandId;
 		  })
 		: [];
-
-	// =======================================================
-	// REVIEWS
-	// =======================================================
-	const initialReviews = await fetchProductReviews(product.id, { per_page: 20 });
   
 	// =======================================================
 	// MAPPER
