@@ -7,6 +7,8 @@ import { getSalePercentageFromProduct } from "@/lib/utils/product";
 
 interface ProductGridProps {
   categorySlug?: string;
+  /** When set, fetch products for this brand (e.g. on /brands/[slug] page) */
+  brandSlug?: string;
   /** When true, only fetch products on sale (clearance page) */
   onSaleOnly?: boolean;
 }
@@ -98,7 +100,7 @@ function gridReducer(state: GridState, action: GridAction): GridState {
   }
 }
 
-export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridProps) {
+export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: ProductGridProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [state, dispatch] = useReducer(gridReducer, initialState);
@@ -106,7 +108,7 @@ export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridPro
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchIdRef = useRef(0);
 
-  // Parse search params once
+  // Parse search params once (brandSlug from page prop takes precedence over URL for /brands/[slug])
   const filters = useMemo(() => {
     const params: Record<string, string> = {};
     
@@ -116,7 +118,7 @@ export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridPro
       params.categories = searchParams.get("categories")!;
     }
     
-    const brands = searchParams.get("brands");
+    const brands = brandSlug ?? searchParams.get("brands");
     const tag = searchParams.get("tag") || searchParams.get("tags");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
@@ -132,7 +134,7 @@ export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridPro
     if (onSaleOnly) params.on_sale = "true";
     
     return params;
-  }, [categorySlug, searchParams, onSaleOnly]);
+  }, [categorySlug, brandSlug, searchParams, onSaleOnly]);
 
   // Fetch products with abort support
   const fetchProducts = async (pageNum: number, append: boolean = false) => {
@@ -445,9 +447,9 @@ export default function ProductGrid({ categorySlug, onSaleOnly }: ProductGridPro
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
-        {state.products.map((product) => (
+        {state.products.map((product, i) => (
           <ProductCard
-            key={product.id}
+            key={`${product.id}-${i}`}
             id={product.id}
             slug={product.slug}
             name={product.name}

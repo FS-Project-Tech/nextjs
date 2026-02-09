@@ -214,6 +214,14 @@ wcAPI.interceptors.response.use(
         // Always log - we guarantee at least status, statusText, url, and message
         console.error('WooCommerce API Server Error:', JSON.stringify(errorDetails, null, 2));
       } else {
+        // 404 rest_no_route = route not registered (e.g. product reviews disabled) – warn only, callers fall back
+        const code = data && typeof data === 'object' && 'code' in data ? (data as { code?: string }).code : undefined;
+        if (status === 404 && code === 'rest_no_route') {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('WooCommerce API route not found (fallback may be used):', url);
+          }
+          return Promise.reject(error);
+        }
         // Log other errors - always include basic fields
         const errorInfo: Record<string, any> = {
           status: normalized.status || 'Unknown',
@@ -221,11 +229,9 @@ wcAPI.interceptors.response.use(
           url: url,
           message: normalized.message || `HTTP ${normalized.status} error`,
         };
-        
-        if (data && typeof data === 'object' && 'code' in data) {
-          errorInfo.code = data.code;
+        if (code !== undefined) {
+          errorInfo.code = code;
         }
-        
         // Handle response data
         if (data !== undefined && data !== null) {
           if (typeof data === 'string' && data.trim().length > 0) {
@@ -236,8 +242,6 @@ wcAPI.interceptors.response.use(
             errorInfo.note = 'Server returned empty object response';
           }
         }
-        
-        // Always log with guaranteed fields
         console.error('WooCommerce API Error:', JSON.stringify(errorInfo, null, 2));
       }
     } else if (hasAxiosResponse(error)) {
@@ -380,6 +384,77 @@ export interface PaginatedProductResponse {
   perPage: number;
 }
 
+/**
+ * Fetch products by Brands taxonomy (WooCommerce → Products → Brands).
+ * Used when "Brands" is a taxonomy, not a product attribute.
+ * Uses WordPress REST API to get product IDs by brand term, then WooCommerce for full product data.
+ */
+async function fetchProductsByBrandTaxonomy(
+  brandSlug: string,
+  page: number,
+  perPage: number
+): Promise<PaginatedProductResponse> {
+  const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
+  if (!base) return { products: [], total: 0, totalPages: 0, page, perPage };
+
+  const slugEnc = encodeURIComponent(brandSlug.toLowerCase().trim());
+  const taxonomyEndpoints = ['product_brand', 'pa_brand', 'brand'];
+  let termId: number | null = null;
+  let taxonomyUsed = '';
+
+  for (const tax of taxonomyEndpoints) {
+    try {
+      const res = await fetch(
+        `${base}/wp-json/wp/v2/${tax}?slug=${slugEnc}`,
+        { next: { revalidate: 3600 } }
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      const term = Array.isArray(data) ? data[0] : data;
+      if (term && term.id != null) {
+        termId = Number(term.id);
+        taxonomyUsed = tax;
+        break;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (termId == null || !taxonomyUsed) return { products: [], total: 0, totalPages: 0, page, perPage };
+
+  try {
+    const wpRes = await fetch(
+      `${base}/wp-json/wp/v2/product?${taxonomyUsed}=${termId}&per_page=${perPage}&page=${page}`,
+      { next: { revalidate: 60 } }
+    );
+    const total = parseInt(wpRes.headers.get('x-wp-total') || '0', 10);
+    const totalPages = parseInt(wpRes.headers.get('x-wp-totalpages') || '0', 10);
+    if (!wpRes.ok) return { products: [], total: 0, totalPages: 0, page, perPage };
+
+    const posts: any[] = await wpRes.json();
+    const ids = Array.isArray(posts) ? posts.map((p: any) => p.id).filter((id: any) => id != null) : [];
+    if (ids.length === 0) return { products: [], total, totalPages, page, perPage };
+
+    const wcRes = await wcAPI.get('/products', {
+      params: { include: ids.join(','), per_page: ids.length },
+    });
+    const products = wcRes.data || [];
+    const orderMap = new Map(ids.map((id, i) => [id, i]));
+    const sorted = [...products].sort((a: any, b: any) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
+
+    return {
+      products: sorted,
+      total,
+      totalPages: totalPages || 1,
+      page,
+      perPage,
+    };
+  } catch {
+    return { products: [], total: 0, totalPages: 0, page, perPage };
+  }
+}
+
 // UPDATED: Fetch all products with pagination support
 export const fetchProducts = async (params?: {
   per_page?: number;
@@ -507,10 +582,71 @@ export const fetchProducts = async (params?: {
       cleanParams.category = categoryId;
     }
     
-    // Handle brand filtering (adjust attribute name based on your setup)
-    if (params?.brands) {
-      cleanParams.attribute = 'pa_brand';
-      cleanParams.attribute_term = params.brands;
+    // WooCommerce REST API expects attribute + attribute_term (term ID) – see WC_REST_Products_Controller prepare_objects_query
+    const resolveBrandToAttributeAndTermId = async (
+      slug: string
+    ): Promise<{ attribute: string; attribute_term: number } | null> => {
+      const slugTrim = String(slug).trim().toLowerCase();
+      const slugNorm = slugTrim.replace(/\s+/g, '-');
+      const asNum = parseInt(slugTrim, 10);
+      const isNumericId = !isNaN(asNum) && String(asNum) === slugTrim;
+
+      const matchBrandAttr = (a: any) => {
+        const s = (a.slug || '').toLowerCase();
+        const n = (a.name || '').toLowerCase();
+        return (
+          s === 'product_brand' ||
+          s === 'brand' ||
+          s === 'brands' ||
+          s === 'product_brands' ||
+          n === 'brand' ||
+          n === 'brands'
+        );
+      };
+
+      try {
+        const attrRes = await wcAPI.get('/products/attributes');
+        const attributes = Array.isArray(attrRes.data) ? attrRes.data : [];
+        const brandAttr = attributes.find(matchBrandAttr);
+        if (!brandAttr) return null;
+
+        const attributeTaxonomy = brandAttr.slug ? `pa_${brandAttr.slug}` : 'pa_brand';
+
+        if (isNumericId) {
+          return { attribute: attributeTaxonomy, attribute_term: asNum };
+        }
+
+        // Fetch terms (no slug filter – API may not support it; fetch more and find by slug)
+        const termsRes = await wcAPI.get(`/products/attributes/${brandAttr.id}/terms`, {
+          params: { per_page: 250, orderby: 'name', order: 'asc' },
+        });
+        const terms = Array.isArray(termsRes.data) ? termsRes.data : [];
+        const term = terms.find(
+          (t: any) =>
+            (t.slug || '').toLowerCase() === slugNorm ||
+            (t.slug || '').toLowerCase() === slugTrim ||
+            (t.name || '').toLowerCase() === slugTrim.replace(/-/g, ' ')
+        );
+        if (!term || term.id == null) return null;
+        return { attribute: attributeTaxonomy, attribute_term: Number(term.id) };
+      } catch {
+        return null;
+      }
+    };
+
+    // Handle brand filtering – try product attribute first; if "Brands" is a taxonomy (WooCommerce → Products → Brands), use WP REST API
+    if (params?.brands && params.brands !== '') {
+      const brandVal = String(params.brands).trim();
+      const resolved = await resolveBrandToAttributeAndTermId(brandVal);
+      if (resolved) {
+        cleanParams.attribute = resolved.attribute;
+        cleanParams.attribute_term = resolved.attribute_term;
+      } else {
+        // Brands is a taxonomy (not an attribute) – fetch by taxonomy via WordPress REST API
+        const pageNum = cleanParams.page || 1;
+        const perPageNum = cleanParams.per_page || 24;
+        return fetchProductsByBrandTaxonomy(brandVal, pageNum, perPageNum);
+      }
     }
     
     // Handle tags
@@ -661,7 +797,7 @@ export interface WooCommerceProductReview {
   verified: boolean;
 }
 
-// Fetch product reviews. Tries WooCommerce first; if that fails or returns empty, uses custom GET endpoint.
+// Fetch product reviews. WooCommerce uses GET /products/reviews?product=ID (not /products/ID/reviews).
 export const fetchProductReviews = async (
   productId: number,
   params?: { per_page?: number; page?: number }
@@ -669,8 +805,8 @@ export const fetchProductReviews = async (
   const perPage = params?.per_page ?? 10;
   const page = params?.page ?? 1;
   try {
-    const response = await wcAPI.get(`/products/${productId}/reviews`, {
-      params: { per_page: perPage, page },
+    const response = await wcAPI.get('/products/reviews', {
+      params: { product: productId, per_page: perPage, page },
     });
     const data = response.data ?? [];
     if (Array.isArray(data) && data.length > 0) {
@@ -721,7 +857,10 @@ export const createProductReview = async (
   data: { reviewer: string; reviewer_email: string; review: string; rating: number }
 ): Promise<{ created: WooCommerceProductReview | null; error?: string }> => {
   try {
-    const response = await wcAPI.post(`/products/${productId}/reviews`, data);
+    const response = await wcAPI.post('/products/reviews', {
+      product_id: productId,
+      ...data,
+    });
     return { created: response.data };
   } catch (wcError: unknown) {
     let message = getErrorMessage(wcError);

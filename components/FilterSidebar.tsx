@@ -292,10 +292,11 @@ export default function FilterSidebar({
             new Set(s.has("category") ? [...s].filter((x) => x !== "category") : [...s, "category"])
           )
         }
+        scrollable={isMobileDrawer}
       >
         <ul className="space-y-1">
           {categories.map((c) => (
-            <li key={c.id}>
+            <li key={`cat-${c.slug ?? c.id}`}>
               <button
                 className={`text-sm ${
                   activeCategory === c.slug
@@ -319,13 +320,14 @@ export default function FilterSidebar({
             new Set(s.has("brand") ? [...s].filter((x) => x !== "brand") : [...s, "brand"])
           )
         }
+        scrollable={isMobileDrawer}
       >
         {brandsLoading ? (
           <p className="text-sm text-gray-400">Loading...</p>
         ) : (
           <ul className="space-y-1">
-            {displayBrands.map((b) => (
-              <li key={b.id}>
+            {displayBrands.map((b, i) => (
+              <li key={`brand-${b.slug ?? b.id}-${i}`}>
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -360,16 +362,19 @@ function FilterSection({
   title,
   isExpanded,
   onToggle,
+  scrollable,
   children,
 }: {
   title: string;
   isExpanded: boolean;
   onToggle: () => void;
+  scrollable?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div className="border-b pb-3">
       <button
+        type="button"
         onClick={onToggle}
         className="w-full flex justify-between items-center font-semibold text-sm"
         aria-expanded={isExpanded}
@@ -377,7 +382,11 @@ function FilterSection({
         {title}
         <span>{isExpanded ? "−" : "+"}</span>
       </button>
-      {isExpanded && <div className="mt-2">{children}</div>}
+      {isExpanded && (
+        <div className={`mt-2 ${scrollable ? "max-h-48 overflow-y-auto overscroll-contain" : ""}`}>
+          {children}
+        </div>
+      )}
     </div>
   );
 }
