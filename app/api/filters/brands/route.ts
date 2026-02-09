@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import wcAPI from '@/lib/woocommerce';
+import wcAPI, { type WooCommerceProduct, fetchCategoryBySlug } from '@/lib/woocommerce';
 import { getWpBaseUrl } from '@/lib/wp-utils';
 import { cached, CACHE_TTL, CACHE_TAGS, STATIC_CACHE_HEADERS } from '@/lib/cache';
+import { extractProductBrands } from '@/lib/utils/product';
 
 const PER_PAGE = 100;
 const MAX_PAGES = 50; // cap to avoid runaway (e.g. 5000 brands)
@@ -53,6 +54,50 @@ async function fetchBrandsFromWpTaxonomy(): Promise<Array<{ id: number; name: st
   return [];
 }
 
+/** Fetch brands that actually have products within a specific category slug. */
+async function fetchBrandsForCategorySlug(
+  categorySlug: string
+): Promise<Array<{ id: number; name: string; slug: string; count?: number; image?: string | null }>> {
+  const category = await fetchCategoryBySlug(categorySlug).catch(() => null);
+  if (!category || !category.id) return [];
+
+  const categoryId = category.id;
+  const perPage = 100;
+  const maxPages = 20;
+  let page = 1;
+
+  const brandMap = new Map<string, { id: number; name: string; slug: string; count?: number; image?: string | null }>();
+
+  while (page <= maxPages) {
+    const res = await wcAPI.get('/products', {
+      params: { category: categoryId, per_page: perPage, page },
+    });
+    const products: WooCommerceProduct[] = res.data || [];
+    if (products.length === 0) break;
+
+    products.forEach((product) => {
+      const brands = extractProductBrands(product);
+      brands.forEach((b) => {
+        const key = (b.slug || b.name || '').toLowerCase();
+        if (!key) return;
+        if (brandMap.has(key)) return;
+        brandMap.set(key, {
+          id: typeof b.id === 'number' ? b.id : 0,
+          name: b.name || b.slug || '',
+          slug: b.slug || b.name.toLowerCase().replace(/\s+/g, '-'),
+          count: undefined,
+          image: b.image || null,
+        });
+      });
+    });
+
+    if (products.length < perPage) break;
+    page += 1;
+  }
+
+  return Array.from(brandMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 /**
  * GET /api/filters/brands
  * Returns brands for the filter sidebar and /brands page.
@@ -75,7 +120,13 @@ export async function GET(request: NextRequest) {
     const brands = await cached(
       cacheKey,
       async () => {
-        // 1) Try WordPress REST API taxonomy (WooCommerce → Products → Brands) – get all pages
+        // 0) If a category is specified, derive brands from products in that category first
+        if (categorySlug) {
+          const categoryBrands = await fetchBrandsForCategorySlug(categorySlug);
+          if (categoryBrands.length > 0) return categoryBrands;
+        }
+
+        // 1) Try WordPress REST API taxonomy (WooCommerce → Products → Brands) – all brands
         const wpBrands = await fetchBrandsFromWpTaxonomy();
         if (wpBrands.length > 0) return wpBrands;
 

@@ -384,24 +384,40 @@ export interface PaginatedProductResponse {
   perPage: number;
 }
 
-/**
- * Fetch products by Brands taxonomy (WooCommerce → Products → Brands).
- * Used when "Brands" is a taxonomy, not a product attribute.
- * Uses WordPress REST API to get product IDs by brand term, then WooCommerce for full product data.
- */
-async function fetchProductsByBrandTaxonomy(
-  brandSlug: string,
-  page: number,
-  perPage: number
-): Promise<PaginatedProductResponse> {
-  const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
-  if (!base) return { products: [], total: 0, totalPages: 0, page, perPage };
+/** Get all product IDs for a single brand term from WP REST API (paginated). */
+async function getProductIdsByBrandTerm(
+  base: string,
+  taxonomyUsed: string,
+  termId: number,
+  maxIds: number = 5000
+): Promise<number[]> {
+  const ids: number[] = [];
+  let wpPage = 1;
+  const perPage = 100;
+  while (ids.length < maxIds) {
+    const res = await fetch(
+      `${base}/wp-json/wp/v2/product?${taxonomyUsed}=${termId}&per_page=${perPage}&page=${wpPage}`,
+      { next: { revalidate: 60 } }
+    );
+    if (!res.ok) break;
+    const posts: any[] = await res.json();
+    const pageIds = Array.isArray(posts) ? posts.map((p: any) => p.id).filter((id: any) => id != null) : [];
+    if (pageIds.length === 0) break;
+    ids.push(...pageIds);
+    const totalPages = parseInt(res.headers.get('x-wp-totalpages') || '1', 10);
+    if (wpPage >= totalPages) break;
+    wpPage += 1;
+  }
+  return ids;
+}
 
+/** Resolve brand slug to taxonomy name and term ID via WP REST API. */
+async function resolveBrandSlugToTerm(
+  base: string,
+  brandSlug: string
+): Promise<{ taxonomyUsed: string; termId: number } | null> {
   const slugEnc = encodeURIComponent(brandSlug.toLowerCase().trim());
   const taxonomyEndpoints = ['product_brand', 'pa_brand', 'brand'];
-  let termId: number | null = null;
-  let taxonomyUsed = '';
-
   for (const tax of taxonomyEndpoints) {
     try {
       const res = await fetch(
@@ -411,48 +427,141 @@ async function fetchProductsByBrandTaxonomy(
       if (!res.ok) continue;
       const data = await res.json();
       const term = Array.isArray(data) ? data[0] : data;
-      if (term && term.id != null) {
-        termId = Number(term.id);
-        taxonomyUsed = tax;
-        break;
-      }
+      if (term && term.id != null) return { taxonomyUsed: tax, termId: Number(term.id) };
     } catch {
       continue;
     }
   }
+  return null;
+}
 
-  if (termId == null || !taxonomyUsed) return { products: [], total: 0, totalPages: 0, page, perPage };
+/**
+ * Fetch products by Brands taxonomy (WooCommerce → Products → Brands).
+ * Single brand; used when "Brands" is a taxonomy.
+ */
+async function fetchProductsByBrandTaxonomy(
+  brandSlug: string,
+  page: number,
+  perPage: number,
+  categoryId?: number,
+  sortBy?: string
+): Promise<PaginatedProductResponse> {
+  const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
+  if (!base) return { products: [], total: 0, totalPages: 0, page, perPage };
 
-  try {
-    const wpRes = await fetch(
-      `${base}/wp-json/wp/v2/product?${taxonomyUsed}=${termId}&per_page=${perPage}&page=${page}`,
-      { next: { revalidate: 60 } }
-    );
-    const total = parseInt(wpRes.headers.get('x-wp-total') || '0', 10);
-    const totalPages = parseInt(wpRes.headers.get('x-wp-totalpages') || '0', 10);
-    if (!wpRes.ok) return { products: [], total: 0, totalPages: 0, page, perPage };
+  const resolved = await resolveBrandSlugToTerm(base, brandSlug);
+  if (!resolved) return { products: [], total: 0, totalPages: 0, page, perPage };
 
-    const posts: any[] = await wpRes.json();
-    const ids = Array.isArray(posts) ? posts.map((p: any) => p.id).filter((id: any) => id != null) : [];
-    if (ids.length === 0) return { products: [], total, totalPages, page, perPage };
+  const { taxonomyUsed, termId } = resolved;
+  const allIds = await getProductIdsByBrandTerm(base, taxonomyUsed, termId);
+  if (allIds.length === 0) return { products: [], total: 0, totalPages: 0, page, perPage };
 
-    const wcRes = await wcAPI.get('/products', {
-      params: { include: ids.join(','), per_page: ids.length },
-    });
-    const products = wcRes.data || [];
-    const orderMap = new Map(ids.map((id, i) => [id, i]));
-    const sorted = [...products].sort((a: any, b: any) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));
-
-    return {
-      products: sorted,
-      total,
-      totalPages: totalPages || 1,
-      page,
-      perPage,
-    };
-  } catch {
-    return { products: [], total: 0, totalPages: 0, page, perPage };
+  let filteredIds = allIds;
+  if (categoryId != null) {
+    const inCategory: number[] = [];
+    let wcPage = 1;
+    const wcPerPage = 100;
+    while (true) {
+      const wcRes = await wcAPI.get('/products', {
+        params: { category: categoryId, per_page: wcPerPage, page: wcPage },
+      });
+      const products: any[] = wcRes.data || [];
+      if (products.length === 0) break;
+      const idSet = new Set(allIds);
+      products.forEach((p: any) => { if (p.id != null && idSet.has(p.id)) inCategory.push(p.id); });
+      if (products.length < wcPerPage) break;
+      wcPage += 1;
+    }
+    filteredIds = inCategory;
   }
+
+  const total = filteredIds.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const start = (page - 1) * perPage;
+  const pageIds = filteredIds.slice(start, start + perPage);
+  if (pageIds.length === 0) return { products: [], total, totalPages, page, perPage };
+
+  const wcRes = await wcAPI.get('/products', {
+    params: { include: pageIds.join(','), per_page: pageIds.length },
+  });
+  let products: any[] = wcRes.data || [];
+  const orderMap = new Map(pageIds.map((id, i) => [id, i]));
+  let sorted = [...products].sort(
+    (a: any, b: any) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0)
+  );
+
+  // Apply in-page sorting for brand taxonomy results
+  if (sortBy) {
+    sorted = applySortBy(sorted, sortBy);
+  }
+
+  return { products: sorted, total, totalPages, page, perPage };
+}
+
+/**
+ * Fetch products by multiple brands (taxonomy) and optional category.
+ * Products in (brand1 OR brand2 OR ...) AND (category if set).
+ */
+async function fetchProductsByBrandTaxonomyMulti(
+  brandSlugs: string[],
+  categoryId: number | undefined,
+  page: number,
+  perPage: number,
+  sortBy?: string
+): Promise<PaginatedProductResponse> {
+  const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
+  if (!base) return { products: [], total: 0, totalPages: 0, page, perPage };
+
+  const slugSet = new Set(brandSlugs.map((s) => s.toLowerCase().trim()).filter(Boolean));
+  if (slugSet.size === 0) return { products: [], total: 0, totalPages: 0, page, perPage };
+
+  const allIds = new Set<number>();
+  for (const slug of slugSet) {
+    const resolved = await resolveBrandSlugToTerm(base, slug);
+    if (!resolved) continue;
+    const ids = await getProductIdsByBrandTerm(base, resolved.taxonomyUsed, resolved.termId);
+    ids.forEach((id) => allIds.add(id));
+  }
+  let filteredIds = Array.from(allIds);
+  if (categoryId != null) {
+    const inCategory: number[] = [];
+    let wcPage = 1;
+    const wcPerPage = 100;
+    const idSet = new Set(filteredIds);
+    while (true) {
+      const wcRes = await wcAPI.get('/products', {
+        params: { category: categoryId, per_page: wcPerPage, page: wcPage },
+      });
+      const products: any[] = wcRes.data || [];
+      if (products.length === 0) break;
+      products.forEach((p: any) => { if (p.id != null && idSet.has(p.id)) inCategory.push(p.id); });
+      if (products.length < wcPerPage) break;
+      wcPage += 1;
+    }
+    filteredIds = inCategory;
+  }
+
+  const total = filteredIds.length;
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const start = (page - 1) * perPage;
+  const pageIds = filteredIds.slice(start, start + perPage);
+  if (pageIds.length === 0) return { products: [], total, totalPages, page, perPage };
+
+  const wcRes = await wcAPI.get('/products', {
+    params: { include: pageIds.join(','), per_page: pageIds.length },
+  });
+  let products: any[] = wcRes.data || [];
+  const orderMap = new Map(pageIds.map((id, i) => [id, i]));
+  let sorted = [...products].sort(
+    (a: any, b: any) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0)
+  );
+
+  // Apply in-page sorting for multi-brand taxonomy results
+  if (sortBy) {
+    sorted = applySortBy(sorted, sortBy);
+  }
+
+  return { products: sorted, total, totalPages, page, perPage };
 }
 
 // UPDATED: Fetch all products with pagination support
@@ -634,18 +743,28 @@ export const fetchProducts = async (params?: {
       }
     };
 
-    // Handle brand filtering – try product attribute first; if "Brands" is a taxonomy (WooCommerce → Products → Brands), use WP REST API
+    // Handle brand filtering – try product attribute first; if "Brands" is a taxonomy, use WP REST API (supports multi-brand, category, and sort)
     if (params?.brands && params.brands !== '') {
       const brandVal = String(params.brands).trim();
-      const resolved = await resolveBrandToAttributeAndTermId(brandVal);
-      if (resolved) {
-        cleanParams.attribute = resolved.attribute;
-        cleanParams.attribute_term = resolved.attribute_term;
+      const brandSlugs = brandVal.split(',').map((s) => s.trim()).filter(Boolean);
+      const firstSlug = brandSlugs[0];
+      if (!firstSlug) {
+        // no-op
+      } else if (brandSlugs.length === 1) {
+        const resolved = await resolveBrandToAttributeAndTermId(firstSlug);
+        if (resolved) {
+          cleanParams.attribute = resolved.attribute;
+          cleanParams.attribute_term = resolved.attribute_term;
+        } else {
+          const pageNum = cleanParams.page || 1;
+          const perPageNum = cleanParams.per_page || 24;
+          return fetchProductsByBrandTaxonomy(firstSlug, pageNum, perPageNum, categoryId, params.sortBy);
+        }
       } else {
-        // Brands is a taxonomy (not an attribute) – fetch by taxonomy via WordPress REST API
+        // Multiple brands – use taxonomy path (attribute path only supports single term)
         const pageNum = cleanParams.page || 1;
         const perPageNum = cleanParams.per_page || 24;
-        return fetchProductsByBrandTaxonomy(brandVal, pageNum, perPageNum);
+        return fetchProductsByBrandTaxonomyMulti(brandSlugs, categoryId, pageNum, perPageNum, params.sortBy);
       }
     }
     
@@ -715,6 +834,33 @@ export const fetchProducts = async (params?: {
     throw error;
   }
 };
+
+/**
+ * Apply client-side sorting for brand taxonomy helpers based on sortBy value.
+ */
+function applySortBy(products: any[], sortBy: string): any[] {
+  const sorted = [...products];
+  switch (sortBy) {
+    case 'price_low':
+      return sorted.sort((a, b) => parseFloat(a.price || '0') - parseFloat(b.price || '0'));
+    case 'price_high':
+      return sorted.sort((a, b) => parseFloat(b.price || '0') - parseFloat(a.price || '0'));
+    case 'newest':
+      return sorted.sort(
+        (a, b) => new Date(b.date_created || b.date_created_gmt || 0).getTime() -
+                  new Date(a.date_created || a.date_created_gmt || 0).getTime()
+      );
+    case 'rating':
+      return sorted.sort(
+        (a, b) => parseFloat(b.average_rating || '0') - parseFloat(a.average_rating || '0')
+      );
+    case 'popularity':
+      // Use rating_count as a proxy for popularity when total_sales isn't available
+      return sorted.sort((a, b) => (b.rating_count || 0) - (a.rating_count || 0));
+    default:
+      return sorted;
+  }
+}
 
 // Fetch a single product by ID
 export const fetchProduct = async (id: number): Promise<WooCommerceProduct> => {

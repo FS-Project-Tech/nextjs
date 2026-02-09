@@ -79,7 +79,7 @@ export default function FilterSidebar({
     new Set(["category", "brand"])
   );
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set()
+    () => new Set()
   );
   const [childCategories, setChildCategories] = useState<
     Record<string, Category[]>
@@ -254,6 +254,52 @@ export default function FilterSidebar({
     router.replace("/shop", { scroll: false });
   };
 
+  /** Toggle accordion: expand/collapse a main category; when expanding, fetch subcategories if not cached. */
+  const toggleCategoryExpand = useCallback(
+    (parentSlug: string) => {
+      setExpandedCategories((prev) => {
+        const next = new Set(prev);
+        if (next.has(parentSlug)) {
+          next.delete(parentSlug);
+          return next;
+        }
+        next.add(parentSlug);
+        return next;
+      });
+      if (childCategories[parentSlug]) return;
+      if (fetchingChildrenRef.current?.has(parentSlug)) return;
+      fetchingChildrenRef.current = fetchingChildrenRef.current || new Set();
+      fetchingChildrenRef.current.add(parentSlug);
+      setLoadingChildren((prev) => new Set(prev).add(parentSlug));
+      fetch(`/api/filters/categories?category=${encodeURIComponent(parentSlug)}`)
+        .then((res) => (res.ok ? res.json() : { categories: [] }))
+        .then((data) => {
+          const children = Array.isArray(data.categories) ? data.categories : [];
+          setChildCategories((prev) => ({ ...prev, [parentSlug]: children }));
+          cache.childCategories[parentSlug] = children;
+        })
+        .catch(() => setChildCategories((prev) => ({ ...prev, [parentSlug]: [] })))
+        .finally(() => {
+          setLoadingChildren((prev) => {
+            const next = new Set(prev);
+            next.delete(parentSlug);
+            return next;
+          });
+          if (fetchingChildrenRef.current) fetchingChildrenRef.current.delete(parentSlug);
+        });
+    },
+    [childCategories]
+  );
+
+  /** Auto-expand the top-level category that is currently active so its subcategories are visible. */
+  useEffect(() => {
+    if (!activeCategory || categories.length === 0) return;
+    const isTopLevel = categories.some((c) => c.slug === activeCategory);
+    if (isTopLevel) {
+      setExpandedCategories((prev) => new Set(prev).add(activeCategory));
+    }
+  }, [activeCategory, categories]);
+
   /* ============================================================================
      Derived
   ============================================================================ */
@@ -294,21 +340,76 @@ export default function FilterSidebar({
         }
         scrollable={isMobileDrawer}
       >
-        <ul className="space-y-1">
-          {categories.map((c) => (
-            <li key={`cat-${c.slug ?? c.id}`}>
-              <button
-                className={`text-sm ${
-                  activeCategory === c.slug
-                    ? "font-semibold text-orange-700"
-                    : "text-gray-700"
-                }`}
-                onClick={() => handleCategoryClick(c.slug)}
-              >
-                {c.name}
-              </button>
-            </li>
-          ))}
+        <ul className="space-y-0">
+          {categories.map((c) => {
+            const isExpanded = expandedCategories.has(c.slug);
+            const children = childCategories[c.slug];
+            const isLoading = loadingChildren.has(c.slug);
+            return (
+              <li key={`cat-${c.slug ?? c.id}`} className="border-b border-gray-100 last:border-b-0">
+                <div className="flex items-center gap-1 py-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleCategoryExpand(c.slug)}
+                    className="shrink-0 p-0.5 text-gray-500 hover:text-gray-700 aria-expanded:rotate-90"
+                    aria-expanded={isExpanded}
+                    aria-label={isExpanded ? "Collapse subcategories" : "Expand subcategories"}
+                  >
+                    <svg
+                      className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className={`min-w-0 flex-1 text-left text-sm ${
+                      activeCategory === c.slug
+                        ? "font-semibold text-orange-700"
+                        : "text-gray-700 hover:text-orange-600"
+                    }`}
+                    onClick={() => handleCategoryClick(c.slug)}
+                  >
+                    {c.name}
+                  </button>
+                </div>
+                {isExpanded && (
+                  <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2 pb-1">
+                    {isLoading || (!Array.isArray(children) && children === undefined) ? (
+                      // On first open, show a loading state instead of "No subcategories"
+                      <li className="text-xs text-gray-400">Loading...</li>
+                    ) : Array.isArray(children) && children.length > 0 ? (
+                      children.map((sub) => (
+                        <li key={`sub-${sub.slug ?? sub.id}`}>
+                          <button
+                            type="button"
+                            className={`flex items-center gap-1 w-full text-left text-sm ${
+                              activeCategory === sub.slug
+                                ? "font-semibold text-orange-700"
+                                : "text-gray-600 hover:text-orange-600"
+                            }`}
+                            onClick={() => handleCategoryClick(sub.slug)}
+                          >
+                            {/* Small dash indicator for subcategories */}
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-px w-3 bg-orange-500"
+                            />
+                            <span className="truncate">{sub.name}</span>
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-xs text-gray-400">No subcategories</li>
+                    )}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </FilterSection>
 

@@ -84,16 +84,14 @@ export async function GET(request: NextRequest) {
       params.maxPrice = maxPrice;
     }
 
-    // Sorting (whitelist)
+    // Sorting (whitelist) – must match UI + fetchProducts sortBy mapping
     const sortBy = searchParams.get('sortBy');
     const allowedSorts = [
-      'price-asc',
-      'price-desc',
-      'date',
-      'popularity',
-      'rating',
-      'title',
-      'default',
+      'price_low',   // Price: Low to High
+      'price_high',  // Price: High to Low
+      'newest',      // Newest First
+      'popularity',  // Most Popular
+      'rating',      // Top Rated
     ];
     if (sortBy && allowedSorts.includes(sortBy)) {
       params.sortBy = sortBy;
