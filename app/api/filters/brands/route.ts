@@ -9,7 +9,12 @@ const MAX_PAGES = 50; // cap to avoid runaway (e.g. 5000 brands)
 /** Fetch all brand terms from WordPress REST API (product_brand taxonomy) with pagination. */
 async function fetchBrandsFromWpTaxonomy(): Promise<Array<{ id: number; name: string; slug: string; count?: number; image?: string | null }>> {
   const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
-  if (!base) return [];
+  if (!base) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[api/filters/brands] No WordPress URL: set NEXT_PUBLIC_WP_URL or WC_API_URL (Vercel: add in Project Settings → Environment Variables).');
+    }
+    return [];
+  }
 
   const taxonomySlugs = ['product_brand', 'pa_brand', 'brand'];
   for (const tax of taxonomySlugs) {
