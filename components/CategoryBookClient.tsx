@@ -104,18 +104,18 @@ export default function CategoryBookClient({
       </div>
       <div className="bg-gradient-to-b from-gray-200 to-gray-300 p-4 rounded-2xl shadow-inner">
         <HTMLFlipBook
-          width={380}
-          height={520}
+          width={600}
+          height={420}
           size="fixed"
           minWidth={0}
           maxWidth={0}
           minHeight={0}
           maxHeight={0}
-          showCover={false}
+          showCover
           startPage={0}
           drawShadow
           flippingTime={600}
-          usePortrait
+          usePortrait={false}
           startZIndex={0}
           autoSize
           maxShadowOpacity={0.5}
@@ -125,6 +125,8 @@ export default function CategoryBookClient({
           swipeDistance={30}
           showPageCorners
           disableFlipByClick={false}
+          className=""
+          style={{}}
         >
           {/* Intro page */}
           <Page number={1}>
