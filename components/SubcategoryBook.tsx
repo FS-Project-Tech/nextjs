@@ -68,6 +68,8 @@ export default function SubcategoryBook({
           swipeDistance={30}
           showPageCorners
           disableFlipByClick={false}
+          className=""
+          style={{}}
           onFlip={handleFlip}
         >
           {/* Left page: intro / cover for this subcategory */}

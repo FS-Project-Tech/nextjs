@@ -78,6 +78,8 @@ export default function CategorySubcategoryBook({
           swipeDistance={30}
           showPageCorners
           disableFlipByClick={false}
+          className=""
+          style={{}}
           onFlip={handleFlip}
         >
           {subcategories.flatMap((sub, index) => {
