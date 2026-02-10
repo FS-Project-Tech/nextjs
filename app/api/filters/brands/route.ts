@@ -54,7 +54,46 @@ async function fetchBrandsFromWpTaxonomy(): Promise<Array<{ id: number; name: st
   return [];
 }
 
-/** Fetch brands that actually have products within a specific category slug. */
+/** Build id->brand map from WordPress product_brand taxonomy (for category fallback). */
+async function getWpBrandTermMap(
+  base: string
+): Promise<Map<number, { id: number; name: string; slug: string; image?: string | null }>> {
+  const map = new Map<number, { id: number; name: string; slug: string; image?: string | null }>();
+  const taxonomySlugs = ['product_brand', 'pa_brand', 'brand'];
+  const maxPages = 2;
+  for (const tax of taxonomySlugs) {
+    let page = 1;
+    const perPage = 100;
+    while (page <= maxPages) {
+      const res = await fetch(
+        `${base}/wp-json/wp/v2/${tax}?per_page=${perPage}&page=${page}`,
+        { next: { revalidate: 3600 } }
+      );
+      if (!res.ok) break;
+      const data = await res.json();
+      const terms = Array.isArray(data) ? data : [];
+      terms.forEach((t: any) => {
+        if (t.id != null) {
+          map.set(Number(t.id), {
+            id: Number(t.id),
+            name: t.name || t.slug || '',
+            slug: t.slug || '',
+            image: t.image?.url ?? t.thumbnail ?? null,
+          });
+        }
+      });
+      if (terms.length < perPage) break;
+      page += 1;
+    }
+    if (map.size > 0) return map;
+  }
+  return map;
+}
+
+const CATEGORY_BRANDS_WP_MAX_PAGES = 3;
+const CATEGORY_BRANDS_WC_MAX_PAGES = 3;
+
+/** Fetch brands that actually have products within a specific category slug. Optimized: try WP taxonomy first (fewer requests), then WC with limited pages. */
 async function fetchBrandsForCategorySlug(
   categorySlug: string
 ): Promise<Array<{ id: number; name: string; slug: string; count?: number; image?: string | null }>> {
@@ -62,37 +101,76 @@ async function fetchBrandsForCategorySlug(
   if (!category || !category.id) return [];
 
   const categoryId = category.id;
-  const perPage = 100;
-  const maxPages = 20;
-  let page = 1;
-
   const brandMap = new Map<string, { id: number; name: string; slug: string; count?: number; image?: string | null }>();
 
-  while (page <= maxPages) {
-    const res = await wcAPI.get('/products', {
-      params: { category: categoryId, per_page: perPage, page },
-    });
-    const products: WooCommerceProduct[] = res.data || [];
-    if (products.length === 0) break;
+  const base = process.env.NEXT_PUBLIC_WP_URL || getWpBaseUrl();
 
-    products.forEach((product) => {
-      const brands = extractProductBrands(product);
-      brands.forEach((b) => {
-        const key = (b.slug || b.name || '').toLowerCase();
-        if (!key) return;
-        if (brandMap.has(key)) return;
-        brandMap.set(key, {
-          id: typeof b.id === 'number' ? b.id : 0,
-          name: b.name || b.slug || '',
-          slug: b.slug || b.name.toLowerCase().replace(/\s+/g, '-'),
-          count: undefined,
-          image: b.image || null,
+  // 1) Try WordPress REST API first (product_brand taxonomy) – usually 1 term map + few product pages; faster when WC doesn't return brands
+  if (base) {
+    const brandTermMap = await getWpBrandTermMap(base);
+    if (brandTermMap.size > 0) {
+      const taxonomySlugs = ['product_brand', 'pa_brand', 'brand'];
+      for (const tax of taxonomySlugs) {
+        for (let wpPage = 1; wpPage <= CATEGORY_BRANDS_WP_MAX_PAGES; wpPage++) {
+          const wpRes = await fetch(
+            `${base}/wp-json/wp/v2/product?product_cat=${categoryId}&per_page=100&page=${wpPage}`,
+            { next: { revalidate: 300 } }
+          );
+          if (!wpRes.ok) break;
+          const posts: any[] = await wpRes.json();
+          if (posts.length === 0) break;
+          posts.forEach((p: any) => {
+            const brandIds = p[tax];
+            if (Array.isArray(brandIds)) {
+              brandIds.forEach((id: number) => {
+                const term = brandTermMap.get(Number(id));
+                if (term) {
+                  const key = (term.slug || term.name || '').toLowerCase().replace(/\s+/g, '-');
+                  if (key && !brandMap.has(key)) {
+                    brandMap.set(key, {
+                      id: term.id,
+                      name: term.name,
+                      slug: term.slug,
+                      count: undefined,
+                      image: term.image ?? null,
+                    });
+                  }
+                }
+              });
+            }
+          });
+          if (posts.length < 100) break;
+        }
+        if (brandMap.size > 0) break;
+      }
+    }
+  }
+
+  // 2) Fallback: WooCommerce products in category (limited pages to keep response time low)
+  if (brandMap.size === 0) {
+    for (let page = 1; page <= CATEGORY_BRANDS_WC_MAX_PAGES; page++) {
+      const res = await wcAPI.get('/products', {
+        params: { category: categoryId, per_page: 100, page },
+      });
+      const products: WooCommerceProduct[] = res.data || [];
+      if (products.length === 0) break;
+      products.forEach((product) => {
+        const brands = extractProductBrands(product);
+        brands.forEach((b) => {
+          const key = (b.slug || b.name || '').toLowerCase().replace(/\s+/g, '-');
+          if (!key) return;
+          if (brandMap.has(key)) return;
+          brandMap.set(key, {
+            id: typeof b.id === 'number' ? b.id : 0,
+            name: b.name || b.slug || '',
+            slug: b.slug || b.name.toLowerCase().replace(/\s+/g, '-'),
+            count: undefined,
+            image: b.image || null,
+          });
         });
       });
-    });
-
-    if (products.length < perPage) break;
-    page += 1;
+      if (products.length < 100) break;
+    }
   }
 
   return Array.from(brandMap.values()).sort((a, b) => a.name.localeCompare(b.name));
@@ -120,10 +198,10 @@ export async function GET(request: NextRequest) {
     const brands = await cached(
       cacheKey,
       async () => {
-        // 0) If a category is specified, derive brands from products in that category first
+        // 0) If a category is specified, return only brands that have products in that category
         if (categorySlug) {
           const categoryBrands = await fetchBrandsForCategorySlug(categorySlug);
-          if (categoryBrands.length > 0) return categoryBrands;
+          return categoryBrands;
         }
 
         // 1) Try WordPress REST API taxonomy (WooCommerce → Products → Brands) – all brands

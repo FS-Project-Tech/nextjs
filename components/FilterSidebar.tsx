@@ -68,6 +68,7 @@ export default function FilterSidebar({
 
   const fetchingBrandsRef = useRef<string | null>(null);
   const fetchingChildrenRef = useRef<Set<string>>(new Set());
+  const [categoryBrandsLoadedFor, setCategoryBrandsLoadedFor] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -183,11 +184,13 @@ export default function FilterSidebar({
   useEffect(() => {
     if (isShopPage || !activeCategory) {
       setCategoryBrands([]);
+      setCategoryBrandsLoadedFor(null);
       return;
     }
 
     if (fetchingBrandsRef.current === activeCategory) return;
     fetchingBrandsRef.current = activeCategory;
+    setCategoryBrandsLoadedFor(null);
 
     const current = activeCategory;
 
@@ -197,15 +200,15 @@ export default function FilterSidebar({
         const res = await fetch(
           `/api/filters/brands?category=${encodeURIComponent(current)}`
         );
-        if (!res.ok) return;
-
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (current === activeCategory) {
-          setCategoryBrands(data.brands || []);
+          setCategoryBrands(Array.isArray(data.brands) ? data.brands : []);
         }
       } catch (e) {
         console.error(e);
+        if (current === activeCategory) setCategoryBrands([]);
       } finally {
+        if (current === activeCategory) setCategoryBrandsLoadedFor(current);
         fetchingBrandsRef.current = null;
         setBrandsLoading(false);
       }
@@ -254,7 +257,32 @@ export default function FilterSidebar({
     router.replace("/shop", { scroll: false });
   };
 
-  /** Toggle accordion: expand/collapse a main category; when expanding, fetch subcategories if not cached. */
+  /** Fetch subcategories for a parent slug (used by expand and by prefetch on hover). */
+  const fetchChildCategories = useCallback((parentSlug: string) => {
+    if (childCategories[parentSlug]) return;
+    if (fetchingChildrenRef.current?.has(parentSlug)) return;
+    fetchingChildrenRef.current = fetchingChildrenRef.current || new Set();
+    fetchingChildrenRef.current.add(parentSlug);
+    setLoadingChildren((prev) => new Set(prev).add(parentSlug));
+    fetch(`/api/filters/categories?category=${encodeURIComponent(parentSlug)}`)
+      .then((res) => (res.ok ? res.json() : { categories: [] }))
+      .then((data) => {
+        const children = Array.isArray(data.categories) ? data.categories : [];
+        setChildCategories((prev) => ({ ...prev, [parentSlug]: children }));
+        cache.childCategories[parentSlug] = children;
+      })
+      .catch(() => setChildCategories((prev) => ({ ...prev, [parentSlug]: [] })))
+      .finally(() => {
+        setLoadingChildren((prev) => {
+          const next = new Set(prev);
+          next.delete(parentSlug);
+          return next;
+        });
+        if (fetchingChildrenRef.current) fetchingChildrenRef.current.delete(parentSlug);
+      });
+  }, [childCategories]);
+
+  /** Toggle accordion: expand/collapse; when expanding, fetch subcategories if not cached. */
   const toggleCategoryExpand = useCallback(
     (parentSlug: string) => {
       setExpandedCategories((prev) => {
@@ -266,29 +294,18 @@ export default function FilterSidebar({
         next.add(parentSlug);
         return next;
       });
-      if (childCategories[parentSlug]) return;
-      if (fetchingChildrenRef.current?.has(parentSlug)) return;
-      fetchingChildrenRef.current = fetchingChildrenRef.current || new Set();
-      fetchingChildrenRef.current.add(parentSlug);
-      setLoadingChildren((prev) => new Set(prev).add(parentSlug));
-      fetch(`/api/filters/categories?category=${encodeURIComponent(parentSlug)}`)
-        .then((res) => (res.ok ? res.json() : { categories: [] }))
-        .then((data) => {
-          const children = Array.isArray(data.categories) ? data.categories : [];
-          setChildCategories((prev) => ({ ...prev, [parentSlug]: children }));
-          cache.childCategories[parentSlug] = children;
-        })
-        .catch(() => setChildCategories((prev) => ({ ...prev, [parentSlug]: [] })))
-        .finally(() => {
-          setLoadingChildren((prev) => {
-            const next = new Set(prev);
-            next.delete(parentSlug);
-            return next;
-          });
-          if (fetchingChildrenRef.current) fetchingChildrenRef.current.delete(parentSlug);
-        });
+      fetchChildCategories(parentSlug);
     },
-    [childCategories]
+    [fetchChildCategories]
+  );
+
+  /** Prefetch subcategories on hover so expand feels instant. */
+  const handleCategoryMouseEnter = useCallback(
+    (slug: string) => {
+      if (childCategories[slug] || loadingChildren.has(slug)) return;
+      fetchChildCategories(slug);
+    },
+    [childCategories, loadingChildren, fetchChildCategories]
   );
 
   /** Auto-expand the top-level category that is currently active so its subcategories are visible. */
@@ -347,7 +364,10 @@ export default function FilterSidebar({
             const isLoading = loadingChildren.has(c.slug);
             return (
               <li key={`cat-${c.slug ?? c.id}`} className="border-b border-gray-100 last:border-b-0">
-                <div className="flex items-center gap-1 py-1">
+                <div
+                  className="flex items-center gap-1 py-1"
+                  onMouseEnter={() => handleCategoryMouseEnter(c.slug)}
+                >
                   <button
                     type="button"
                     onClick={() => toggleCategoryExpand(c.slug)}
@@ -423,7 +443,7 @@ export default function FilterSidebar({
         }
         scrollable={isMobileDrawer}
       >
-        {brandsLoading ? (
+        {brandsLoading || (!isShopPage && activeCategory && displayBrands.length === 0 && categoryBrandsLoadedFor !== activeCategory) ? (
           <p className="text-sm text-gray-400">Loading...</p>
         ) : (
           <ul className="space-y-1">

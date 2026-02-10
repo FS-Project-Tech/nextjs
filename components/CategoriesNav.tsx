@@ -1,5 +1,5 @@
 import PrefetchLink from "@/components/PrefetchLink";
-import { fetchCategories } from "@/lib/woocommerce";
+import { getCategoriesForNav } from "@/lib/categories-nav";
 import { Suspense } from "react";
 import AllCategoriesDrawer from "@/components/AllCategoriesDrawer";
 
@@ -16,16 +16,10 @@ async function CategoriesNavContent() {
   let childCategories: Category[] = [];
 
   try {
-    parentCategories = await fetchCategories({
-      per_page: 7,
-      parent: 0,
-      hide_empty: true,
-    });
-
-    childCategories = await fetchCategories({
-      per_page: 100,
-      hide_empty: false,
-    });
+    const { parentCategories: parent, childCategories: child } =
+      await getCategoriesForNav();
+    parentCategories = parent;
+    childCategories = child;
   } catch {
     return null;
   }
