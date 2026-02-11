@@ -34,7 +34,7 @@ export default async function CatalogueCategoryPage({ params }: Props) {
   const subcategories = await fetchCategories({
     per_page: 100,
     parent: parentCategory.id,
-    hide_empty: false,
+    hide_empty: true,
   });
 
   const breadcrumbItems = [

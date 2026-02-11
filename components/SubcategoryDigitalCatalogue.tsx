@@ -1,8 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useState, Fragment } from "react";
+import { useRouter } from "next/navigation";
+import { formatPrice } from "@/lib/format-utils";
 import { extractProductBrands } from "@/lib/utils/product";
 import type { WooCommerceProduct } from "@/lib/woocommerce";
+
+/** Format product attributes for the Attribute column (Pkt/CTN/Each – packaging / selling unit). Prefer packaging-related attributes. */
+function formatAttributeColumn(
+  attrs: Array<{ name?: string; options?: string[] }>
+): string {
+  if (!attrs.length) return "—";
+  const packagingKeys = ["pkt", "ctn", "each", "pack", "unit", "box", "selling", "attribute", "size"];
+  const getRelevance = (name: string) => {
+    const n = name.toLowerCase();
+    return packagingKeys.some((k) => n.includes(k));
+  };
+  const packagingAttrs = attrs.filter((a) => getRelevance(String(a.name || "")));
+  const preferred = packagingAttrs.length ? packagingAttrs : attrs;
+  const parts: string[] = [];
+  for (const a of preferred) {
+    const options = Array.isArray(a.options) ? a.options : [];
+    const value = options.map((o) => String(o).trim()).filter(Boolean).join(", ");
+    if (value) parts.push(value);
+  }
+  return parts.length ? parts.join(" / ") : "—";
+}
 
 type SubcategoryDigitalCatalogueProps = {
   subcategorySlug: string;
@@ -13,9 +36,10 @@ type SubcategoryDigitalCatalogueProps = {
 type TableRow = {
   sku: string;
   name: string;
-  size: string;
+  attribute: string; // Each (Pkt)/CTN or similar from product attributes
   price: string;
   brand: string;
+  slug: string;
 };
 
 export default function SubcategoryDigitalCatalogue({
@@ -23,6 +47,7 @@ export default function SubcategoryDigitalCatalogue({
   subcategoryName,
   parentName,
 }: SubcategoryDigitalCatalogueProps) {
+  const router = useRouter();
   const [rows, setRows] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,19 +71,15 @@ export default function SubcategoryDigitalCatalogue({
 
         const mapped: TableRow[] = products.map((p) => {
           const brandInfo = extractProductBrands(p)[0];
-          const sizeAttr = (p.attributes || []).find((a: any) =>
-            String(a.name || "").toLowerCase().includes("size")
-          );
-          const size =
-            sizeAttr && Array.isArray(sizeAttr.options) && sizeAttr.options.length
-              ? String(sizeAttr.options[0])
-              : "";
+          const attrs = (p.attributes || []) as Array<{ name?: string; options?: string[] }>;
+          const attributeLabel = formatAttributeColumn(attrs);
           return {
             sku: p.sku || "",
             name: p.name,
-            size,
+            attribute: attributeLabel,
             price: p.price || "",
             brand: brandInfo?.name || "",
+            slug: p.slug || "",
           };
         });
 
@@ -119,21 +140,13 @@ export default function SubcategoryDigitalCatalogue({
               <th className="px-3 py-2 border-b border-teal-700 text-left">
                 Product Name
               </th>
-              <th className="px-3 py-2 border-b border-teal-700 text-left">Size</th>
+              <th className="px-3 py-2 border-b border-teal-700 text-left">
+                Attribute
+              </th>
               <th className="px-3 py-2 border-b border-teal-700 text-left">Price</th>
             </tr>
           </thead>
           <tbody>
-            {/* Optional group row for subcategory title (like Absorbent Dressing) */}
-            <tr className="bg-teal-50">
-              <td
-                colSpan={4}
-                className="px-3 py-2 font-semibold text-teal-900 border-b border-teal-200"
-              >
-                {subcategoryName}
-              </td>
-            </tr>
-
             {rowsByBrand.map(([brand, items]) => (
               <Fragment key={brand || "other"}>
                 {brand && (
@@ -149,7 +162,16 @@ export default function SubcategoryDigitalCatalogue({
                 {items.map((row, idx) => (
                   <tr
                     key={`${row.sku}-${idx}`}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => row.slug && router.push(`/products/${row.slug}`)}
+                    onKeyDown={(e) => {
+                      if ((e.key === "Enter" || e.key === " ") && row.slug) {
+                        e.preventDefault();
+                        router.push(`/products/${row.slug}`);
+                      }
+                    }}
+                    className={`cursor-pointer hover:bg-teal-50/70 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                   >
                     <td className="px-3 py-1.5 border-b border-gray-200">
                       {row.sku || "—"}
@@ -158,10 +180,12 @@ export default function SubcategoryDigitalCatalogue({
                       {row.name}
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.size || "—"}
+                      {row.attribute || "—"}
                     </td>
                     <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.price || "—"}
+                      {row.price != null && row.price !== ""
+                        ? formatPrice(row.price)
+                        : "—"}
                     </td>
                   </tr>
                 ))}
