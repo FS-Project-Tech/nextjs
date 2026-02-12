@@ -15,6 +15,7 @@ import PWARegister from "@/components/PWARegister";
 import AnalyticsInitializer from "@/components/AnalyticsInitializer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NavigationProgress from "@/components/NavigationProgress";
+import MainContent from "@/components/MainContent";
 import "./globals.css";
 
 // Validate environment variables at startup (server-side only)
@@ -130,9 +131,7 @@ export default function RootLayout({
                         <CategoriesNav />
                       </div>
                       <main suppressHydrationWarning>
-                        <div className="container mx-auto" suppressHydrationWarning>
-                          {children}
-                        </div>
+                        <MainContent>{children}</MainContent>
                       </main>
                       <Footer />
                       <MiniCartDrawer />

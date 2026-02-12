@@ -11,6 +11,10 @@
   --primary-muted: #d1eaea;
   --primary-dark: #164948;
   --primary-foreground: #f4fbfb;
+
+  /* NDIS / Joya brand colors – use across site */
+  --ndis-primary: #5B1D65;
+  --ndis-secondary: #1F605F;
 }
 
 @theme inline {
@@ -33,6 +37,10 @@
   
   /* Primary brand color variable */
   --color-primary: var(--primary);
+
+  /* NDIS brand – use as bg-ndis-primary, text-ndis-secondary, etc. */
+  --color-ndis-primary: var(--ndis-primary);
+  --color-ndis-secondary: var(--ndis-secondary);
 }
 
 @media (prefers-color-scheme: dark) {

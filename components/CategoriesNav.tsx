@@ -122,9 +122,9 @@ async function CategoriesNavContent() {
             );
           })}
 
-          {/* Fixed links */}
+          {/* Fixed links – NDIS goes to dedicated NDIS page */}
           <li>
-            <PrefetchLink href="/#ndis" className="px-3 py-1.5 rounded-md hover:bg-gray-50">
+            <PrefetchLink href="/ndis" className="px-3 py-1.5 rounded-md hover:bg-gray-50">
               NDIS
             </PrefetchLink>
           </li>
