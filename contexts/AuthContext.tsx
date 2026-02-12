@@ -129,12 +129,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Validate current session
-   * Note: Only sets status to 'loading' on initial load, not on periodic checks
+   * Note: Only sets status to 'loading' on initial load, not on periodic checks.
+   * On initial load we retry once on 401 so a brief server/network hiccup doesn't log the user out.
    */
-  const validateSession = useCallback(async (isInitialLoad = false) => {
+  const validateSession = useCallback(async (isInitialLoad = false, retry = false) => {
     try {
       // Only set loading status on initial load to avoid UI flicker
-      if (isInitialLoad) {
+      if (isInitialLoad && !retry) {
         setStatus('loading');
       }
       setError(null);
@@ -152,6 +153,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
+          // On initial load, retry once after a short delay (avoids logout on transient 401)
+          if (isInitialLoad && !retry) {
+            await new Promise((r) => setTimeout(r, 800));
+            return validateSession(false, true);
+          }
           // Session is invalid
           setUser(null);
           setStatus('unauthenticated');

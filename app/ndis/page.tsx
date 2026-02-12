@@ -49,7 +49,7 @@ export default function NDISPage() {
         <div className={`container mx-auto ${CONTENT_MAX_W} px-4 sm:px-6`}>
           {/* Top row: Joya left, #WE SUPPORT NDIS right */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-5 md:mb-6">
-            <span className="text-lg md:text-xl font-bold text-black">
+            <span className="text-lg md:text-xl font-bold text-white">
               Joya Medical Supplies
             </span>
             <span

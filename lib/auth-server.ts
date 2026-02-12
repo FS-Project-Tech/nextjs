@@ -11,7 +11,8 @@ import crypto from 'crypto';
 import { getWpBaseUrl } from './wp-utils';
 
 const SESSION_COOKIE_NAME = 'session';
-const SESSION_MAX_AGE = 60 * 60; // 1 hour (3600 seconds)
+// Keep session 7 days so user stays logged in when tab is closed (WordPress JWT expiry should be ≥ this)
+const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
 const CSRF_COOKIE_NAME = 'csrf-token';
 
 /**

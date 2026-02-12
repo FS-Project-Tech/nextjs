@@ -58,10 +58,18 @@ function runCommand(command, description, continueOnError = false) {
 
 function checkToolInstalled(tool) {
   try {
-    execSync(`which ${tool}`, { stdio: 'ignore' });
+    // Cross-platform check: use `where` on Windows, `which` elsewhere
+    const cmd = process.platform === 'win32' ? `where ${tool}` : `which ${tool}`;
+    execSync(cmd, { stdio: 'ignore' });
     return true;
   } catch {
-    return false;
+    try {
+      // Fallback: try running the tool with --version
+      execSync(`${tool} --version`, { stdio: 'ignore' });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
