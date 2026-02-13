@@ -37,7 +37,7 @@ const mapToProductCardProducts = (items: unknown[]): ProductCardProduct[] => {
     }));
 };
 
-const RECOMMENDED_SECTION_SIZE = 4;
+const RECOMMENDED_SECTION_SIZE = 5;
 
 const fetchFallbackProducts = async (
   signal: AbortSignal
@@ -118,8 +118,7 @@ export default function RecommendedSection() {
       subtitle="Based on your recent searches"
       products={products}
       loading={loading}
-      variant="mini"
-      bgColor="violet"
+      gridCols={5}
       viewAllHref="/recommended?sortBy=popularity"
     />
   );

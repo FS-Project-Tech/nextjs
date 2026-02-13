@@ -16,6 +16,11 @@ import AnalyticsInitializer from "@/components/AnalyticsInitializer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NavigationProgress from "@/components/NavigationProgress";
 import MainContent from "@/components/MainContent";
+import { Poppins } from 'next/font/google'
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
 import "./globals.css";
 
 // Validate environment variables at startup (server-side only)
@@ -109,7 +114,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body 
         suppressHydrationWarning
-        className="antialiased"
+        className={`antialiased ${poppins.className}`}
       >
         {/* Remove browser extension attributes before React hydrates */}
         <Script

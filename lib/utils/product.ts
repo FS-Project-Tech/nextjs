@@ -226,3 +226,17 @@ export function getSalePercentageFromProduct(product: {
 
   return Math.round(((regular - sale) / regular) * 100);
 }
+
+/**
+ * Normalize products from API/caller: accept array or { products: array } and return a plain array.
+ * Used by ProductSectionCard, ProductsSlider, etc.
+ */
+export function normalizeProductsList<T>(
+  raw: T[] | { products?: T[] } | null | undefined
+): T[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "object" && "products" in raw && Array.isArray((raw as { products?: T[] }).products))
+    return (raw as { products: T[] }).products;
+  return [];
+}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useReducer } from "react";
+import { useEffect, useRef, useMemo, useReducer, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
+import { ProductCardProduct } from "@/lib/types/product";
 import { getSalePercentageFromProduct } from "@/lib/utils/product";
 
 interface ProductGridProps {
@@ -13,28 +14,8 @@ interface ProductGridProps {
   onSaleOnly?: boolean;
 }
 
-interface Product {
-  id: number;
-  slug: string;
-  name: string;
-  sku?: string;
-  price: string;
-  sale_price?: string;
-  regular_price?: string;
-  on_sale?: boolean;
-  sale_percentage?: number | null;
-  tax_class?: string;
-  tax_status?: string;
-  average_rating?: string;
-  rating_count?: number;
-  images?: Array<{ src: string; alt?: string }>;
-  meta_data?: Array<{ key?: string; value?: unknown }>;
-  description?: string;
-  short_description?: string;
-}
-
 interface GridState {
-  products: Product[];
+  products: ProductCardProduct[];
   loading: boolean;
   error: string | null;
   page: number;
@@ -45,10 +26,19 @@ interface GridState {
 
 type GridAction =
   | { type: 'FETCH_START'; isInitial?: boolean }
-  | { type: 'FETCH_SUCCESS'; products: Product[]; total: number; totalPages: number; append: boolean; pageNum: number }
+  | { type: 'FETCH_SUCCESS'; products: ProductCardProduct[]; total: number; totalPages: number; append: boolean; pageNum: number }
   | { type: 'FETCH_ERROR'; error: string }
   | { type: 'LOAD_MORE' }
   | { type: 'RESET' };
+
+const SORT_OPTIONS = [
+  { value: "relevance", label: "Relevance" },
+  { value: "price_low", label: "Price: Low to High" },
+  { value: "price_high", label: "Price: High to Low" },
+  { value: "newest", label: "Newest First" },
+  { value: "rating", label: "Top Rated" },
+  { value: "popularity", label: "Most Popular" },
+] as const;
 
 const initialState: GridState = {
   products: [],
@@ -136,9 +126,8 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
     return params;
   }, [categorySlug, brandSlug, searchParams, onSaleOnly]);
 
-  // Fetch products with abort support
-  const fetchProducts = async (pageNum: number, append: boolean = false) => {
-    // Cancel previous request
+  // Fetch products with abort support (stable when filters change)
+  const fetchProducts = useCallback(async (pageNum: number, append: boolean = false) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -164,62 +153,36 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
           signal: controller.signal,
         });
 
-        // Ignore response if a newer request was made
         if (fetchId !== fetchIdRef.current) return;
 
-        // Try to parse JSON response
         const text = await res.text();
-        
-        // Handle empty response - retry if we have attempts left
+
         if (!text || text.trim() === '') {
           if (attempt < maxRetries) {
-            console.log(`Empty response, retrying... (attempt ${attempt + 1}/${maxRetries})`);
-            await new Promise(r => setTimeout(r, 500)); // Wait 500ms before retry
+            await new Promise(r => setTimeout(r, 500));
             continue;
           }
           throw new Error('Server returned empty response');
         }
 
-        let json;
+        let json: Record<string, unknown> | unknown[];
         try {
-          json = JSON.parse(text);
-        } catch (parseError) {
+          json = JSON.parse(text) as Record<string, unknown> | unknown[];
+        } catch {
           if (attempt < maxRetries) {
-            console.log(`JSON parse error, retrying... (attempt ${attempt + 1}/${maxRetries})`);
             await new Promise(r => setTimeout(r, 500));
             continue;
           }
           throw new Error('Invalid server response');
         }
 
-        // Check for error response
         if (!res.ok) {
-          throw new Error(json?.error || json?.message || `HTTP ${res.status}`);
+          const err = json as Record<string, unknown>;
+          throw new Error((err?.error as string) || (err?.message as string) || `HTTP ${res.status}`);
         }
 
-        // Validate response structure - handle both array and object responses
-        const products = Array.isArray(json) ? json : json?.products;
-        if (!Array.isArray(products)) {
-          // If products key exists but is not an array, return empty
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              sessionId: 'debug-session',
-              runId: 'products-run1',
-              hypothesisId: 'H1',
-              location: 'ProductGrid.tsx:192',
-              message: 'Non-array products response, returning empty list',
-              data: {
-                pageNum,
-                append,
-                jsonType: json && typeof json,
-              },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
+        const rawProducts = Array.isArray(json) ? json : (json as Record<string, unknown>)?.products;
+        if (!Array.isArray(rawProducts)) {
           dispatch({
             type: 'FETCH_SUCCESS',
             products: [],
@@ -231,81 +194,52 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
           return;
         }
 
-        // Use the products array from whichever format we received
-        const total = json?.total ?? products.length;
-        const totalPages = json?.totalPages ?? 1;
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/85fce644-efa2-4bb9-867e-84b2679df9a3', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sessionId: 'debug-session',
-            runId: 'products-run1',
-            hypothesisId: 'H2',
-            location: 'ProductGrid.tsx:208',
-            message: 'Products fetch success',
-            data: {
-              pageNum,
-              append,
-              productsLength: products.length,
-              total,
-              totalPages,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+        const total = (json as Record<string, unknown>)?.total as number ?? rawProducts.length;
+        const totalPages = (json as Record<string, unknown>)?.totalPages as number ?? 1;
 
         dispatch({
           type: 'FETCH_SUCCESS',
-          products,
+          products: rawProducts as ProductCardProduct[],
           total,
           totalPages,
           append,
           pageNum,
         });
-        return; // Success - exit the retry loop
-        
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-        lastError = err;
-        
-        // Only retry on network-type errors
+        return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        lastError = err instanceof Error ? err : new Error('Unknown error');
+
         if (attempt < maxRetries && (
-          err.message?.includes('empty') ||
-          err.message?.includes('network') ||
-          err.message?.includes('timeout') ||
-          err.name === 'TypeError'
+          lastError.message?.includes('empty') ||
+          lastError.message?.includes('network') ||
+          lastError.message?.includes('timeout') ||
+          lastError.name === 'TypeError'
         )) {
-          console.log(`Fetch error, retrying... (attempt ${attempt + 1}/${maxRetries})`);
           await new Promise(r => setTimeout(r, 500));
           continue;
         }
-        break; // Don't retry other errors
+        break;
       }
     }
 
-    // All retries exhausted
     dispatch({
       type: 'FETCH_ERROR',
       error: lastError?.message || 'Failed to load products',
     });
-  };
+  }, [filters]);
 
   // Reset and fetch when filters change
-  const filtersKey = JSON.stringify(filters);
   useEffect(() => {
     dispatch({ type: 'RESET' });
     fetchProducts(1, false);
-    
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtersKey]);
+  }, [fetchProducts]);
 
   // Infinite scroll
   useEffect(() => {
@@ -323,13 +257,11 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
 
     observer.observe(observerTarget.current);
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.hasMore, state.loading, state.page]);
+  }, [state.hasMore, state.loading, state.page, fetchProducts]);
 
-  // Sort handler
   const currentSort = filters.sortBy || 'relevance';
-  
-  const handleSortChange = (sortBy: string) => {
+
+  const handleSortChange = useCallback((sortBy: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (sortBy === 'relevance') {
       params.delete('sortBy');
@@ -337,19 +269,9 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
       params.set('sortBy', sortBy);
     }
     params.delete('page');
-    
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : '', { scroll: false });
-  };
-
-  const sortOptions = [
-    { value: "relevance", label: "Relevance" },
-    { value: "price_low", label: "Price: Low to High" },
-    { value: "price_high", label: "Price: High to Low" },
-    { value: "newest", label: "Newest First" },
-    { value: "rating", label: "Top Rated" },
-    { value: "popularity", label: "Most Popular" },
-  ];
+  }, [searchParams, router]);
 
   // Loading skeleton
   if (state.isInitialLoad && state.loading) {
@@ -436,7 +358,7 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
             className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1"
             aria-label="Sort products"
           >
-            {sortOptions.map((opt) => (
+            {SORT_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -447,9 +369,9 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
-        {state.products.map((product, i) => (
+        {state.products.map((product) => (
           <ProductCard
-            key={`${product.id}-${i}`}
+            key={product.id}
             id={product.id}
             slug={product.slug}
             name={product.name}

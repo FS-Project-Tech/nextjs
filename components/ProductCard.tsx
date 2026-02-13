@@ -291,9 +291,9 @@ function ProductCardComponent({
           <Image
             src={imageSrc}
             alt={imageAlt || name}
-            width={1000}
-            height={1000}
-            className="object-contain transition-transform duration-300 will-change-transform"
+            width={400}
+            height={400}
+            className="object-contain transition-transform duration-300 will-change-transform p-5 bg-white"
             loading={priority ? "eager" : "lazy"}
             priority={priority}
             onError={handleImageError}
@@ -323,15 +323,13 @@ function ProductCardComponent({
         <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
           <Link
             href={productUrl}
-            className={`block font-medium text-gray-900 line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline ${
-              compact ? "text-sm" : "text-sm md:text-base"
-            }`}
+            className={'block font-medium text-[14px] line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline'}
             prefetch={false}
           >
             {name}
           </Link>
 
-          <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs">
+          <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs text-dark">
             {sku ? `SKU: ${sku}` : "\u00A0"}
           </p>
 
@@ -354,7 +352,7 @@ function ProductCardComponent({
           )}
 
           <div className={priceData.isGstFree ? "text-emerald-700" : undefined}>
-            <p className={`font-bold ${compact ? "text-base" : "text-base md:text-lg"}`}>
+            <p className={`font-bold text-[16px]`}>
               {priceData.label}: {priceData.formattedCurrent}
             </p>
 

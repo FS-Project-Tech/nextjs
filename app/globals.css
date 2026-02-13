@@ -164,3 +164,22 @@ body {
 .animate-navigation-progress {
   animation: navigation-progress 1.8s ease-in-out infinite;
 }
+
+.container {
+  width: 100%;
+    @media (width >= 40rem) {
+      max-width: 32rem;
+    }
+    @media (width >= 48rem) {
+      max-width: 36rem;
+    }
+    @media (width >= 64rem) {
+      max-width: 56rem;
+    }
+    @media (width >= 80rem) {
+      max-width: 72rem;
+    }
+    @media (width >= 96rem) {
+      max-width: 88rem;
+    }
+}

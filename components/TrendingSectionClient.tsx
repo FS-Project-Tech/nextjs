@@ -16,9 +16,7 @@ export default function TrendingSectionClient({ products }: Props) {
       subtitle="Special deals and discounted items"
       products={products}
       loading={false}
-      variant="mini"
-      bgColor="indigo"
-      viewAllHref="/clearance"
+      viewAllHref="/clearance/"
     />
   );
 }

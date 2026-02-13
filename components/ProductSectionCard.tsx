@@ -4,11 +4,11 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import ProductsSliderSkeleton from "@/components/skeletons/ProductsSliderSkeleton";
 import Container from "@/components/Container";
+import { normalizeProductsList } from "@/lib/utils/product";
 
-// Dynamically import ProductsSlider - heavy component with Swiper
 const ProductsSlider = dynamic(() => import("@/components/ProductsSlider"), {
   loading: () => <ProductsSliderSkeleton />,
-  ssr: false, // Client-side only for Swiper
+  ssr: false,
 });
 
 interface ProductSectionCardProps {
@@ -16,16 +16,15 @@ interface ProductSectionCardProps {
   subtitle?: string;
   products: any[] | { products?: any[] } | null | undefined;
   loading?: boolean;
-  variant?: 'default' | 'mini';
-  bgColor?: 'violet' | 'blue' | 'indigo' | 'rose' | 'sky' | 'emerald';
+  /** Grid columns on large screens (default 5). */
+  gridCols?: 4 | 5 | 6;
   emptyMessage?: string;
   className?: string;
-  /** Link for "View all" button (e.g. /clearance) */
   viewAllHref?: string;
 }
 
 /**
- * Reusable product section card component
+ * Reusable product section card component.
  * Used by RecommendedSection, RecentlyViewedSection, TrendingSectionClient, etc.
  */
 export default function ProductSectionCard({
@@ -33,30 +32,12 @@ export default function ProductSectionCard({
   subtitle,
   products: rawProducts,
   loading = false,
-  variant = 'default',
-  bgColor = 'violet',
+  gridCols = 5,
   emptyMessage = "No products found.",
   className = "",
   viewAllHref,
 }: ProductSectionCardProps) {
-  // Normalize products to always be an array
-  const products = (() => {
-    if (!rawProducts) return [];
-    if (Array.isArray(rawProducts)) return rawProducts;
-    if (typeof rawProducts === 'object' && 'products' in rawProducts && Array.isArray(rawProducts.products)) {
-      return rawProducts.products;
-    }
-    return [];
-  })();
-
-  const bgColorClass = {
-    violet: 'bg-violet-50',
-    blue: 'bg-blue-50',
-    indigo: 'bg-indigo-50',
-    rose: 'bg-rose-50',
-    sky: 'bg-sky-50',
-    emerald: 'bg-emerald-50',
-  }[bgColor];
+  const products = normalizeProductsList(rawProducts);
 
   if (!loading && products.length === 0) {
     return null;
@@ -65,7 +46,7 @@ export default function ProductSectionCard({
   return (
     <section className={`mb-10 ${className}`}>
       <Container>
-        <div className={`rounded-xl ${bgColorClass} p-6`}>
+        <div className={`rounded-xl px-0 py-6`}>
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
@@ -76,16 +57,16 @@ export default function ProductSectionCard({
             {viewAllHref && (
               <Link
                 href={viewAllHref}
-                className="shrink-0 rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:border-indigo-300"
+                className="shrink-0 rounded-lg bg-white px-4 py-2 text-sm font-medium text-indigo-700 transition-colors"
               >
                 View all
               </Link>
             )}
           </div>
           {loading && products.length === 0 ? (
-            <ProductsSliderSkeleton />
+            <ProductsSliderSkeleton gridCols={gridCols} count={gridCols} />
           ) : products && products.length > 0 ? (
-            <ProductsSlider products={products} variant={variant} />
+            <ProductsSlider products={products} gridCols={gridCols} />
           ) : (
             <div className="rounded-lg bg-white p-8 text-center text-gray-600">
               {emptyMessage}

@@ -10,23 +10,12 @@ import { Product } from "@/lib/types/product";
  */
 export const revalidate = 300;
 
-const SECTION_SIZE = 4;
-
-function bgClassNameToColor(bgClassName?: string): "violet" | "blue" | "indigo" | "rose" | "sky" | "emerald" {
-  if (!bgClassName) return "violet";
-  if (bgClassName.includes("rose")) return "rose";
-  if (bgClassName.includes("sky")) return "sky";
-  if (bgClassName.includes("emerald")) return "emerald";
-  if (bgClassName.includes("indigo")) return "indigo";
-  if (bgClassName.includes("blue")) return "blue";
-  return "violet";
-}
+const SECTION_SIZE = 5;
 
 interface ProductSectionProps {
   title: string;
   subtitle?: string;
   viewAllHref: string;
-  bgClassName?: string;
   query?: {
     categorySlug?: string;
     orderby?: string;
@@ -39,7 +28,6 @@ export default async function ProductSection({
   title,
   subtitle,
   viewAllHref,
-  bgClassName,
   query,
 }: ProductSectionProps) {
   let categoryId: number | undefined;
@@ -86,8 +74,6 @@ export default async function ProductSection({
       subtitle={subtitle}
       viewAllHref={viewAllHref}
       products={products}
-      variant="mini"
-      bgColor={bgClassNameToColor(bgClassName)}
       emptyMessage="No products available at the moment."
     />
   );

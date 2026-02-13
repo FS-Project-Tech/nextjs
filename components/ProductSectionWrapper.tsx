@@ -25,7 +25,6 @@ interface ProductSectionWrapperProps {
   subtitle?: string;
   viewAllHref: string;
   products: Product[];
-  bgClassName?: string; // Add this
 }
 
 export default function ProductSectionWrapper({
@@ -33,7 +32,6 @@ export default function ProductSectionWrapper({
   subtitle,
   viewAllHref,
   products,
-  bgClassName, // Add this
 }: ProductSectionWrapperProps) {
   return (
     <AnimatedSection>
@@ -86,7 +84,7 @@ export default function ProductSectionWrapper({
               </Link>
             </div>
           ) : (
-            <ProductsSlider products={products} variant="mini" />
+            <ProductsSlider products={products} gridCols={5} />
           )}
         </Container>
       </section>

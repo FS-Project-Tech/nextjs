@@ -3,32 +3,21 @@
 import { useMemo } from "react";
 import ProductCard from "@/components/ProductCard";
 import { ProductCardProduct } from "@/lib/types/product";
-import { getSalePercentageFromProduct } from "@/lib/utils/product";
+import { getSalePercentageFromProduct, normalizeProductsList } from "@/lib/utils/product";
 
 interface ProductsSliderProps {
   products: ProductCardProduct[] | { products?: ProductCardProduct[] } | null | undefined;
-  /** Variant: 'default' uses ProductsSlider settings, 'mini' uses MiniProductsSlider settings */
-  variant?: 'default' | 'mini';
+  /** Grid columns on large screens (default 5). */
+  gridCols?: 4 | 5 | 6;
 }
 
-export default function ProductsSlider({ products: rawProducts, variant = 'default' }: ProductsSliderProps) {
-  // Normalize products to always be an array
-  const products = useMemo(() => {
-    if (!rawProducts) return [];
-    if (Array.isArray(rawProducts)) return rawProducts;
-    // Handle case where someone passes { products: [...] } object
-    if (typeof rawProducts === 'object' && 'products' in rawProducts && Array.isArray(rawProducts.products)) {
-      return rawProducts.products;
-    }
-    return [];
-  }, [rawProducts]);
+export default function ProductsSlider({ products: rawProducts, gridCols = 5 }: ProductsSliderProps) {
+  const products = useMemo(() => normalizeProductsList(rawProducts), [rawProducts]);
 
-  // Early return if no products
   if (!products || products.length === 0) {
     return null;
   }
 
-  // Helper function to render ProductCard (sale_percentage from backend meta/description or computed)
   const renderProductCard = (p: ProductCardProduct & { meta_data?: unknown[]; description?: string; short_description?: string }) => (
     <ProductCard
       id={p.id}
@@ -49,8 +38,12 @@ export default function ProductsSlider({ products: rawProducts, variant = 'defau
     />
   );
 
-  // Grid layout: 4 cards per row (like Clearance section) — 2 cols on mobile, 4 cols from md up
-  const gridClass = "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 items-stretch";
+  const gridClass =
+    gridCols === 6
+      ? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6 items-stretch"
+      : gridCols === 5
+        ? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5 items-stretch"
+        : "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 items-stretch";
 
   return (
     <div className={gridClass}>

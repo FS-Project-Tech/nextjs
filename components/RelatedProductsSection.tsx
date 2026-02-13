@@ -35,7 +35,7 @@ export default function RelatedProductsSection({
         )}
       </div>
 
-      <ProductsSlider products={products} variant="default" />
+      <ProductsSlider products={products} gridCols={5} />
     </section>
   );
 }

@@ -9,7 +9,7 @@ export default async function TrendingSection() {
 
   try {
     const result = await fetchProducts({
-      per_page: 4,
+      per_page: 5,
       orderby: "popularity",
       on_sale: true,
     });

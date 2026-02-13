@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import {
   useState,
   useEffect,
@@ -12,37 +12,37 @@ import {
   usePathname,
   useSearchParams,
 } from "next/navigation";
-
+ 
 /* ============================================================================
    Types
 ============================================================================ */
-
+ 
 interface Category {
   id: number;
   name: string;
   slug: string;
   count?: number;
 }
-
+ 
 interface Brand {
   id: number;
   name: string;
   slug: string;
   count?: number;
 }
-
+ 
 interface FilterSidebarProps {
   categorySlug?: string;
   isMobileDrawer?: boolean;
   onClose?: () => void;
 }
-
+ 
 /* ============================================================================
    Global Cache (module scoped)
 ============================================================================ */
-
+ 
 const CACHE_TTL = 10 * 60 * 1000;
-
+ 
 const cache = {
   categories: null as Category[] | null,
   allBrands: null as Brand[] | null,
@@ -50,11 +50,11 @@ const cache = {
   parentMap: {} as Record<string, string>,
   timestamp: 0,
 };
-
+ 
 /* ============================================================================
    Main Component
 ============================================================================ */
-
+ 
 export default function FilterSidebar({
   categorySlug,
   isMobileDrawer = false,
@@ -63,19 +63,19 @@ export default function FilterSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
+ 
   const sidebarRef = useRef<HTMLElement | null>(null);
-
+ 
   const fetchingBrandsRef = useRef<string | null>(null);
   const fetchingChildrenRef = useRef<Set<string>>(new Set());
   const [categoryBrandsLoadedFor, setCategoryBrandsLoadedFor] = useState<string | null>(null);
-
+ 
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [categoryBrands, setCategoryBrands] = useState<Brand[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(false);
-
+ 
   const [expandedSections, setExpandedSections] = useState(
     new Set(["category", "brand"])
   );
@@ -88,53 +88,53 @@ export default function FilterSidebar({
   const [loadingChildren, setLoadingChildren] = useState<Set<string>>(
     new Set()
   );
-
+ 
   /* ============================================================================
      Keyboard + Focus (Mobile Drawer)
   ============================================================================ */
-
+ 
   useEffect(() => {
     if (!isMobileDrawer) return;
-
+ 
     const esc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose?.();
     };
-
+ 
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
   }, [isMobileDrawer, onClose]);
-
+ 
   useEffect(() => {
     if (!isMobileDrawer || !sidebarRef.current) return;
     const el = sidebarRef.current.querySelector<HTMLElement>("button, input");
     el?.focus();
   }, [isMobileDrawer]);
-
+ 
   /* ============================================================================
      Active Filters
   ============================================================================ */
-
+ 
   const activeCategory = useMemo(() => {
     if (pathname.startsWith("/product-category/")) {
       return pathname.split("/product-category/")[1]?.split("?")[0] || null;
     }
     return categorySlug || null;
   }, [pathname, categorySlug]);
-
+ 
   const activeBrands = useMemo(
     () => searchParams.get("brands")?.split(",").filter(Boolean) || [],
     [searchParams]
   );
-
+ 
   const isShopPage = !activeCategory;
-
+ 
   /* ============================================================================
      Initial Fetch (Cached)
   ============================================================================ */
-
+ 
   useEffect(() => {
     const now = Date.now();
-
+ 
     if (
       cache.categories &&
       cache.allBrands &&
@@ -146,26 +146,26 @@ export default function FilterSidebar({
       setLoading(false);
       return;
     }
-
+ 
     const fetchInitial = async () => {
       try {
         const [catRes, brandRes] = await Promise.all([
           fetch("/api/filters/categories"),
           fetch("/api/filters/brands"),
         ]);
-
+ 
         if (catRes.ok) {
           const data = await catRes.json();
           cache.categories = data.categories || [];
           setCategories(cache.categories);
         }
-
+ 
         if (brandRes.ok) {
           const data = await brandRes.json();
           cache.allBrands = data.brands || [];
           setAllBrands(cache.allBrands);
         }
-
+ 
         cache.timestamp = now;
       } catch (e) {
         console.error("Filter fetch error", e);
@@ -173,27 +173,27 @@ export default function FilterSidebar({
         setLoading(false);
       }
     };
-
+ 
     fetchInitial();
   }, []);
-
+ 
   /* ============================================================================
      Category Specific Brands (Safe)
   ============================================================================ */
-
+ 
   useEffect(() => {
     if (isShopPage || !activeCategory) {
       setCategoryBrands([]);
       setCategoryBrandsLoadedFor(null);
       return;
     }
-
+ 
     if (fetchingBrandsRef.current === activeCategory) return;
     fetchingBrandsRef.current = activeCategory;
     setCategoryBrandsLoadedFor(null);
-
+ 
     const current = activeCategory;
-
+ 
     const fetchBrands = async () => {
       setBrandsLoading(true);
       try {
@@ -213,14 +213,14 @@ export default function FilterSidebar({
         setBrandsLoading(false);
       }
     };
-
+ 
     fetchBrands();
   }, [activeCategory, isShopPage]);
-
+ 
   /* ============================================================================
      URL Helpers
   ============================================================================ */
-
+ 
   const updateURL = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -232,31 +232,31 @@ export default function FilterSidebar({
     },
     [pathname, router, searchParams]
   );
-
+ 
   const handleCategoryClick = useCallback(
     (slug: string) => {
       router.push(`/product-category/${slug}`, { scroll: false });
     },
     [router]
   );
-
+ 
   const handleBrandToggle = useCallback(
     (slug: string) => {
       const updated = activeBrands.includes(slug)
         ? activeBrands.filter((b) => b !== slug)
         : [...activeBrands, slug];
-
+ 
       updateURL({
         brands: updated.length ? updated.join(",") : null,
       });
     },
     [activeBrands, updateURL]
   );
-
+ 
   const handleClearAll = () => {
     router.replace("/shop", { scroll: false });
   };
-
+ 
   /** Fetch subcategories for a parent slug (used by expand and by prefetch on hover). */
   const fetchChildCategories = useCallback((parentSlug: string) => {
     if (childCategories[parentSlug]) return;
@@ -281,7 +281,7 @@ export default function FilterSidebar({
         if (fetchingChildrenRef.current) fetchingChildrenRef.current.delete(parentSlug);
       });
   }, [childCategories]);
-
+ 
   /** Toggle accordion: expand/collapse; when expanding, fetch subcategories if not cached. */
   const toggleCategoryExpand = useCallback(
     (parentSlug: string) => {
@@ -298,7 +298,7 @@ export default function FilterSidebar({
     },
     [fetchChildCategories]
   );
-
+ 
   /** Prefetch subcategories on hover so expand feels instant. */
   const handleCategoryMouseEnter = useCallback(
     (slug: string) => {
@@ -307,7 +307,7 @@ export default function FilterSidebar({
     },
     [childCategories, loadingChildren, fetchChildCategories]
   );
-
+ 
   /** Auto-expand the top-level category that is currently active so its subcategories are visible. */
   useEffect(() => {
     if (!activeCategory || categories.length === 0) return;
@@ -316,24 +316,24 @@ export default function FilterSidebar({
       setExpandedCategories((prev) => new Set(prev).add(activeCategory));
     }
   }, [activeCategory, categories]);
-
+ 
   /* ============================================================================
      Derived
   ============================================================================ */
-
+ 
   const displayBrands = useMemo(
     () => (isShopPage ? allBrands : categoryBrands),
     [isShopPage, allBrands, categoryBrands]
   );
-
+ 
   if (loading) {
     return <aside className="w-full lg:w-64 animate-pulse h-64 bg-gray-100" />;
   }
-
+ 
   /* ============================================================================
      Render
   ============================================================================ */
-
+ 
   return (
     <aside
       ref={sidebarRef}
@@ -346,7 +346,7 @@ export default function FilterSidebar({
           <button onClick={onClose}>✕</button>
         </div>
       )}
-
+ 
       <FilterSection
         title="Department"
         isExpanded={expandedSections.has("category")}
@@ -432,37 +432,42 @@ export default function FilterSidebar({
           })}
         </ul>
       </FilterSection>
-
-      <FilterSection
-        title="Brand"
-        isExpanded={expandedSections.has("brand")}
-        onToggle={() =>
-          setExpandedSections((s) =>
-            new Set(s.has("brand") ? [...s].filter((x) => x !== "brand") : [...s, "brand"])
-          )
-        }
-        scrollable={isMobileDrawer}
-      >
-        {brandsLoading || (!isShopPage && activeCategory && displayBrands.length === 0 && categoryBrandsLoadedFor !== activeCategory) ? (
-          <p className="text-sm text-gray-400">Loading...</p>
-        ) : (
-          <ul className="space-y-1">
-            {displayBrands.map((b, i) => (
-              <li key={`brand-${b.slug ?? b.id}-${i}`}>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={activeBrands.includes(b.slug)}
-                    onChange={() => handleBrandToggle(b.slug)}
-                  />
-                  <span className="text-sm">{b.name}</span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        )}
-      </FilterSection>
-
+ 
+      {/* Brand section: only visible when a category is selected; shows brands for that category only */}
+      {!isShopPage && activeCategory && (
+        <FilterSection
+          title="Brand"
+          isExpanded={expandedSections.has("brand")}
+          onToggle={() =>
+            setExpandedSections((s) =>
+              new Set(s.has("brand") ? [...s].filter((x) => x !== "brand") : [...s, "brand"])
+            )
+          }
+          scrollable={isMobileDrawer}
+        >
+          {brandsLoading || (displayBrands.length === 0 && categoryBrandsLoadedFor !== activeCategory) ? (
+            <p className="text-sm text-gray-400">Loading...</p>
+          ) : displayBrands.length === 0 ? (
+            <p className="text-sm text-gray-400">No brands in this category</p>
+          ) : (
+            <ul className="space-y-1">
+              {displayBrands.map((b, i) => (
+                <li key={`brand-${b.slug ?? b.id}-${i}`}>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={activeBrands.includes(b.slug)}
+                      onChange={() => handleBrandToggle(b.slug)}
+                    />
+                    <span className="text-sm">{b.name}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </FilterSection>
+      )}
+ 
       {(activeCategory || activeBrands.length > 0) && (
         <button
           onClick={handleClearAll}
@@ -474,11 +479,11 @@ export default function FilterSidebar({
     </aside>
   );
 }
-
+ 
 /* ============================================================================
    Sub Components
 ============================================================================ */
-
+ 
 function FilterSection({
   title,
   isExpanded,

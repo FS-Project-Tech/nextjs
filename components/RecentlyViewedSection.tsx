@@ -96,8 +96,6 @@ export default function RecentlyViewedSection() {
       subtitle="Recently viewed by you"
       products={products}
       loading={loading}
-      variant="mini"
-      bgColor="blue"
     />
   );
 }
