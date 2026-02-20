@@ -125,6 +125,11 @@ export default async function Footer() {
 								</PrefetchLink>
 							</li>
 							<li>
+								<PrefetchLink href="/resources" className="text-white/80 hover:text-white transition-colors">
+									Resources
+								</PrefetchLink>
+							</li>
+							<li>
 								<PrefetchLink href="/shipping" className="text-white/80 hover:text-white transition-colors">
 									Shipping & Returns
 								</PrefetchLink>

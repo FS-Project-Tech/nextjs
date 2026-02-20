@@ -1,61 +1,98 @@
 "use client";
 
-import { useState } from 'react';
-import { useAddresses, Address } from '@/hooks/useAddresses';
-import { useToast } from '@/components/ToastProvider';
-import AddressForm from '@/components/dashboard/AddressForm';
+import { useState, useMemo } from "react";
+import { useAddresses, type Address } from "@/hooks/useAddresses";
+import { useToast } from "@/components/ToastProvider";
+import AddressForm from "@/components/dashboard/AddressForm";
+import { useUser } from "@/hooks/useUser";
+
+const NDIS_HCP_ROLES_EXACT = [
+  "ndis_approved",
+  "NDIS Approved",
+  "support_coordinator",
+  "Support Co-ordinator",
+  "Support Coordinator",
+];
+
+function hasNdisOrSupportCoordinatorRole(roles: string[] | undefined): boolean {
+  if (!roles?.length) return false;
+  return roles.some((r) => {
+    const lower = String(r).toLowerCase();
+    return (
+      NDIS_HCP_ROLES_EXACT.includes(r) ||
+      lower.includes("ndis") ||
+      lower.includes("support co")
+    );
+  });
+}
 
 export default function DashboardAddresses() {
-  const { addresses, isLoading, error, addAddress, updateAddress, deleteAddress, isAdding, isUpdating, isDeleting } = useAddresses();
+  const { user } = useUser();
+  const showNdisHcp = useMemo(() => {
+    if (hasNdisOrSupportCoordinatorRole(user?.roles)) return true;
+    // Fallback: treat email containing "ndis" as NDIS user (e.g. ndis123@gmail.com) when role isn't set
+    const email = user?.email ?? "";
+    return String(email).toLowerCase().includes("ndis");
+  }, [user?.roles, user?.email]);
+  const {
+    addresses,
+    isLoading,
+    error,
+    addAddress,
+    updateAddress,
+    deleteAddress,
+    isAdding,
+    isUpdating,
+    isDeleting,
+    refetch,
+  } = useAddresses();
   const { success, error: showError } = useToast();
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [defaultAddressType, setDefaultAddressType] = useState<'billing' | 'shipping'>('billing');
+  const [addType, setAddType] = useState<"billing" | "shipping">("billing");
 
-  const handleAdd = async (address: Omit<Address, 'id'>) => {
+  const handleAdd = async (payload: Omit<Address, "id">) => {
     try {
-      await addAddress(address);
-      success('Address added successfully');
+      await addAddress(payload);
+      await refetch();
+      success("Address added successfully");
       setShowAddForm(false);
-    } catch (err: any) {
-      showError(err.message || 'Failed to add address');
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Failed to add address");
     }
   };
 
-  const handleUpdate = async (id: string, address: Partial<Address>) => {
+  const handleUpdate = async (id: string, payload: Partial<Address>) => {
     try {
-      await updateAddress(id, address);
-      success('Address updated successfully');
+      await updateAddress(id, payload);
+      success("Address updated successfully");
       setEditingAddress(null);
-    } catch (err: any) {
-      showError(err.message || 'Failed to update address');
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Failed to update address");
     }
   };
 
   const handleDelete = async (id: string) => {
-    // Don't allow deleting default addresses
-    if (id === 'default-billing' || id === 'default-shipping') {
-      showError('Cannot delete default addresses');
+    if (!id) return;
+    if (id === "default-billing" || id === "default-shipping") {
+      showError("Cannot delete default addresses");
       return;
     }
-    
-    if (!confirm('Are you sure you want to delete this address?')) {
-      return;
-    }
+    if (!confirm("Are you sure you want to delete this address?")) return;
     try {
       await deleteAddress(id);
-      success('Address deleted successfully');
-    } catch (err: any) {
-      showError(err.message || 'Failed to delete address');
+      success("Address deleted successfully");
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Failed to delete address");
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex justify-center py-12">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading addresses...</p>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+          <p className="mt-4 text-gray-600">Loading addresses…</p>
         </div>
       </div>
     );
@@ -63,11 +100,11 @@ export default function DashboardAddresses() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
           <h1 className="text-2xl font-bold text-gray-900">Addresses</h1>
-          <p className="text-gray-600 mt-1">
-            Manage multiple billing and shipping addresses. You can add as many addresses as you need for different locations.
+          <p className="mt-1 text-gray-600">
+            Manage multiple billing and shipping addresses. You can add as many addresses as you need.
           </p>
         </div>
         {!showAddForm && !editingAddress && (
@@ -75,20 +112,20 @@ export default function DashboardAddresses() {
             <button
               type="button"
               onClick={() => {
-                setDefaultAddressType('billing');
+                setAddType("billing");
                 setShowAddForm(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+              className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
             >
               Add Billing Address
             </button>
             <button
               type="button"
               onClick={() => {
-                setDefaultAddressType('shipping');
+                setAddType("shipping");
                 setShowAddForm(true);
               }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+              className="rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
             >
               Add Shipping Address
             </button>
@@ -97,144 +134,130 @@ export default function DashboardAddresses() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">Error: {error.message}</p>
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">{error.message}</p>
         </div>
       )}
 
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Address</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Add New Address</h2>
           <AddressForm
-            key={`add-${defaultAddressType}`}
+            key={`add-${addType}`}
+            defaultType={addType}
             onSubmit={handleAdd}
             onCancel={() => setShowAddForm(false)}
             isLoading={isAdding}
-            defaultType={defaultAddressType}
+            submitLabel="Add address"
+            showNdisHcp={showNdisHcp}
           />
         </div>
       )}
 
       {editingAddress && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Address</h2>
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Edit Address</h2>
           <AddressForm
-            key={`edit-${editingAddress.id}`}
+            key={`edit-${editingAddress.id ?? "new"}`}
             address={editingAddress}
-            onSubmit={(address) => {
-              if (editingAddress.id) {
-                handleUpdate(editingAddress.id, address);
-              }
+            onSubmit={(payload) => {
+              const id = editingAddress?.id != null ? String(editingAddress.id) : undefined;
+              if (id) handleUpdate(id, payload);
             }}
             onCancel={() => setEditingAddress(null)}
             isLoading={isUpdating}
+            submitLabel="Update address"
+            showNdisHcp={showNdisHcp}
           />
         </div>
       )}
 
-      {addresses.length === 0 && !showAddForm && !editingAddress ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <span className="text-6xl mb-4 block">📍</span>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No addresses saved</h3>
-          <p className="text-gray-600 mb-6">Add your first address to get started</p>
-          <div className="flex gap-2 justify-center flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                setDefaultAddressType('billing');
-                setShowAddForm(true);
-              }}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Billing Address
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDefaultAddressType('shipping');
-                setShowAddForm(true);
-              }}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Add Shipping Address
-            </button>
+      {addresses.length === 0 && !showAddForm && !editingAddress && (
+        <div className="rounded-xl border border-gray-200 bg-white px-6 py-12 shadow-sm">
+          <div className="flex flex-col items-center text-center">
+            <span className="mb-4 text-5xl" aria-hidden>📍</span>
+            <h3 className="text-lg font-semibold text-gray-900">No addresses yet</h3>
+            <p className="mt-2 text-gray-600">Add your first address to get started.</p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => { setAddType("billing"); setShowAddForm(true); }}
+                className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Add Billing Address
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAddType("shipping"); setShowAddForm(true); }}
+                className="rounded-lg bg-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-green-700"
+              >
+                Add Shipping Address
+              </button>
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* Address grid - always show when there are addresses and not in add/edit mode */}
       {addresses.length > 0 && !showAddForm && !editingAddress && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           {addresses.map((address) => {
-            const isDefault = address.id === 'default-billing' || address.id === 'default-shipping';
+            const isDefault = address.id === "default-billing" || address.id === "default-shipping";
+            const hasId = Boolean(address.id);
             return (
               <div
-                key={address.id}
-                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+                key={String(address.id)}
+                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
-                      className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                        address.type === 'billing'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                        address.type === "billing" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
                       }`}
                     >
-                      {address.type === 'billing' ? 'Billing' : 'Shipping'}
+                      {address.type === "billing" ? "Billing" : "Shipping"}
                     </span>
                     {address.label && (
-                      <span className="text-sm font-medium text-gray-700">
-                        {address.label}
-                      </span>
+                      <span className="text-sm font-medium text-gray-700">{address.label}</span>
                     )}
-                    {isDefault && (
-                      <span className="text-xs text-gray-500">(Default)</span>
-                    )}
+                    {isDefault && <span className="text-xs text-gray-500">(Default)</span>}
                   </div>
-                  {!isDefault && (
-                    <div className="flex space-x-2">
+                  {!isDefault && hasId && (
+                    <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={() => setEditingAddress(address)}
-                        className="text-teal-600 hover:text-teal-700 text-sm font-medium"
                         disabled={isUpdating || isDeleting}
+                        className="text-sm font-medium text-teal-600 hover:text-teal-700 disabled:opacity-50"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(address.id!)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
                         disabled={isUpdating || isDeleting}
+                        className="text-sm font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
                       >
                         Delete
                       </button>
                     </div>
                   )}
                 </div>
-
-                <div className="space-y-2 text-sm">
+                <div className="mt-4 space-y-1.5 text-sm">
                   <p className="font-medium text-gray-900">
                     {address.first_name} {address.last_name}
                   </p>
-                  {address.company && (
-                    <p className="text-gray-600">{address.company}</p>
+                  {address.company != null && String(address.company).trim() !== "" && (
+                    <p className="text-gray-600"><span className="text-gray-500">Company:</span> {address.company}</p>
                   )}
                   <p className="text-gray-600">{address.address_1}</p>
-                  {address.address_2 && (
-                    <p className="text-gray-600">{address.address_2}</p>
-                  )}
+                  {address.address_2 && <p className="text-gray-600">{address.address_2}</p>}
                   <p className="text-gray-600">
                     {address.city}, {address.state} {address.postcode}
                   </p>
                   <p className="text-gray-600">{address.country}</p>
-                  {address.phone && (
-                    <p className="text-gray-600">Phone: {address.phone}</p>
-                  )}
-                  {address.email && (
-                    <p className="text-gray-600">Email: {address.email}</p>
-                  )}
+                  {address.phone && <p className="text-gray-600">Phone: {address.phone}</p>}
+                  {address.email && <p className="text-gray-600">Email: {address.email}</p>}
                 </div>
               </div>
             );
@@ -244,4 +267,3 @@ export default function DashboardAddresses() {
     </div>
   );
 }
-

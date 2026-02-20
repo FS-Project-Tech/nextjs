@@ -198,7 +198,7 @@ export async function PUT(req: NextRequest) {
           city: billing.city || customer.billing?.city || '',
           state: billing.state || customer.billing?.state || '',
           postcode: billing.postcode || customer.billing?.postcode || '',
-          country: billing.country || customer.billing?.country || 'AU',
+          country: billing.country || customer.billing?.country || '',
           email: email || customer.billing?.email || customer.email || '',
           phone: billing.phone || phone || customer.billing?.phone || '',
         } : {
@@ -220,7 +220,7 @@ export async function PUT(req: NextRequest) {
           city: shipping.city || customer.shipping?.city || '',
           state: shipping.state || customer.shipping?.state || '',
           postcode: shipping.postcode || customer.shipping?.postcode || '',
-          country: shipping.country || customer.shipping?.country || 'AU',
+          country: shipping.country || customer.shipping?.country || '',
         } : {
           ...customer.shipping,
         };

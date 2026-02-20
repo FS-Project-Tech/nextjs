@@ -10,6 +10,7 @@ import {
   ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
+import { clearAddressesDeletedIds } from '@/hooks/useAddresses';
 
 /**
  * User interface
@@ -336,6 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('unauthenticated');
       setError(null);
       clearIntervals();
+      clearAddressesDeletedIds();
       broadcastAuthChange('logout');
 
       // Redirect to login
@@ -347,6 +349,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('unauthenticated');
       setError(null);
       clearIntervals();
+      clearAddressesDeletedIds();
       broadcastAuthChange('logout');
       router.push('/login');
     }

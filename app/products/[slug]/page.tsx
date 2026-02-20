@@ -292,7 +292,7 @@ import {
 		  <Container className="mt-10 space-y-10">
 			<RelatedProductsSection
 			  title="Top most selling products"
-			  products={topSellingProducts.slice(0, 4).map(toProductCardProduct)}
+			  products={topSellingProducts.slice(0, 5).map(toProductCardProduct)}
 			  viewAllHref={`/shop?category=${firstCategoryId}&orderby=popularity`}
 			/>
   

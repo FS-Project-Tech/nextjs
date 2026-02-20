@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
           city: billing.city || '',
           state: billing.state || '',
           postcode: billing.postcode || '',
-          country: billing.country || 'AU',
+          country: billing.country || '',
         },
         shipping: shipping || {
           first_name: billing.first_name,
@@ -267,7 +267,7 @@ export async function POST(req: NextRequest) {
           city: billing.city || '',
           state: billing.state || '',
           postcode: billing.postcode || '',
-          country: billing.country || 'AU',
+          country: billing.country || '',
         },
         line_items: cartSync.items.map((item) => ({
           product_id: item.product_id,

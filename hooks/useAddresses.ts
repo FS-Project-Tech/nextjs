@@ -2,6 +2,40 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+const DELETED_IDS_KEY = 'addresses-deleted-ids';
+
+function getDeletedIdsFromStorage(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_IDS_KEY);
+    const arr = raw ? (JSON.parse(raw) as string[]) : [];
+    return new Set(arr.map((id) => String(id).toLowerCase()));
+  } catch {
+    return new Set();
+  }
+}
+
+function addDeletedIdToStorage(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const set = getDeletedIdsFromStorage();
+    set.add(String(id).toLowerCase());
+    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...set]));
+  } catch {
+    // ignore
+  }
+}
+
+/** Call on logout so the next user doesn't see the previous user's deleted list */
+export function clearAddressesDeletedIds(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(DELETED_IDS_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export interface Address {
   id?: string;
   type: 'billing' | 'shipping';
@@ -17,13 +51,24 @@ export interface Address {
   country: string;
   email?: string;
   phone?: string;
+  // NDIS / HCP (optional; saved with address when present)
+  ndis_participant_name?: string;
+  ndis_number?: string;
+  ndis_dob?: string;
+  ndis_funding_type?: string;
+  ndis_approval?: boolean;
+  ndis_invoice_email?: string;
+  hcp_participant_name?: string;
+  hcp_number?: string;
+  hcp_provider_email?: string;
+  hcp_approval?: boolean;
 }
 
 interface UseAddressesResult {
   addresses: Address[];
   isLoading: boolean;
   error: Error | null;
-  refetch: () => void;
+  refetch: () => Promise<unknown>;
   addAddress: (address: Omit<Address, 'id'>) => Promise<void>;
   updateAddress: (id: string, address: Partial<Address>) => Promise<void>;
   deleteAddress: (id: string) => Promise<void>;
@@ -46,6 +91,7 @@ export function useAddresses(): UseAddressesResult {
       const response = await fetch('/api/dashboard/addresses', {
         credentials: 'include',
         cache: 'no-store',
+        headers: { 'Cache-Control': 'no-store', Pragma: 'no-cache' },
       });
 
       if (!response.ok) {
@@ -53,9 +99,12 @@ export function useAddresses(): UseAddressesResult {
       }
 
       const result = await response.json();
-      return result.addresses || [];
+      const list = result.addresses || [];
+      const deleted = getDeletedIdsFromStorage();
+      return list.filter((a) => !deleted.has(String(a.id).toLowerCase()));
     },
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const addMutation = useMutation({
@@ -74,14 +123,27 @@ export function useAddresses(): UseAddressesResult {
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { address?: Address; message?: string }) => {
+      const newAddress = data?.address;
+      if (newAddress && newAddress.id != null) {
+        queryClient.setQueryData<Address[]>(['addresses'], (old) => {
+          const list = old ?? [];
+          const idStr = String(newAddress.id);
+          const exists = list.some((a) => String(a.id) === idStr);
+          if (exists) {
+            return list.map((a) => (String(a.id) === idStr ? { ...newAddress, id: newAddress.id } : a));
+          }
+          return [...list, { ...newAddress, id: newAddress.id }];
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, address }: { id: string; address: Partial<Address> }) => {
-      const response = await fetch(`/api/dashboard/addresses/${encodeURIComponent(id)}`, {
+      const idStr = String(id);
+      const response = await fetch(`/api/dashboard/addresses/${encodeURIComponent(idStr)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -89,13 +151,34 @@ export function useAddresses(): UseAddressesResult {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to update address');
+        const error = await response.json().catch(() => ({}));
+        throw new Error((error as { error?: string }).error || 'Failed to update address');
       }
 
-      return response.json();
+      const result = await response.json();
+      const updatedAddr = result.address as Address;
+      return { id: idStr, updated: updatedAddr, result };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const updated = data.updated as Record<string, unknown> | undefined;
+      const idStr = String(data.id);
+      if (updated) {
+        queryClient.setQueryData<Address[]>(['addresses'], (old) => {
+          if (!old) return old;
+          return old.map((a) => {
+            if (String(a.id) !== idStr) return a;
+            const keys = ['type', 'label', 'first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'email', 'phone', 'ndis_participant_name', 'ndis_number', 'ndis_dob', 'ndis_funding_type', 'ndis_approval', 'ndis_invoice_email', 'hcp_participant_name', 'hcp_number', 'hcp_provider_email', 'hcp_approval'] as const;
+            const merged = { ...a } as Address;
+            for (const key of keys) {
+              if (Object.prototype.hasOwnProperty.call(updated, key)) {
+                (merged as Record<string, unknown>)[key] = updated[key] ?? '';
+              }
+            }
+            if (updated.id != null) merged.id = updated.id as string;
+            return merged;
+          });
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
@@ -114,8 +197,12 @@ export function useAddresses(): UseAddressesResult {
 
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+    onSuccess: (_data, deletedId) => {
+      const idStr = String(deletedId);
+      addDeletedIdToStorage(idStr);
+      queryClient.setQueryData<Address[]>(['addresses'], (old) =>
+        old ? old.filter((a) => String(a.id) !== idStr) : old
+      );
     },
   });
 
@@ -123,9 +210,7 @@ export function useAddresses(): UseAddressesResult {
     addresses: data || [],
     isLoading,
     error: error as Error | null,
-    refetch: () => {
-      refetch();
-    },
+    refetch: () => refetch(),
     addAddress: async (address) => {
       await addMutation.mutateAsync(address);
     },

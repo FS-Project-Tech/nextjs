@@ -1,313 +1,433 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import * as yup from 'yup';
-import { Address } from '@/hooks/useAddresses';
+import { useEffect, useRef, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import type { Address } from "@/hooks/useAddresses";
 
-const addressSchema = yup.object({
-  label: yup.string().optional().nullable(),
-  type: yup.string().oneOf(['billing', 'shipping']).required('Address type is required'),
-  first_name: yup.string().required('First name is required').test('not-empty', 'First name is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  last_name: yup.string().required('Last name is required').test('not-empty', 'Last name is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  company: yup.string().optional().nullable(),
-  address_1: yup.string().required('Address is required').test('not-empty', 'Address is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  address_2: yup.string().optional().nullable(),
-  city: yup.string().required('City is required').test('not-empty', 'City is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  state: yup.string().required('State is required').test('not-empty', 'State is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  postcode: yup.string().required('Postcode is required').test('not-empty', 'Postcode is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  country: yup.string().required('Country is required').test('not-empty', 'Country is required', (value) => {
-    return value !== undefined && value !== null && String(value).trim().length > 0;
-  }),
-  email: yup.string().email('Invalid email').optional().nullable(),
-  phone: yup.string().optional().nullable(),
-});
+export type AddressFormValues = {
+  type: "billing" | "shipping";
+  label: string;
+  first_name: string;
+  last_name: string;
+  company: string;
+  address_1: string;
+  address_2: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+  email: string;
+  phone: string;
+  ndis_participant_name: string;
+  ndis_number: string;
+  ndis_dob: string;
+  ndis_funding_type: string;
+  ndis_approval: boolean;
+  ndis_invoice_email: string;
+  hcp_participant_name: string;
+  hcp_number: string;
+  hcp_provider_email: string;
+  hcp_approval: boolean;
+};
 
-type AddressFormData = yup.InferType<typeof addressSchema>;
+const ROW2: { key: keyof AddressFormValues; label: string; required?: boolean }[] = [
+  { key: "first_name", label: "First name", required: true },
+  { key: "last_name", label: "Last name", required: true },
+];
+const ROW3 = [{ key: "company" as const, label: "Company (optional)" }];
+const ROW4 = [{ key: "address_1" as const, label: "Address line 1", required: true }];
+const ROW5 = [{ key: "address_2" as const, label: "Address line 2" }];
+const ROW6: { key: keyof AddressFormValues; label: string; required?: boolean }[] = [
+  { key: "city", label: "City", required: true },
+  { key: "state", label: "State", required: true },
+  { key: "postcode", label: "Postcode", required: true },
+];
+const ROW7 = [{ key: "country" as const, label: "Country", required: true, placeholder: "AU" }];
+const ROW8: { key: keyof AddressFormValues; label: string; type?: string }[] = [
+  { key: "email", label: "Email", type: "email" },
+  { key: "phone", label: "Phone", type: "tel" },
+];
 
-interface AddressFormProps {
-  address?: Address;
-  onSubmit: (address: Omit<Address, 'id'>) => void;
-  onCancel: () => void;
-  isLoading?: boolean;
-  defaultType?: 'billing' | 'shipping';
+function defaultValues(type: "billing" | "shipping"): AddressFormValues {
+  return {
+    type,
+    label: "",
+    first_name: "",
+    last_name: "",
+    company: "",
+    address_1: "",
+    address_2: "",
+    city: "",
+    state: "",
+    postcode: "",
+    country: "AU",
+    email: "",
+    phone: "",
+    ndis_participant_name: "",
+    ndis_number: "",
+    ndis_dob: "",
+    ndis_funding_type: "",
+    ndis_approval: false,
+    ndis_invoice_email: "",
+    hcp_participant_name: "",
+    hcp_number: "",
+    hcp_provider_email: "",
+    hcp_approval: false,
+  };
 }
 
-export default function AddressForm({ address, onSubmit, onCancel, isLoading, defaultType = 'billing' }: AddressFormProps) {
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+function toPayload(values: AddressFormValues, includeNdisHcp: boolean): Omit<Address, "id"> {
+  const trim = (s: string) => (s ?? "").trim();
+  const payload: Omit<Address, "id"> = {
+    type: values.type,
+    label: trim(values.label) || undefined,
+    first_name: trim(values.first_name),
+    last_name: trim(values.last_name),
+    company: trim(values.company) || "",
+    address_1: trim(values.address_1),
+    address_2: trim(values.address_2) || undefined,
+    city: trim(values.city),
+    state: trim(values.state),
+    postcode: trim(values.postcode),
+    country: trim(values.country) || "AU",
+    email: trim(values.email) || undefined,
+    phone: trim(values.phone) || undefined,
+  };
+  if (includeNdisHcp) {
+    if (trim(values.ndis_participant_name)) payload.ndis_participant_name = trim(values.ndis_participant_name);
+    if (trim(values.ndis_number)) payload.ndis_number = trim(values.ndis_number);
+    if (trim(values.ndis_dob)) payload.ndis_dob = trim(values.ndis_dob);
+    if (trim(values.ndis_funding_type)) payload.ndis_funding_type = trim(values.ndis_funding_type);
+    payload.ndis_approval = Boolean(values.ndis_approval);
+    if (trim(values.ndis_invoice_email)) payload.ndis_invoice_email = trim(values.ndis_invoice_email);
+    if (trim(values.hcp_participant_name)) payload.hcp_participant_name = trim(values.hcp_participant_name);
+    if (trim(values.hcp_number)) payload.hcp_number = trim(values.hcp_number);
+    if (trim(values.hcp_provider_email)) payload.hcp_provider_email = trim(values.hcp_provider_email);
+    payload.hcp_approval = Boolean(values.hcp_approval);
+  }
+  return payload;
+}
+
+export interface AddressFormProps {
+  address?: Address | null;
+  defaultType?: "billing" | "shipping";
+  onSubmit: (payload: Omit<Address, "id">) => void;
+  onCancel: () => void;
+  isLoading?: boolean;
+  submitLabel?: string;
+  /** When true, show NDIS and Home Care Package sections (for NDIS Approved / Support Co-ordinator roles) */
+  showNdisHcp?: boolean;
+}
+
+export default function AddressForm({
+  address,
+  defaultType = "billing",
+  onSubmit,
+  onCancel,
+  isLoading = false,
+  submitLabel,
+  showNdisHcp = false,
+}: AddressFormProps) {
+  const isEdit = Boolean(address?.id);
+  const [openNdisSection, setOpenNdisSection] = useState(false);
+  const [openHcpSection, setOpenHcpSection] = useState(false);
+  const fieldIdPrefix = `address_${address?.id ?? "new"}_`;
+  const lastResetAddressIdRef = useRef<string | null>(null);
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitted },
     reset,
-    clearErrors,
-  } = useForm<AddressFormData>({
-    resolver: yupResolver(addressSchema) as any,
-    mode: 'onSubmit',
-    reValidateMode: 'onSubmit',
-    shouldUnregister: true,
-    shouldFocusError: false,
-    defaultValues: address || {
-      type: defaultType,
-      country: 'AU',
-      first_name: '',
-      last_name: '',
-      address_1: '',
-      city: '',
-      state: '',
-      postcode: '',
-    },
+    control,
+    formState: { errors },
+    setError,
+  } = useForm<AddressFormValues>({
+    defaultValues: address
+      ? {
+          ...defaultValues(address.type),
+          ...address,
+          company: address.company ?? "",
+          label: address.label ?? "",
+          address_2: address.address_2 ?? "",
+          email: address.email ?? "",
+          phone: address.phone ?? "",
+          ndis_participant_name: address.ndis_participant_name ?? "",
+          ndis_number: address.ndis_number ?? "",
+          ndis_dob: address.ndis_dob ?? "",
+          ndis_funding_type: address.ndis_funding_type ?? "",
+          ndis_approval: Boolean(address.ndis_approval),
+          ndis_invoice_email: address.ndis_invoice_email ?? "",
+          hcp_participant_name: address.hcp_participant_name ?? "",
+          hcp_number: address.hcp_number ?? "",
+          hcp_provider_email: address.hcp_provider_email ?? "",
+          hcp_approval: Boolean(address.hcp_approval),
+        }
+      : defaultValues(defaultType),
   });
 
   useEffect(() => {
-    if (address) {
-      // Ensure all required fields have values (convert empty strings to empty string for form)
-      const formData = {
-        ...address,
-        first_name: address.first_name || '',
-        last_name: address.last_name || '',
-        address_1: address.address_1 || '',
-        city: address.city || '',
-        state: address.state || '',
-        postcode: address.postcode || '',
-        country: address.country || 'AU',
-        type: address.type || defaultType,
-      };
-      reset(formData, { keepErrors: false, keepDefaultValues: false });
-      clearErrors();
-      setHasAttemptedSubmit(false);
-    } else if (defaultType) {
-      reset({
-        type: defaultType,
-        country: 'AU',
-        first_name: '',
-        last_name: '',
-        address_1: '',
-        city: '',
-        state: '',
-        postcode: '',
-      }, { keepErrors: false, keepDefaultValues: false });
-      clearErrors();
-      setHasAttemptedSubmit(false);
+    const addressId = address?.id != null ? String(address.id) : null;
+    if (!addressId) {
+      lastResetAddressIdRef.current = null;
+      return;
     }
-  }, [address, defaultType, reset, clearErrors]);
+    if (lastResetAddressIdRef.current === addressId) return;
+    lastResetAddressIdRef.current = addressId;
+    reset({
+      ...defaultValues(address.type),
+      type: address.type,
+      label: address.label ?? "",
+      first_name: address.first_name ?? "",
+      last_name: address.last_name ?? "",
+      company: address.company ?? "",
+      address_1: address.address_1 ?? "",
+      address_2: address.address_2 ?? "",
+      city: address.city ?? "",
+      state: address.state ?? "",
+      postcode: address.postcode ?? "",
+      country: address.country ?? "AU",
+      email: address.email ?? "",
+      phone: address.phone ?? "",
+      ndis_participant_name: address.ndis_participant_name ?? "",
+      ndis_number: address.ndis_number ?? "",
+      ndis_dob: address.ndis_dob ?? "",
+      ndis_funding_type: address.ndis_funding_type ?? "",
+      ndis_approval: Boolean(address.ndis_approval),
+      ndis_invoice_email: address.ndis_invoice_email ?? "",
+      hcp_participant_name: address.hcp_participant_name ?? "",
+      hcp_number: address.hcp_number ?? "",
+      hcp_provider_email: address.hcp_provider_email ?? "",
+      hcp_approval: Boolean(address.hcp_approval),
+    });
+  }, [address, reset]);
 
-  const onFormSubmit = (data: AddressFormData) => {
-    setHasAttemptedSubmit(true);
-    // Clean up the data: remove empty strings for optional fields
-    const cleanedData: any = {
-      ...data,
-      first_name: data.first_name?.trim() || '',
-      last_name: data.last_name?.trim() || '',
-      address_1: data.address_1?.trim() || '',
-      city: data.city?.trim() || '',
-      state: data.state?.trim() || '',
-      postcode: data.postcode?.trim() || '',
-      country: data.country?.trim() || 'AU',
-      label: data.label?.trim() || undefined,
-      company: data.company?.trim() || undefined,
-      address_2: data.address_2?.trim() || undefined,
-      email: data.email?.trim() || undefined,
-      phone: data.phone?.trim() || undefined,
-    };
-    onSubmit(cleanedData as Omit<Address, 'id'>);
+  const handleFormSubmit = (values: AddressFormValues) => {
+    if (!values.first_name?.trim()) {
+      setError("first_name", { message: "Required" });
+      return;
+    }
+    if (!values.last_name?.trim()) {
+      setError("last_name", { message: "Required" });
+      return;
+    }
+    if (!values.address_1?.trim()) {
+      setError("address_1", { message: "Required" });
+      return;
+    }
+    if (!values.city?.trim()) {
+      setError("city", { message: "Required" });
+      return;
+    }
+    if (!values.state?.trim()) {
+      setError("state", { message: "Required" });
+      return;
+    }
+    if (!values.postcode?.trim()) {
+      setError("postcode", { message: "Required" });
+      return;
+    }
+    if (!values.country?.trim()) {
+      setError("country", { message: "Required" });
+      return;
+    }
+    const payload = toPayload(values, showNdisHcp);
+    onSubmit(payload);
   };
 
   return (
-    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" id={`${fieldIdPrefix}form`} aria-label="Address form">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Address Type <span className="text-red-500">*</span>
-          </label>
+          <label htmlFor={`${fieldIdPrefix}type`} className="mb-1 block text-sm font-medium text-gray-700">Type</label>
           <select
-            {...register('type')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            id={`${fieldIdPrefix}type`}
+            {...register("type")}
             disabled={isLoading}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60"
+            aria-required="true"
           >
             <option value="billing">Billing</option>
             <option value="shipping">Shipping</option>
           </select>
-          {hasAttemptedSubmit && errors.type && (
-            <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
-          )}
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Label (e.g., Home, Office, Friend)
-          </label>
+          <label htmlFor={`${fieldIdPrefix}label`} className="mb-1 block text-sm font-medium text-gray-700">Label (e.g. Home, Office)</label>
           <input
+            id={`${fieldIdPrefix}label`}
             type="text"
-            {...register('label')}
+            {...register("label")}
             placeholder="Home"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            disabled={isLoading}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            First Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('first_name')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {hasAttemptedSubmit && errors.first_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.first_name.message}</p>
-          )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {ROW2.map(({ key, label, required }) => (
+          <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+            <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
+            <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete={key === "first_name" ? "given-name" : key === "last_name" ? "family-name" : undefined} />
+            {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
+          </div>
+        ))}
+      </div>
+      {ROW3.map(({ key, label }) => (
+        <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+          <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+          <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" autoComplete="organization" />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('last_name')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {hasAttemptedSubmit && errors.last_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.last_name.message}</p>
-          )}
+      ))}
+      {ROW4.map(({ key, label, required }) => (
+        <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+          <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
+          <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete="address-line1" />
+          {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
         </div>
+      ))}
+      {ROW5.map(({ key, label }) => (
+        <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+          <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+          <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" autoComplete="address-line2" />
+        </div>
+      ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {ROW6.map(({ key, label, required }) => (
+          <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+            <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
+            <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete={key === "postcode" ? "postal-code" : key === "state" ? "address-level1" : "address-level2"} />
+            {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
+          </div>
+        ))}
+      </div>
+      {ROW7.map(({ key, label, required, placeholder }) => (
+        <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+          <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
+          <input id={`${fieldIdPrefix}${key}`} type="text" placeholder={placeholder} disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete="country" />
+          {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
+        </div>
+      ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {ROW8.map(({ key, label, type = "text" }) => (
+          <div key={key} id={`${fieldIdPrefix}${key}_field`}>
+            <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+            <input id={`${fieldIdPrefix}${key}`} type={type} disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" autoComplete={key === "email" ? "email" : key === "phone" ? "tel" : undefined} />
+          </div>
+        ))}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-        <input
-          type="text"
-          {...register('company')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Address Line 1 <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          {...register('address_1')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-        />
-        {hasAttemptedSubmit && errors.address_1 && (
-          <p className="mt-1 text-sm text-red-600">{errors.address_1.message}</p>
-        )}
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
-        <input
-          type="text"
-          {...register('address_2')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-        />
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            City <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('city')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {hasAttemptedSubmit && errors.city && (
-            <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>
-          )}
+      {showNdisHcp && (
+        <div className="mt-6 space-y-4 border-t border-gray-200 pt-6">
+          <div className="rounded-lg border border-gray-200 bg-gray-50/50">
+            <button
+              type="button"
+              onClick={() => setOpenNdisSection((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+            >
+              <span className="text-sm font-medium text-gray-700">Enter your NDIS information</span>
+              <span className="text-sm text-gray-500">{openNdisSection ? "−" : "+"}</span>
+            </button>
+            {openNdisSection && (
+              <div className="border-t border-gray-200 bg-white px-4 py-4">
+                <p className="mb-4 text-xs text-gray-500">Add your NDIS information for this address.</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}ndis_participant_name_field`}>
+                    <label htmlFor={`${fieldIdPrefix}ndis_participant_name`} className="mb-1 block text-sm font-medium text-gray-700">Participants Full Name</label>
+                    <input id={`${fieldIdPrefix}ndis_participant_name`} type="text" disabled={isLoading} {...register("ndis_participant_name")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div id={`${fieldIdPrefix}ndis_number_field`}>
+                    <label htmlFor={`${fieldIdPrefix}ndis_number`} className="mb-1 block text-sm font-medium text-gray-700">NDIS Number</label>
+                    <input id={`${fieldIdPrefix}ndis_number`} type="text" disabled={isLoading} {...register("ndis_number")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div id={`${fieldIdPrefix}ndis_dob_field`}>
+                    <label htmlFor={`${fieldIdPrefix}ndis_dob`} className="mb-1 block text-sm font-medium text-gray-700">Participant&apos;s Date Of Birth</label>
+                    <input id={`${fieldIdPrefix}ndis_dob`} type="text" disabled={isLoading} {...register("ndis_dob")} placeholder="dd-mm-yyyy" className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}ndis_funding_type_field`}>
+                    <label htmlFor={`${fieldIdPrefix}ndis_funding_type`} className="mb-1 block text-sm font-medium text-gray-700">NDIS Funding Type</label>
+                    <select id={`${fieldIdPrefix}ndis_funding_type`} disabled={isLoading} {...register("ndis_funding_type")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm">
+                      <option value="">Please Choose</option>
+                      <option value="self_managed">Self Managed</option>
+                      <option value="plan_managed">Plan Managed</option>
+                      <option value="agency_managed">Agency Managed</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}ndis_invoice_email_field`}>
+                    <label htmlFor={`${fieldIdPrefix}ndis_invoice_email`} className="mb-1 block text-sm font-medium text-gray-700">NDIS Invoice Email</label>
+                    <input id={`${fieldIdPrefix}ndis_invoice_email`} type="email" disabled={isLoading} {...register("ndis_invoice_email")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" placeholder="Email for NDIS invoices" />
+                  </div>
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}ndis_approval_field`}>
+                    <label className="flex items-start gap-2">
+                      <Controller
+                        name="ndis_approval"
+                        control={control}
+                        render={({ field: { value, onChange, ...rest } }) => (
+                          <input id={`${fieldIdPrefix}ndis_approval`} type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-4 w-4 rounded border-gray-300" disabled={isLoading} {...rest} />
+                        )}
+                      />
+                      <span className="text-sm text-gray-700">I approve this order to be paid using my / the Participant&apos;s NDIS funding.</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-gray-50/50">
+            <button
+              type="button"
+              onClick={() => setOpenHcpSection((v) => !v)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+            >
+              <span className="text-sm font-medium text-gray-700">Enter your Home Care Package information</span>
+              <span className="text-sm text-gray-500">{openHcpSection ? "−" : "+"}</span>
+            </button>
+            {openHcpSection && (
+              <div className="border-t border-gray-200 bg-white px-4 py-4">
+                <p className="mb-4 text-xs text-gray-500">Enter their details to get access to their package.</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}hcp_participant_name_field`}>
+                    <label htmlFor={`${fieldIdPrefix}hcp_participant_name`} className="mb-1 block text-sm font-medium text-gray-700">Participants Full Name</label>
+                    <input id={`${fieldIdPrefix}hcp_participant_name`} type="text" disabled={isLoading} {...register("hcp_participant_name")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div id={`${fieldIdPrefix}hcp_number_field`}>
+                    <label htmlFor={`${fieldIdPrefix}hcp_number`} className="mb-1 block text-sm font-medium text-gray-700">HCP Number</label>
+                    <input id={`${fieldIdPrefix}hcp_number`} type="text" disabled={isLoading} {...register("hcp_number")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div id={`${fieldIdPrefix}hcp_provider_email_field`}>
+                    <label htmlFor={`${fieldIdPrefix}hcp_provider_email`} className="mb-1 block text-sm font-medium text-gray-700">Provider Payment Email</label>
+                    <input id={`${fieldIdPrefix}hcp_provider_email`} type="email" disabled={isLoading} {...register("hcp_provider_email")} className="w-full rounded border border-gray-300 px-3 py-2 text-sm" />
+                  </div>
+                  <div className="sm:col-span-2" id={`${fieldIdPrefix}hcp_approval_field`}>
+                    <label className="flex items-start gap-2">
+                      <Controller
+                        name="hcp_approval"
+                        control={control}
+                        render={({ field: { value, onChange, ...rest } }) => (
+                          <input id={`${fieldIdPrefix}hcp_approval`} type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} className="mt-1 h-4 w-4 rounded border-gray-300" disabled={isLoading} {...rest} />
+                        )}
+                      />
+                      <span className="text-sm text-gray-700">I approve this order to be paid using my / the Participant&apos;s HCP funding.</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            State <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('state')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {hasAttemptedSubmit && errors.state && (
-            <p className="mt-1 text-sm text-red-600">{errors.state.message}</p>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Postcode <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            {...register('postcode')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-          {hasAttemptedSubmit && errors.postcode && (
-            <p className="mt-1 text-sm text-red-600">{errors.postcode.message}</p>
-          )}
-        </div>
-      </div>
+      )}
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Country <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          {...register('country')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-        />
-        {hasAttemptedSubmit && errors.country && (
-          <p className="mt-1 text-sm text-red-600">{errors.country.message}</p>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            {...register('email')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-          <input
-            type="tel"
-            {...register('phone')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-          />
-        </div>
-      </div>
-
-      <div className="flex space-x-4 pt-4">
+      <div className="flex flex-wrap gap-3 pt-2">
         <button
           type="submit"
-          onClick={() => setHasAttemptedSubmit(true)}
           disabled={isLoading}
-          className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Saving...' : address ? 'Update Address' : 'Add Address'}
+          {isLoading ? "Saving…" : submitLabel ?? (isEdit ? "Update address" : "Add address")}
         </button>
         <button
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
           Cancel
         </button>
@@ -315,4 +435,3 @@ export default function AddressForm({ address, onSubmit, onCancel, isLoading, de
     </form>
   );
 }
-
