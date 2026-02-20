@@ -160,7 +160,7 @@ export function useAddresses(): UseAddressesResult {
       return { id: idStr, updated: updatedAddr, result };
     },
     onSuccess: (data) => {
-      const updated = data.updated as Record<string, unknown> | undefined;
+      const updated = data.updated as unknown as Record<string, unknown> | undefined;
       const idStr = String(data.id);
       if (updated) {
         queryClient.setQueryData<Address[]>(['addresses'], (old) => {
@@ -168,14 +168,14 @@ export function useAddresses(): UseAddressesResult {
           return old.map((a) => {
             if (String(a.id) !== idStr) return a;
             const keys = ['type', 'label', 'first_name', 'last_name', 'company', 'address_1', 'address_2', 'city', 'state', 'postcode', 'country', 'email', 'phone', 'ndis_participant_name', 'ndis_number', 'ndis_dob', 'ndis_funding_type', 'ndis_approval', 'ndis_invoice_email', 'hcp_participant_name', 'hcp_number', 'hcp_provider_email', 'hcp_approval'] as const;
-            const merged = { ...a } as Address;
+            const merged = { ...a } as unknown as Record<string, unknown>;
             for (const key of keys) {
               if (Object.prototype.hasOwnProperty.call(updated, key)) {
-                (merged as Record<string, unknown>)[key] = updated[key] ?? '';
+                merged[key] = updated[key] ?? '';
               }
             }
             if (updated.id != null) merged.id = updated.id as string;
-            return merged;
+            return merged as unknown as Address;
           });
         });
       }
