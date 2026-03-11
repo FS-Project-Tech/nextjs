@@ -1,6 +1,6 @@
 'use client';
 
-import DOMPurify from 'dompurify';  
+import DOMPurify from 'isomorphic-dompurify';
 import parse from 'html-react-parser';
 
 export default function ProductDescription({ html }: { html: string }) {
