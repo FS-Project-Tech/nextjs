@@ -85,15 +85,6 @@ export default async function Home({
         </Suspense>
       </AnimatedSection> */}
 
-      <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-        <ProductSection
-          title="Featured Products"
-          subtitle="Handpicked favorites our customers love the most."
-          viewAllHref="/shop?featured=true"
-          query={{ featured: true }}
-        />
-      </Suspense>
-
       {/* Categories Section */}
       <AnimatedSection>
         <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded mb-10" />}>
@@ -101,22 +92,9 @@ export default async function Home({
         </Suspense>
       </AnimatedSection>
 
-      {/* Recently viewed */}
-      <AnimatedSection>
-        <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-          <RecentlyViewedSection />
-        </Suspense>
-      </AnimatedSection>
-
-
       {/* Marketing & Updates Section */}
       <AnimatedSection>
         <MarketingUpdatesSection />
-      </AnimatedSection>
-
-      {/* NDIS CTA Section */}
-      <AnimatedSection>
-        <NDISCTASection />
       </AnimatedSection>
 
       {/* Sections */}
@@ -129,17 +107,16 @@ export default async function Home({
         />
       </Suspense>
 
+      {/* NDIS CTA Section */}
+      <AnimatedSection>
+        <NDISCTASection />
+      </AnimatedSection>
+
       {/* Clearance products (on sale) */}
       <AnimatedSection>
         <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
           <TrendingSection />
         </Suspense>
-      </AnimatedSection>
-
-
-      {/* Newsletter */}
-      <AnimatedSection>
-        <NewsletterSection />
       </AnimatedSection>
 
       <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
@@ -150,6 +127,13 @@ export default async function Home({
           query={{ orderby: "date", order: "desc" }}
         />
       </Suspense>
+
+      
+      {/* Newsletter */}
+      <AnimatedSection>
+        <NewsletterSection />
+      </AnimatedSection>
+      
     </div>
     </HomePageClient>
     </>

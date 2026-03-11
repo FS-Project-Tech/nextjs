@@ -49,6 +49,8 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+main{background-color: #fff;}
+
 .btn-brand {
   background-color: var(--primary);
   color: var(--primary-foreground);
@@ -161,18 +163,21 @@ body {
 .container {
   width: 100%;
     @media (width >= 40rem) {
-      max-width: 32rem;
+      max-width: 44rem;
     }
     @media (width >= 48rem) {
-      max-width: 36rem;
+      max-width: 44rem;
     }
     @media (width >= 64rem) {
-      max-width: 56rem;
+      max-width: 60rem;
     }
     @media (width >= 80rem) {
-      max-width: 72rem;
+      max-width: 76rem;
     }
     @media (width >= 96rem) {
-      max-width: 88rem;
+      max-width: 86rem;
+    }
+    @media (width >= 112rem) {
+      max-width: 104rem;
     }
 }

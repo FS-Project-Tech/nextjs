@@ -50,3 +50,50 @@ export async function apiFetchJson<T>(
   }
   throw lastError ?? new Error(`Failed to fetch ${url}`);
 }
+
+export async function getMarketingUpdates() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/acf/v3/options/options`,
+    {
+      next: { revalidate: 300 }, // cache 5 min
+    }
+  )
+
+  if (!res.ok) throw new Error("Failed to fetch marketing updates")
+
+  return res.json()
+}
+
+export async function getFeaturedCategories() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/acf/v3/options/options`,
+    {
+      next: { revalidate: 300 }, // cache 5 min
+    }
+  )
+
+  if (!res.ok) throw new Error("Failed to fetch marketing updates")
+
+  return res.json()
+}
+
+
+export async function getProducts() {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/wc/v3/products?per_page=5&_fields=id,name,slug,price,images`,
+    {
+      headers: {
+        Authorization:
+          "Basic " +
+          Buffer.from(
+            `${process.env.WC_CONSUMER_KEY}:${process.env.WC_CONSUMER_SECRET}`
+          ).toString("base64"),
+      },
+      next: { revalidate: 60 }, // ISR (important for performance)
+    }
+  )
+
+  if (!res.ok) throw new Error("Failed to fetch products")
+
+  return res.json()
+}

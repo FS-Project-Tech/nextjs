@@ -1,52 +1,33 @@
-import MarketingUpdatesClient from "@/components/MarketingUpdatesClient";
+import Image from "next/image"
+import Link from "next/link"
+import { getMarketingUpdates } from "@/lib/api"
+import { mapWpToFrontendUrl } from "@/lib/urlMapper"    
 
-async function fetchMarketingUpdates() {
-  const endpoint = process.env.WP_GRAPHQL_ENDPOINT;
+export default async function MarketingSection() {
+  const data = await getMarketingUpdates()
+  const updates = data?.acf?.marketing_updates
 
-  if (!endpoint) {
-    console.error("WP_GRAPHQL_ENDPOINT not defined");
-    return [];
-  }
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: `
-        query MarketingUpdates {
-          page(id: "/", idType: URI) {
-            homeMarketingUpdates {
-              marketingUpdates {
-                marketingImage {
-                  node {
-                    sourceUrl
-                    altText
-                  }
-                }
-                marketingLink {
-                  url
-                  title
-                  target
-                }
-              }
-            }
-          }
-        }
-      `,
-    }),
-    next: { revalidate: 300 },
-  });
-
-  const json = await res.json();
+  if (!updates || updates.length === 0) return null
 
   return (
-    json?.data?.page?.homeMarketingUpdates?.marketingUpdates || []
-  );
-}
-
-export default async function MarketingUpdatesSection() {
-  const updates = await fetchMarketingUpdates();
-  if (!updates.length) return null;
-
-  return <MarketingUpdatesClient updates={updates} />;
+    <section className="mb-10 marketing-section">
+    <div className="grid grid-cols-3 gap-6 mx-auto container">
+      {updates.map((item: any, index: number) => (
+        <Link
+          key={index}
+          href={mapWpToFrontendUrl(item.marketing_link?.url || "#")}
+          target={item.marketing_link?.target || "_self"}
+        >
+          <Image
+            src={item.marketing_image?.url}
+            alt={item.marketing_image?.alt || "Marketing"}
+            className="w-full h-full object-cover rounded-lg"
+            width={600}
+            height={400}
+          />
+        </Link>
+      ))}
+    </div>
+    </section>
+  )
 }

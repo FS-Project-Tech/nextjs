@@ -1,26 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { getMarketingUpdates } from "@/lib/api"; 
 
-interface MarketingUpdate {
-  marketingImage?: {
-    node?: {
-      sourceUrl: string;
-      altText?: string;
-    };
-  };
-  marketingLink?: {
-    url: string;
-    title?: string;
-    target?: string;
-  };
-}
 
-export default function MarketingUpdatesClient({
-  updates,
-}: {
-  updates: MarketingUpdate[];
-}) {
+export default async function HomePage() {
+  const data = await getMarketingUpdates()
+
   return (
     <section className="mb-10 marketing-section">
       <div className="mx-auto container">
@@ -34,7 +20,7 @@ export default function MarketingUpdatesClient({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {updates.map((item, idx) => (
+          {data.acf.marketing_updates.map((item: any, idx: number) => (
             <div
               key={idx}
               className="hover:shadow-lg transition"
@@ -58,5 +44,5 @@ export default function MarketingUpdatesClient({
         </div>
       </div>
     </section>
-  );
+)
 }
