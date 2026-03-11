@@ -48,9 +48,12 @@ import {
 	  return [];
 	}
   }
+
+
+
   
   // ============================================================================
-  // Metadata
+  // Metadata seo
   // ============================================================================
   export async function generateMetadata(
 	props: { params: Promise<{ slug: string }> }
