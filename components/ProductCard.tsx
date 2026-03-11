@@ -173,7 +173,7 @@ const DiscountBadge = memo(function DiscountBadge({
   if (!showPercent && !showSale) return null;
   return (
     <span
-      className="absolute right-2 top-2 z-10 rounded-md bg-red-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+      className="absolute bottom-2 right-2 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white"
       aria-label={showPercent ? `${discount}% off` : "On sale"}
     >
       {showPercent ? `${discount}% OFF` : "Sale"}
@@ -277,27 +277,32 @@ function ProductCardComponent({
   // Render
   return (
     <article
-      className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
+      className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-md"
       style={{ contain: "layout style paint" }}
     >
       {/* Image Section */}
       <Link
         href={productUrl}
-        className="block rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+        className="relative block overflow-hidden rounded-lg bg-white"
         aria-label={`View ${name}`}
         prefetch={false}
       >
-        <div className={`relative bg-gray-100 ${compact ? "aspect-[4/3]" : "aspect-square"}`}>
+        <div className={'relative aspect-square'}>
           <Image
             src={imageSrc}
             alt={imageAlt || name}
-            width={400}
-            height={400}
-            className="object-contain transition-transform duration-300 will-change-transform p-5 bg-white"
-            loading={priority ? "eager" : "lazy"}
-            priority={priority}
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            className="object-contain p-4"
             onError={handleImageError}
           />
+
+          {/* Wishlist Button */}
+          <div className="absolute top-2 left-2 z-10">
+            <WishlistButton productId={id} size="sm" variant="icon" className="bg-white rounded-full shadow-sm hover:scale-110 transition" />
+          </div>
+
+          {/* Discount Badge */}
           {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
           priceData.isOnSale ||
           on_sale ? (
@@ -318,18 +323,17 @@ function ProductCardComponent({
       </Link>
 
       {/* Content Section */}
-      <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-3 sm:p-4"}`}>
+      <div className="flex flex-1 flex-col pt-3">
         {/* Product Info */}
         <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
           <Link
             href={productUrl}
-            className={'block font-medium text-[14px] line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline'}
-            prefetch={false}
+            className="text-sm font-medium text-gray-900 line-clamp-2 min-h-[60px]"
           >
             {name}
           </Link>
 
-          <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs text-dark">
+          <p className="mt-1 text-xs text-gray-500 min-h-[18px]">
             {sku ? `SKU: ${sku}` : "\u00A0"}
           </p>
 
@@ -362,12 +366,6 @@ function ProductCardComponent({
               </p>
             )}
           </div>
-
-          {priceData.isOnSale && (
-            <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-              Sale
-            </span>
-          )}
         </div>
 
         {/* Actions */}
@@ -395,7 +393,6 @@ function ProductCardComponent({
             )}
           </button>
           
-          <WishlistButton productId={id} size="md" variant="icon" />
         </div>
       </div>
     </article>
