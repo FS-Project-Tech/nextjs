@@ -518,10 +518,7 @@ function ProductCardComponent({
             )}
           </button>
           
-<<<<<<< HEAD
-=======
          
->>>>>>> 4be804d (product-card-design,remove-dualbanner,add-newbanner,guestmode)
         </div>
       </div>
     </article>

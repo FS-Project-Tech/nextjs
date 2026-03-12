@@ -1,14 +1,4 @@
-<<<<<<< HEAD
-import Image from "next/image"
-import Link from "next/link"
-import { getMarketingUpdates } from "@/lib/api"
-import { mapWpToFrontendUrl } from "@/lib/urlMapper"    
 
-export default async function MarketingSection() {
-  const data = await getMarketingUpdates()
-  const updates = data?.acf?.marketing_updates
-
-=======
 // import MarketingUpdatesClient from "@/components/MarketingUpdatesClient";
 
 // async function fetchMarketingUpdates() {
@@ -94,7 +84,6 @@ export default async function MarketingSection() {
   const data = await getMarketingUpdates()
   const updates = data?.acf?.marketing_updates
 
->>>>>>> 4be804d (product-card-design,remove-dualbanner,add-newbanner,guestmode)
   if (!updates || updates.length === 0) return null
 
   return (

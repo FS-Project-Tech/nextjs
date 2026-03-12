@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-import Image from "next/image"
-import Link from "next/link"
-import { getFeaturedCategories } from "@/lib/api"
 
-=======
 // // "use client";
 
 // // import { useEffect, useState } from "react";
@@ -304,8 +299,6 @@ import { getFeaturedCategories } from "@/lib/api"
 import Image from "next/image"
 import Link from "next/link"
 import { getFeaturedCategories } from "@/lib/api"
-
->>>>>>> 4be804d (product-card-design,remove-dualbanner,add-newbanner,guestmode)
 export default async function CategoriesSection() {
   const data = await getFeaturedCategories()
   const updates = data?.acf?.featured_category
