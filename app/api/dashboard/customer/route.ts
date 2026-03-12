@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWpBaseUrl } from '@/lib/auth';
-import { getAuthToken } from '@/lib/auth-server';
+import { getToken } from "next-auth/jwt";
+import wcAPI from '@/lib/woocommerce';
+
 
 /**
  * GET /api/dashboard/customer
- * Fetch customer stats and information using the Headless Woo API Gateway
+ * Fetch customer stats (orders count, total spent) via WooCommerce REST API.
+ * Uses Consumer Key/Secret for WooCommerce; user ID from wp/v2/users/me for customer filter.
  */
 export async function GET(req: NextRequest) {
   try {
-    const token = await getAuthToken();
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
-    }
+    // Get NextAuth session and WP JWT
+// new
+const nextAuthToken = await getToken({
+  req,
+  secret: process.env.NEXTAUTH_SECRET,
+});
+
+const wpToken = (nextAuthToken as any)?.wpToken;
+
+if (!wpToken) {
+  return NextResponse.json(
+    { error: "Not authenticated" },
+    { status: 401 }
+  );
+}
 
     const wpBase = getWpBaseUrl();
     if (!wpBase) {
@@ -28,7 +38,7 @@ export async function GET(req: NextRequest) {
     // Get user data
     const userResponse = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${wpToken}`,
         'Content-Type': 'application/json',
       },
       cache: 'no-store',
@@ -43,84 +53,73 @@ export async function GET(req: NextRequest) {
 
     const user = await userResponse.json();
 
+    // Link guest orders to customer (for users who registered after placing guest order)
+    try {
+      await fetch(`${wpBase}/wp-json/custom/v1/link-guest-orders`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${wpToken}`,
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      });
+    } catch {
+      // Non-blocking - continue even if link fails
+    }
+
     // Initialize stats
     let ordersCount = 0;
     let totalSpent = '0';
     let currency = 'AUD';
 
-    // Fetch all orders using the API Gateway endpoint
-    // Fetch multiple pages to get all orders for accurate stats calculation
-    try {
-      let allOrders: any[] = [];
-      let page = 1;
-      const perPage = 100; // Gateway max per_page is 100
-      let hasMorePages = true;
-      let totalFromHeaders = 0;
-
-      // Fetch all pages of orders
-      while (hasMorePages && page <= 10) { // Limit to 10 pages (1000 orders max)
-        const gatewayUrl = new URL(`${wpBase}/wp-json/wc/v3/orders?customer=${user.id}`);
-        gatewayUrl.searchParams.set('per_page', perPage.toString());
-        gatewayUrl.searchParams.set('page', page.toString());
-
-        const ordersResponse = await fetch(gatewayUrl.toString(), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    // Fetch orders via WooCommerce REST API (Consumer Key/Secret, not JWT)
+    const customerId = typeof user.id === 'number' ? user.id : parseInt(String(user.id), 10);
+    if (!Number.isNaN(customerId) && customerId > 0) {
+      try {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[dashboard/customer] Fetching orders for customerId:', customerId, 'WC_API_URL:', process.env.WC_API_URL ? 'set' : 'NOT SET');
+        }
+        const wcResponse = await wcAPI.get('/orders', {
+          params: {
+            customer: customerId,
+            per_page: 100,
+            page: 1,
+            orderby: 'date',
+            order: 'desc',
           },
-          cache: 'no-store',
         });
 
-        if (ordersResponse.ok) {
-          const orders = await ordersResponse.json() || [];
-          
-          // Get total from headers on first page
-          if (page === 1) {
-            totalFromHeaders = parseInt(ordersResponse.headers.get('X-WP-Total') || '0');
-          }
-          
-          if (Array.isArray(orders) && orders.length > 0) {
-            allOrders = [...allOrders, ...orders];
-            
-            // Check if there are more pages
-            const totalPages = parseInt(ordersResponse.headers.get('X-WP-TotalPages') || '1');
-            hasMorePages = page < totalPages;
-            page++;
-          } else {
-            hasMorePages = false;
-          }
-        } else {
-          const errorText = await ordersResponse.text();
-          console.error('Gateway orders fetch failed for stats:', {
-            status: ordersResponse.status,
-            error: errorText,
+        const allOrders = Array.isArray(wcResponse.data) ? wcResponse.data : [];
+        const h = (wcResponse.headers || {}) as Record<string, string>;
+        const totalFromHeaders = parseInt(h['x-wp-total'] || h['X-WP-Total'] || '0', 10);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[dashboard/customer] WooCommerce orders:', { returned: allOrders.length, 'x-wp-total': totalFromHeaders });
+        }
+        if (allOrders.length > 0 || totalFromHeaders > 0) {
+          ordersCount = totalFromHeaders > 0 ? totalFromHeaders : allOrders.length;
+
+          const completedOrders = allOrders.filter((order: any) => {
+            const status = (order.status || '').toLowerCase();
+            return status === 'completed' || status === 'processing';
           });
-          hasMorePages = false;
-        }
-      }
 
-      if (allOrders.length > 0) {
-        // Use total from headers if available, otherwise use count of fetched orders
-        ordersCount = totalFromHeaders > 0 ? totalFromHeaders : allOrders.length;
-        
-        // Calculate total spent from orders with status "completed" or "processing"
-        const completedOrders = allOrders.filter((order: any) => {
-          const status = (order.status || '').toLowerCase();
-          return status === 'completed' || status === 'processing';
-        });
-        
-        totalSpent = completedOrders
-          .reduce((sum: number, order: any) => {
-            return sum + parseFloat(order.total || 0);
-          }, 0).toFixed(2);
-        
-        // Get currency from first order if available
-        if (allOrders[0].currency) {
-          currency = allOrders[0].currency;
+          totalSpent = completedOrders
+            .reduce((sum: number, order: any) => sum + parseFloat(order.total || 0), 0)
+            .toFixed(2);
+
+          if (allOrders[0]?.currency) {
+            currency = allOrders[0].currency;
+          }
         }
+      } catch (err: unknown) {
+        const ax = err as { response?: { status?: number; data?: unknown }; message?: string };
+        console.error('[dashboard/customer] Error fetching orders:', {
+          customerId,
+          status: ax.response?.status,
+          message: ax.message,
+          data: ax.response?.data,
+        });
       }
-    } catch (error) {
-      console.error('Error fetching orders for stats:', error instanceof Error ? error.message : 'Unknown error');
     }
 
     return NextResponse.json({

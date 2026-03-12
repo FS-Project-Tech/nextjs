@@ -1,50 +1,30 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@/hooks/useUser';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useToast } from '@/components/ToastProvider';
 import axios from 'axios';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import withAuth, { WithAuthProps } from '@/lib/withAuth';
 
-const billingSchema = yup.object({
-  first_name: yup.string().optional(),
-  last_name: yup.string().optional(),
-  company: yup.string().optional(),
-  address_1: yup.string().optional(),
-  address_2: yup.string().optional(),
-  city: yup.string().optional(),
-  state: yup.string().optional(),
-  postcode: yup.string().optional(),
-  country: yup.string().optional(),
-  email: yup.string().email('Invalid email').optional(),
-  phone: yup.string().optional(),
-});
-
-const shippingSchema = yup.object({
-  first_name: yup.string().optional(),
-  last_name: yup.string().optional(),
-  company: yup.string().optional(),
-  address_1: yup.string().optional(),
-  address_2: yup.string().optional(),
-  city: yup.string().optional(),
-  state: yup.string().optional(),
-  postcode: yup.string().optional(),
-  country: yup.string().optional(),
-});
-
 const profileSchema = yup.object({
-  first_name: yup.string().optional(),
-  last_name: yup.string().optional(),
+  first_name: yup.string().required('First name is required'),
+  last_name: yup.string().required('Last name is required'),
+  display_name: yup.string().required('Display name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  phone: yup.string().optional(),
-  company: yup.string().optional(),
-  billing: billingSchema.optional(),
-  shipping: shippingSchema.optional(),
-  shipToBilling: yup.boolean().default(false),
+  current_password: yup.string().optional(),
+  new_password: yup.string().optional(),
+  confirm_new_password: yup
+    .string()
+    .optional()
+    .when('new_password', {
+      is: (val: string) => val && val.length > 0,
+      then: (schema) =>
+        schema.oneOf([yup.ref('new_password')], 'Passwords must match'),
+    }),
 });
 
 type ProfileFormData = yup.InferType<typeof profileSchema>;
@@ -52,14 +32,11 @@ type ProfileFormData = yup.InferType<typeof profileSchema>;
 function DashboardSettings({ user: authUser }: WithAuthProps) {
   const { user } = useUser();
   const { success, error: showError } = useToast();
-  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [customerData, setCustomerData] = useState<any>(null);
-  const formInitialized = useRef(false);
-  const initializedCustomerId = useRef<number | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Fetch customer data using React Query
-  // Disable refetching on window focus to prevent form resets
   const { data: profileData, isLoading: fetching, error: profileError } = useQuery({
     queryKey: ['profile', user?.id],
     queryFn: async () => {
@@ -68,11 +45,11 @@ function DashboardSettings({ user: authUser }: WithAuthProps) {
       });
       return response.data;
     },
-    enabled: !!user, // Only fetch when user is available
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
-    refetchOnWindowFocus: false, // Prevent refetching when window gains focus (prevents form resets)
-    refetchOnReconnect: false, // Prevent refetching on reconnect
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const {
@@ -80,256 +57,109 @@ function DashboardSettings({ user: authUser }: WithAuthProps) {
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
     setValue,
-    getValues,
   } = useForm<ProfileFormData>({
     resolver: yupResolver(profileSchema) as any,
     defaultValues: {
-      email: user?.email || '',
       first_name: '',
       last_name: '',
-      phone: '',
-      company: '',
-      shipToBilling: false,
-      billing: {
-        first_name: '',
-        last_name: '',
-        company: '',
-        address_1: '',
-        address_2: '',
-        city: '',
-        state: '',
-        postcode: '',
-        country: 'AU',
-        email: '',
-        phone: '',
-      },
-      shipping: {
-        first_name: '',
-        last_name: '',
-        company: '',
-        address_1: '',
-        address_2: '',
-        city: '',
-        state: '',
-        postcode: '',
-        country: 'AU',
-      },
+      display_name: '',
+      email: user?.email || '',
+      current_password: '',
+      new_password: '',
+      confirm_new_password: '',
     },
   });
 
-  // Populate form when profile data is loaded or when returning to page
   useEffect(() => {
-    // Don't run if no data or still loading
-    if (!profileData || fetching) {
-      return;
-    }
+    if (!profileData || fetching) return;
+    const customer = profileData.customer;
+    const profileUser = profileData.user as { name?: string; email?: string; first_name?: string; last_name?: string };
+    // Prefer API user first/last (WP meta), then WooCommerce customer, then split user.name
+    const firstName = (profileUser?.first_name ?? customer?.first_name ?? '')?.trim() || '';
+    const lastName = (profileUser?.last_name ?? customer?.last_name ?? '')?.trim() || '';
+    const fromUserName = profileUser?.name?.trim() ? (profileUser.name as string).split(/\s+/) : [];
+    const fallbackFirst = fromUserName[0] ?? '';
+    const fallbackLast = fromUserName.slice(1).join(' ') ?? '';
+    const displayName =
+      (profileUser?.name ?? ((firstName || lastName ? `${firstName} ${lastName}`.trim() : '') || `${fallbackFirst} ${fallbackLast}`.trim())) ||
+      authUser?.name ||
+      '';
+    reset({
+      first_name: firstName || fallbackFirst,
+      last_name: lastName || fallbackLast,
+      display_name: displayName,
+      email: customer?.email || profileUser?.email || authUser?.email || '',
+      current_password: '',
+      new_password: '',
+      confirm_new_password: '',
+    });
+  }, [profileData, fetching, authUser, reset]);
 
-    const customerId = profileData.customer?.id || user?.id;
-    
-    // Check if form is empty (needs initialization)
-    const currentValues = getValues();
-    const isFormEmpty = !currentValues.billing?.address_1 && 
-                       !currentValues.billing?.first_name && 
-                       !currentValues.email;
-    
-    // Only populate if form is empty OR if this is a different customer
-    const shouldPopulate = isFormEmpty || 
-                          (formInitialized.current && initializedCustomerId.current !== customerId) ||
-                          !formInitialized.current;
-
-    if (!shouldPopulate) {
-      return;
-    }
-
-    if (profileData.customer) {
-      const customer = profileData.customer;
-      setCustomerData(customer);
-      
-      // Populate form with customer data
-      reset({
-        first_name: customer.first_name || '',
-        last_name: customer.last_name || '',
-        email: customer.email || user?.email || '',
-        phone: customer.billing?.phone || '',
-        company: customer.billing?.company || '',
-        shipToBilling: false,
-        billing: {
-          first_name: customer.billing?.first_name || customer.first_name || '',
-          last_name: customer.billing?.last_name || customer.last_name || '',
-          company: customer.billing?.company || '',
-          address_1: customer.billing?.address_1 || '',
-          address_2: customer.billing?.address_2 || '',
-          city: customer.billing?.city || '',
-          state: customer.billing?.state || '',
-          postcode: customer.billing?.postcode || '',
-          country: customer.billing?.country || 'AU',
-          email: customer.billing?.email || customer.email || user?.email || '',
-          phone: customer.billing?.phone || '',
-        },
-        shipping: {
-          first_name: customer.shipping?.first_name || customer.first_name || '',
-          last_name: customer.shipping?.last_name || customer.last_name || '',
-          company: customer.shipping?.company || '',
-          address_1: customer.shipping?.address_1 || '',
-          address_2: customer.shipping?.address_2 || '',
-          city: customer.shipping?.city || '',
-          state: customer.shipping?.state || '',
-          postcode: customer.shipping?.postcode || '',
-          country: customer.shipping?.country || 'AU',
-        },
-      }, { keepDefaultValues: false });
-      formInitialized.current = true;
-      initializedCustomerId.current = customer.id;
-    } else if (user) {
-      // If no customer data, populate with user email at least
-      const currentEmail = getValues('email');
-      if (!currentEmail || currentEmail === '') {
-        reset({
-          email: user?.email || '',
-          first_name: '',
-          last_name: '',
-          phone: '',
-          company: '',
-          shipToBilling: false,
-          billing: {
-            first_name: '',
-            last_name: '',
-            company: '',
-            address_1: '',
-            address_2: '',
-            city: '',
-            state: '',
-            postcode: '',
-            country: 'AU',
-            email: user?.email || '',
-            phone: '',
-          },
-          shipping: {
-            first_name: '',
-            last_name: '',
-            company: '',
-            address_1: '',
-            address_2: '',
-            city: '',
-            state: '',
-            postcode: '',
-            country: 'AU',
-          },
-        }, { keepDefaultValues: false });
-        formInitialized.current = true;
-        initializedCustomerId.current = user.id;
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileData, fetching, user?.id]);
-
-  // Handle profile fetch errors
   useEffect(() => {
     if (profileError) {
-      const error = profileError as any;
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to load customer data';
-      const errorDetails = error.response?.data?.details;
-      if (errorDetails) {
-        console.error('Error details:', errorDetails);
-      }
-      // Only show error if it's not a 401 (authentication error) - those are handled by middleware
-      if (error.response?.status !== 401) {
-        showError(errorMessage);
-      }
+      const err = profileError as any;
+      const msg = err.response?.data?.error || err.message || 'Failed to load profile';
+      if (err.response?.status !== 401) showError(msg);
     }
   }, [profileError, showError]);
-
-  // Watch for checkbox toggle to sync shipping with billing
-  const shipToBilling = watch('shipToBilling');
-  const billingData = watch('billing');
-  
-  // Only sync when checkbox is toggled ON, not on every billing field change
-  // This prevents form values from disappearing while typing
-  useEffect(() => {
-    if (shipToBilling && billingData) {
-      // Only sync once when checkbox is checked, not on every keystroke
-      setValue('shipping.first_name', billingData.first_name || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.last_name', billingData.last_name || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.company', billingData.company || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.address_1', billingData.address_1 || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.address_2', billingData.address_2 || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.city', billingData.city || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.state', billingData.state || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.postcode', billingData.postcode || '', { shouldDirty: false, shouldValidate: false });
-      setValue('shipping.country', billingData.country || 'AU', { shouldDirty: false, shouldValidate: false });
-    }
-    // Only depend on checkbox state, not billing data changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shipToBilling, setValue]);
 
   const onSubmit = async (data: ProfileFormData) => {
     setLoading(true);
     try {
-      // If shipToBilling is checked, copy billing to shipping
-      const submitData = { ...data };
-      if (data.shipToBilling && data.billing) {
-        submitData.shipping = {
-          first_name: data.billing.first_name || '',
-          last_name: data.billing.last_name || '',
-          company: data.billing.company || '',
-          address_1: data.billing.address_1 || '',
-          address_2: data.billing.address_2 || '',
-          city: data.billing.city || '',
-          state: data.billing.state || '',
-          postcode: data.billing.postcode || '',
-          country: data.billing.country || 'AU',
-        };
-      }
-      
-      // Save data to WordPress user meta and WooCommerce customer data
-      const response = await axios.put('/api/dashboard/profile', submitData, {
-        withCredentials: true,
-      });
-      
-      if (!response.data) {
-        throw new Error('Failed to update profile');
-      }
-      
-      success('Profile updated successfully');
-      
-      // IMPORTANT: Do NOT reset the form - keep all user input values as they are
-      // The form values will remain in the fields after save (editable mode)
-      // Update customerData state for reference, but don't touch the form values
-      setCustomerData((prev: any) => ({
-        ...prev,
-        first_name: submitData.first_name || '',
-        last_name: submitData.last_name || '',
-        email: submitData.email || '',
-        billing: {
-          ...prev?.billing,
-          ...submitData.billing,
-          phone: submitData.phone || submitData.billing?.phone || '',
-          company: submitData.company || submitData.billing?.company || '',
+      await axios.put(
+        '/api/dashboard/profile',
+        {
+          first_name: data.first_name,
+          last_name: data.last_name,
+          display_name: data.display_name,
+          email: data.email,
         },
-        shipping: submitData.shipping || prev?.shipping,
-      }));
-      
-      // Mark form as initialized with current customer to prevent auto-reset
-      if (profileData?.customer?.id) {
-        initializedCustomerId.current = profileData.customer.id;
-        formInitialized.current = true;
+        { withCredentials: true }
+      );
+      success('Profile updated successfully');
+
+      if (data.new_password && data.current_password) {
+        try {
+          await axios.post(
+            '/api/dashboard/change-password',
+            {
+              current_password: data.current_password,
+              new_password: data.new_password,
+            },
+            { withCredentials: true }
+          );
+          success('Password updated successfully');
+          setValue('current_password', '');
+          setValue('new_password', '');
+          setValue('confirm_new_password', '');
+        } catch (err: any) {
+          showError(err.response?.data?.error || 'Failed to update password');
+        }
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Failed to update profile';
-      showError(errorMessage);
+      showError(err.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
   };
 
+  const birthDate =
+    profileData?.customer?.meta?.birth_date ?? profileData?.user?.birth_date;
+  const birthDateDisplay = birthDate
+    ? new Date(birthDate).toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).replace(/\//g, '-')
+    : '—';
+
   if (fetching) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -338,280 +168,179 @@ function DashboardSettings({ user: authUser }: WithAuthProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900">My Account</h1>
         <p className="text-gray-600 mt-1">Update your account information</p>
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Billing Address */}
-          <div className="pt-6 border-t border-gray-200">
-            <h3 className="text-md font-semibold text-gray-900 mb-4">Billing Address</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  {...register('billing.first_name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <input
-                  type="text"
-                  {...register('billing.last_name')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                First name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
-                {...register('billing.company')}
+                {...register('first_name')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
+              {errors.first_name && (
+                <p className="mt-1 text-sm text-red-600">{errors.first_name.message}</p>
+              )}
             </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Last name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
-                {...register('billing.address_1')}
+                {...register('last_name')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
-              <input
-                type="text"
-                {...register('billing.address_2')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input
-                  type="text"
-                  {...register('billing.city')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                <input
-                  type="text"
-                  {...register('billing.state')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
-                <input
-                  type="text"
-                  {...register('billing.postcode')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                <input
-                  type="text"
-                  {...register('billing.country')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  {...register('billing.email')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <input
-                type="tel"
-                {...register('billing.phone')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-              />
+              {errors.last_name && (
+                <p className="mt-1 text-sm text-red-600">{errors.last_name.message}</p>
+              )}
             </div>
           </div>
 
-          {/* Shipping Address */}
-          <div className="pt-6 border-t border-gray-200">
-            <div className="mb-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  {...register('shipToBilling')}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      const billingData = watch('billing');
-                      setValue('shipping.first_name', billingData?.first_name || '');
-                      setValue('shipping.last_name', billingData?.last_name || '');
-                      setValue('shipping.company', billingData?.company || '');
-                      setValue('shipping.address_1', billingData?.address_1 || '');
-                      setValue('shipping.address_2', billingData?.address_2 || '');
-                      setValue('shipping.city', billingData?.city || '');
-                      setValue('shipping.state', billingData?.state || '');
-                      setValue('shipping.postcode', billingData?.postcode || '');
-                      setValue('shipping.country', billingData?.country || 'AU');
-                    }
-                  }}
-                  className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Shipping address same as billing address
-                </span>
-              </label>
-            </div>
-            <h3 className="text-md font-semibold text-gray-900 mb-4">Shipping Address</h3>
-            <div className={`grid grid-cols-2 gap-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                <input
-                  type="text"
-                  {...register('shipping.first_name')}
-                  disabled={watch('shipToBilling')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                <input
-                  type="text"
-                  {...register('shipping.last_name')}
-                  disabled={watch('shipToBilling')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-                />
-              </div>
-            </div>
-            <div className={`mt-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-              <input
-                type="text"
-                {...register('shipping.company')}
-                disabled={watch('shipToBilling')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-              />
-            </div>
-            <div className={`mt-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
-              <input
-                type="text"
-                {...register('shipping.address_1')}
-                disabled={watch('shipToBilling')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-              />
-            </div>
-            <div className={`mt-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
-              <input
-                type="text"
-                {...register('shipping.address_2')}
-                disabled={watch('shipToBilling')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-              />
-            </div>
-            <div className={`grid grid-cols-3 gap-4 mt-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                <input
-                  type="text"
-                  {...register('shipping.city')}
-                  disabled={watch('shipToBilling')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                <input
-                  type="text"
-                  {...register('shipping.state')}
-                  disabled={watch('shipToBilling')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
-                <input
-                  type="text"
-                  {...register('shipping.postcode')}
-                  disabled={watch('shipToBilling')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-                />
-              </div>
-            </div>
-            <div className={`mt-4 ${watch('shipToBilling') ? 'opacity-50 pointer-events-none' : ''}`}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <input
-                type="text"
-                {...register('shipping.country')}
-                disabled={watch('shipToBilling')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Display name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              {...register('display_name')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            />
+            <p className="mt-1 text-sm text-gray-500 italic">
+              This will be how your name will be displayed in the account section and in reviews.
+            </p>
+            {errors.display_name && (
+              <p className="mt-1 text-sm text-red-600">{errors.display_name.message}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email address <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              {...register('email')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            )}
           </div>
 
           <div className="pt-4 border-t border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Password change</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current password (leave blank to leave unchanged)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    {...register('current_password')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showCurrentPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New password (leave blank to leave unchanged)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    {...register('new_password')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm new password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    {...register('confirm_new_password')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                    )}
+                  </button>
+                </div>
+                {errors.confirm_new_password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.confirm_new_password.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Birth date</label>
+            <input
+              type="text"
+              readOnly
+              value={birthDateDisplay}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Your birth date is set and cannot be changed.
+            </p>
+          </div> */}
+
+          <div className="pt-4">
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-teal-600 text-white font-medium rounded-md shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Updating...' : 'Update Profile'}
+              {loading ? 'Saving...' : 'Save changes'}
             </button>
           </div>
         </form>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h2>
-        <dl className="space-y-3">
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Username</dt>
-            <dd className="mt-1 text-sm text-gray-900">{customerData?.username || user?.username || 'N/A'}</dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">Role</dt>
-            <dd className="mt-1 text-sm text-gray-900">
-              {user?.roles?.join(', ') || 'Customer'}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-sm font-medium text-gray-500">User ID</dt>
-            <dd className="mt-1 text-sm text-gray-900">{user?.id || 'N/A'}</dd>
-          </div>
-          {customerData?.id && (
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Customer ID</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customerData.id}</dd>
-            </div>
-          )}
-          {customerData?.date_created && (
-            <div>
-              <dt className="text-sm font-medium text-gray-500">Member Since</dt>
-              <dd className="mt-1 text-sm text-gray-900">
-                {new Date(customerData.date_created).toLocaleDateString('en-AU', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </dd>
-            </div>
-          )}
-        </dl>
       </div>
     </div>
   );
 }
 
-// Export the protected component
 export default withAuth(DashboardSettings);
-

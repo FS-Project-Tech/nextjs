@@ -10,7 +10,7 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/hooks/useUser';
 import { useToast } from '@/components/ToastProvider';
 import type {
   WishlistContextType,
@@ -23,33 +23,27 @@ import type {
  */
 const WishlistContext = createContext<WishlistContextType | null>(null);
 
-/**
- * Cookie name for client-side access
- */
-const COOKIE_NAME = 'wishlist_items';
+/** Cookie for logged-in user wishlist */
+const USER_COOKIE_NAME = 'wishlist_items';
+/** Cookie for guest wishlist (only shown when logged out) */
+const GUEST_COOKIE_NAME = 'wishlist_items_guest';
 
 /**
- * Get wishlist from cookie (client-side)
+ * Get wishlist from a cookie by name
  */
-function getWishlistFromCookie(): number[] {
+function getWishlistFromCookie(cookieName: string): number[] {
   if (typeof window === 'undefined') return [];
-  
   try {
     const cookies = document.cookie.split(';');
-    const wishlistCookie = cookies.find(c => c.trim().startsWith(`${COOKIE_NAME}=`));
-    
+    const wishlistCookie = cookies.find(c => c.trim().startsWith(`${cookieName}=`));
     if (!wishlistCookie) return [];
-    
     const value = wishlistCookie.split('=')[1];
     if (!value) return [];
-    
     const decoded = decodeURIComponent(value);
     const parsed = JSON.parse(decoded);
-    
     if (Array.isArray(parsed)) {
       return parsed.filter((id): id is number => typeof id === 'number' && id > 0);
     }
-    
     return [];
   } catch {
     return [];
@@ -57,21 +51,40 @@ function getWishlistFromCookie(): number[] {
 }
 
 /**
- * Save wishlist to cookie (client-side optimistic update)
+ * Save wishlist to a cookie by name
  */
-function saveWishlistToCookie(wishlist: number[]): void {
+function saveWishlistToCookie(wishlist: number[], cookieName: string): void {
   if (typeof window === 'undefined') return;
-  
   try {
     const value = JSON.stringify(wishlist);
     const encoded = encodeURIComponent(value);
     const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
     const isSecure = window.location.protocol === 'https:';
-    
-    document.cookie = `${COOKIE_NAME}=${encoded}; expires=${expires}; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+    document.cookie = `${cookieName}=${encoded}; expires=${expires}; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`;
   } catch (error) {
     console.error('Failed to save wishlist to cookie:', error);
   }
+}
+
+/** Which cookie to use for current mode (user vs guest) */
+// function getActiveCookieName(isAuthenticated: boolean): string {
+//   return isAuthenticated ? USER_COOKIE_NAME : GUEST_COOKIE_NAME;
+// }
+
+function getActiveCookieName(
+  isAuthenticated: boolean,
+  userId?: number | string
+): string {
+  if (isAuthenticated && userId !== undefined && userId !== null) {
+    return `${USER_COOKIE_NAME}_${userId}`;
+  }
+
+  // while auth loading, avoid guest overwrite
+  if (isAuthenticated && !userId) {
+    return USER_COOKIE_NAME; // temporary safe fallback
+  }
+
+  return GUEST_COOKIE_NAME;
 }
 
 /**
@@ -86,7 +99,8 @@ interface WishlistProviderProps {
  * Manages wishlist state with authentication awareness
  */
 export function WishlistProvider({ children }: WishlistProviderProps) {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  // const { isAuthenticated, loading: authLoading } = useUser();
+  const { isAuthenticated, loading: authLoading, user } = useUser();
   const { success, error: showError } = useToast();
   
   // State
@@ -99,42 +113,48 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
   const wasAuthenticatedRef = useRef<boolean | undefined>(undefined);
 
   /**
-   * Load wishlist from API or cookie
+   * Load wishlist.
+   * - Logged-in: fetch from WordPress via /api/wishlist (same list on any browser/device).
+   * - Guest: use guest cookie only (per-browser).
    */
   const loadWishlist = useCallback(async () => {
     if (!isMounted) return;
-    
     setIsLoading(true);
     setError(null);
-    
     try {
-      // First, get from cookie for instant display
-      const cookieItems = getWishlistFromCookie();
-      setItems(cookieItems);
-      
-      // Then sync with server if authenticated
       if (isAuthenticated) {
-        const response = await fetch('/api/wishlist', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && Array.isArray(data.wishlist)) {
-            setItems(data.wishlist);
-            // Sync cookie with server data
-            saveWishlistToCookie(data.wishlist);
+        try {
+          const response = await fetch('/api/wishlist', {
+            method: 'GET',
+            credentials: 'include',
+            cache: 'no-store',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const rawItems = Array.isArray(data.wishlist) ? data.wishlist : [];
+            const serverItems = rawItems.filter(
+              (id: unknown): id is number =>
+                typeof id === 'number' && Number.isFinite(id) && id > 0,
+            );
+            setItems(serverItems);
+            const cookieName = getActiveCookieName(true, user?.id);
+            saveWishlistToCookie(serverItems, cookieName);
+            return;
           }
+        } catch (err) {
+          console.error('Failed to load wishlist from API, falling back to cookie:', err);
         }
       }
+      const cookieName = getActiveCookieName(isAuthenticated, user?.id);
+      const cookieItems = getWishlistFromCookie(cookieName);
+      setItems(cookieItems);
     } catch (err) {
       console.error('Failed to load wishlist:', err);
       setError('Failed to load wishlist');
     } finally {
       setIsLoading(false);
     }
-  }, [isMounted, isAuthenticated]);
+  }, [isMounted, isAuthenticated, user?.id]);
 
   /**
    * Load product details for wishlist items
@@ -178,19 +198,18 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
     setIsMounted(true);
   }, []);
 
-  // Clear wishlist state and cookie when user logs out (so header count resets)
+  // On logout: clear UI state so we don't show user's list; loadWishlist will then load guest list (don't clear user cookie)
   useEffect(() => {
     if (!isMounted || authLoading) return;
     const wasAuthenticated = wasAuthenticatedRef.current;
     if (wasAuthenticated === true && !isAuthenticated) {
       setItems([]);
       setProducts([]);
-      saveWishlistToCookie([]);
     }
     wasAuthenticatedRef.current = isAuthenticated;
   }, [isMounted, authLoading, isAuthenticated]);
 
-  // Load wishlist when mounted or auth state changes
+  // Load wishlist when mounted or auth changes (logged-in = from cookie; guest = empty)
   useEffect(() => {
     if (isMounted && !authLoading) {
       loadWishlist();
@@ -214,114 +233,103 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
   }, [items]);
 
   /**
-   * Add product to wishlist
+   * Add product to wishlist.
+   * - Logged-in: call /api/wishlist (POST) so wishlist is stored in WordPress (any browser).
+   * - Guest: update guest cookie only.
    */
-  const addToWishlist = useCallback(async (productId: number): Promise<boolean> => {
-    // Check authentication
-    if (!isAuthenticated) {
-      // Redirect to login
-      const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-      window.location.href = `/login?next=${encodeURIComponent(currentPath)}&action=wishlist`;
-      return false;
-    }
-    
-    // Optimistic update
-    if (!items.includes(productId)) {
-      const updatedItems = [...items, productId];
-      setItems(updatedItems);
-      saveWishlistToCookie(updatedItems);
-    }
-    
-    try {
-      const response = await fetch('/api/wishlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ productId }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        // Revert optimistic update
-        setItems(items);
-        saveWishlistToCookie(items);
-        
-        if (data.requiresAuth) {
-          const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-          window.location.href = `/login?next=${encodeURIComponent(currentPath)}&action=wishlist`;
-          return false;
+  const addToWishlist = useCallback(
+    async (productId: number): Promise<boolean> => {
+      try {
+        if (isAuthenticated) {
+          const response = await fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ productId }),
+          });
+          if (response.status === 401) {
+            showError('Please log in to use the wishlist.');
+            return false;
+          }
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showError((data && data.error) || 'Failed to add to wishlist');
+            return false;
+          }
+          const data = await response.json();
+          const rawItems = Array.isArray(data.wishlist) ? data.wishlist : [];
+          const serverItems = rawItems.filter(
+            (id: unknown): id is number =>
+              typeof id === 'number' && Number.isFinite(id) && id > 0,
+          );
+          setItems(serverItems);
+          saveWishlistToCookie(serverItems, getActiveCookieName(true, user?.id));
+        } else {
+          if (!items.includes(productId)) {
+            const updatedItems = [...items, productId];
+            setItems(updatedItems);
+            saveWishlistToCookie(updatedItems, GUEST_COOKIE_NAME);
+          }
         }
-        
-        showError(data.error || 'Failed to add to wishlist');
+        success('Added to wishlist');
+        return true;
+      } catch (err) {
+        console.error('Failed to add to wishlist:', err);
+        showError('Failed to add to wishlist');
         return false;
       }
-      
-      // Update with server response
-      if (data.wishlist) {
-        setItems(data.wishlist);
-        saveWishlistToCookie(data.wishlist);
-      }
-      
-      success('Added to wishlist');
-      return true;
-    } catch (err) {
-      // Revert optimistic update
-      setItems(items);
-      saveWishlistToCookie(items);
-      
-      console.error('Add to wishlist error:', err);
-      showError('Failed to add to wishlist');
-      return false;
-    }
-  }, [items, isAuthenticated, success, showError]);
+    },
+    [isAuthenticated, user?.id, items, success, showError],
+  );
 
   /**
-   * Remove product from wishlist
+   * Remove product from wishlist.
+   * - Logged-in: call /api/wishlist (DELETE) so WordPress wishlist is updated.
+   * - Guest: update guest cookie only.
    */
-  const removeFromWishlist = useCallback(async (productId: number): Promise<boolean> => {
-    // Optimistic update
-    const updatedItems = items.filter(id => id !== productId);
-    const previousItems = items;
-    setItems(updatedItems);
-    saveWishlistToCookie(updatedItems);
-    setProducts(prev => prev.filter(p => p.id !== productId));
-    
-    try {
-      const response = await fetch(`/api/wishlist/${productId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        // Revert optimistic update
-        setItems(previousItems);
-        saveWishlistToCookie(previousItems);
-        
-        showError(data.error || 'Failed to remove from wishlist');
+  const removeFromWishlist = useCallback(
+    async (productId: number): Promise<boolean> => {
+      try {
+        if (isAuthenticated) {
+          const response = await fetch('/api/wishlist', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ productId }),
+          });
+          if (response.status === 401) {
+            showError('Please log in to use the wishlist.');
+            return false;
+          }
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showError((data && data.error) || 'Failed to remove from wishlist');
+            return false;
+          }
+          const data = await response.json();
+          const rawItems = Array.isArray(data.wishlist) ? data.wishlist : [];
+          const serverItems = rawItems.filter(
+            (id: unknown): id is number =>
+              typeof id === 'number' && Number.isFinite(id) && id > 0,
+          );
+          setItems(serverItems);
+          saveWishlistToCookie(serverItems, getActiveCookieName(true, user?.id));
+        } else {
+          const updatedItems = items.filter((id) => id !== productId);
+          setItems(updatedItems);
+          saveWishlistToCookie(updatedItems, GUEST_COOKIE_NAME);
+        }
+        setProducts((prev) => prev.filter((p) => p.id !== productId));
+        success('Removed from wishlist');
+        return true;
+      } catch (err) {
+        console.error('Failed to remove from wishlist:', err);
+        showError('Failed to remove from wishlist');
         return false;
       }
-      
-      // Update with server response
-      if (data.wishlist) {
-        setItems(data.wishlist);
-        saveWishlistToCookie(data.wishlist);
-      }
-      
-      success('Removed from wishlist');
-      return true;
-    } catch (err) {
-      // Revert optimistic update
-      setItems(previousItems);
-      saveWishlistToCookie(previousItems);
-      
-      console.error('Remove from wishlist error:', err);
-      showError('Failed to remove from wishlist');
-      return false;
-    }
-  }, [items, success, showError]);
+    },
+    [isAuthenticated, user?.id, items, success, showError],
+  );
 
   /**
    * Refresh wishlist from server
@@ -332,13 +340,17 @@ export function WishlistProvider({ children }: WishlistProviderProps) {
   }, [loadWishlist, loadProducts]);
 
   /**
-   * Clear wishlist
+   * Clear wishlist (clears current user or guest list)
    */
   const clearWishlist = useCallback(() => {
     setItems([]);
     setProducts([]);
-    saveWishlistToCookie([]);
-  }, []);
+    const cookieName = getActiveCookieName(
+  isAuthenticated,
+  user?.id
+);
+    saveWishlistToCookie([], cookieName);
+  }, [isAuthenticated, user?.id]);
 
   // Context value
   const value = useMemo<WishlistContextType>(() => ({

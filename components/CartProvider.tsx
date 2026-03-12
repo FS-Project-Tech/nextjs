@@ -6,11 +6,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { calculateSubtotal } from "@/lib/cart-utils";
 import type { CartItem } from "@/lib/types/cart";
-import { useAuth } from "@/components/AuthProvider";
+import { useUser } from "@/hooks/useUser";
  
 // Re-export CartItem for backward compatibility
 export type { CartItem };
@@ -27,6 +28,7 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   isSyncing: boolean;
+  isHydrated: boolean;
   syncError: string | null;
   open: () => void;
   close: () => void;
@@ -40,6 +42,8 @@ interface CartState {
     errors: Array<{ itemId: string; message: string }>;
   }>;
   total: string;
+  /** Re-fetch cart from server (for cross-browser: call when cart is empty on another device) */
+  refreshCartFromServer: () => void;
 }
  
 const CartContext = createContext<CartState | undefined>(undefined);
@@ -54,51 +58,137 @@ export default function CartProvider({
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useUser();
+  const [hasLoadedServerCart, setHasLoadedServerCart] = useState(false);
+  const loadRetryCount = useRef(0);
+  const itemsRef = useRef<CartItem[]>([]);
+  itemsRef.current = items;
   const cartKey = useMemo(() => {
-  if (!user?.id) return "cart:v1:guest";
-  return `cart:v1:user:${user.id}`;
-}, [user?.id]);
- 
-useEffect(() => {
-  if (typeof window === "undefined") return;
+    if (authLoading) return undefined;
+    if (!user?.id) return "cart:v1:guest";
+    return `cart:v1:user:${user.id}`;
+  }, [user?.id, authLoading]);
 
-  try {
-    const raw = localStorage.getItem(cartKey);
-
-    if (raw) {
-      const parsed = JSON.parse(raw);
-
-      setItems(
-        Array.isArray(parsed)
-          ? parsed.map((item) => ({
-              ...item,
-              // 🔥 normalize price so Woo sale price always wins
-              price: Number(item.price).toFixed(2),
-            }))
-          : []
-      );
-    } else {
-      setItems([]);
-    }
-  } catch {
-    setItems([]);
-  } finally {
-    setIsHydrated(true);
-  }
-}, [cartKey]);
-
- 
-  // 💾 Persist cart (only when logged in)
   useEffect(() => {
-    if (!isHydrated || typeof window === "undefined") return;
-    if (!cartKey) return;
+    if (typeof window === "undefined") return;
+    if (cartKey === undefined) {
+      setItems([]);
+      setIsHydrated(false);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(cartKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setItems(
+          Array.isArray(parsed)
+            ? parsed.map((item) => ({
+                ...item,
+                price: Number(item.price).toFixed(2),
+              }))
+            : []
+        );
+      } else {
+        setItems([]);
+      }
+    } catch {
+      setItems([]);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, [cartKey]);
+
  
- 
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined" || !cartKey) return;
     try {
       localStorage.setItem(cartKey, JSON.stringify(items));
     } catch {}
-  }, [items, isHydrated, cartKey, user?.id]);
+  }, [items, isHydrated, cartKey]);
+
+  // Persist cart to server when user leaves the page (so other browsers get the latest)
+  useEffect(() => {
+    if (!user?.id || typeof window === "undefined") return;
+    const onUnload = () => {
+      const current = itemsRef.current;
+      if (current.length === 0) return;
+      const payload = JSON.stringify({ items: current });
+      const blob = new Blob([payload], { type: "application/json" });
+      navigator.sendBeacon("/api/dashboard/cart/save", blob);
+    };
+    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onUnload);
+      window.removeEventListener("pagehide", onUnload);
+    };
+  }, [user?.id]);
+
+  // Load server-side cart for logged-in users (cross-browser persistence). Retry on 401 until session is ready.
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+    if (!user?.id) {
+      setHasLoadedServerCart(false);
+      loadRetryCount.current = 0;
+      return;
+    }
+    if (hasLoadedServerCart) return;
+    if (loadRetryCount.current >= 20) {
+      setHasLoadedServerCart(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const res = await fetch("/api/dashboard/cart/load", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (cancelled) return;
+        if (!res.ok) {
+          loadRetryCount.current += 1;
+          if (loadRetryCount.current < 20) {
+            retryTimeoutRef.current = setTimeout(load, 500);
+          } else {
+            setHasLoadedServerCart(true);
+          }
+          return;
+        }
+        loadRetryCount.current = 0;
+        const data = await res.json();
+        const serverItems: CartItem[] = Array.isArray(data.items) ? data.items : [];
+        // Prefer server when it has items or when local is empty (cross-browser / new device)
+        setItems((current) =>
+          serverItems.length > 0 || current.length === 0 ? serverItems : current
+        );
+        setHasLoadedServerCart(true);
+      } catch (e) {
+        loadRetryCount.current += 1;
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[CartProvider] Failed to load server cart", e);
+        }
+        if (loadRetryCount.current < 20 && !cancelled) {
+          retryTimeoutRef.current = setTimeout(load, 500);
+        } else {
+          setHasLoadedServerCart(true);
+        }
+      }
+    };
+
+    retryTimeoutRef.current = setTimeout(load, 600);
+
+    return () => {
+      cancelled = true;
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+    };
+  }, [isHydrated, user?.id, hasLoadedServerCart]);
  
 
   
@@ -149,6 +239,45 @@ const addItem = useCallback(
     setItems([]);
     setSyncError(null);
   }, []);
+
+  // Persist logged-in cart to server (account-based cart) whenever items change
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (!user?.id) return;
+    if (!hasLoadedServerCart) return;
+    if (items.length === 0) {
+      // Allow server to also be cleared
+    }
+
+    let cancelled = false;
+
+    const save = async () => {
+      try {
+        await fetch("/api/dashboard/cart/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ items }),
+        });
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[CartProvider] Failed to save server cart", e);
+        }
+      }
+    };
+
+    // Debounce to avoid spamming; short delay so other browser gets cart soon
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        save();
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [items, isHydrated, user?.id, hasLoadedServerCart]);
  
   // 🔄 WooCommerce sync (unchanged)
   const syncWithWooCommerce = useCallback(
@@ -211,14 +340,21 @@ const addItem = useCallback(
     [items]
   );
  
+  const refreshCartFromServer = useCallback(() => {
+    loadRetryCount.current = 0;
+    setHasLoadedServerCart(false);
+  }, []);
+
   const open = useCallback(() => {
     if (items.length > 0) {
       setIsOpen(true);
       syncWithWooCommerce().catch(() => {});
+    } else {
+      setIsOpen(true);
+      if (user?.id) refreshCartFromServer();
     }
-  }, [items.length, syncWithWooCommerce]);
-  
-  
+  }, [items.length, syncWithWooCommerce, user?.id, refreshCartFromServer]);
+
   const validateCart = useCallback(async () => {
     if (items.length === 0) return { valid: true, errors: [] };
  
@@ -257,6 +393,7 @@ const addItem = useCallback(
       items,
       isOpen,
       isSyncing,
+      isHydrated,
       syncError,
       open,
       close,
@@ -267,11 +404,13 @@ const addItem = useCallback(
       syncWithWooCommerce,
       validateCart,
       total,
+      refreshCartFromServer,
     }),
     [
       items,
       isOpen,
       isSyncing,
+      isHydrated,
       syncError,
       open,
       close,
@@ -282,6 +421,7 @@ const addItem = useCallback(
       syncWithWooCommerce,
       validateCart,
       total,
+      refreshCartFromServer,
     ]
   );
  

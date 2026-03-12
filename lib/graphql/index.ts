@@ -43,6 +43,5 @@ export {
   type AddToCartResult,
 } from './cart';
 
-// Note: auth-server.ts exports are server-only and should be imported directly
-// import { serverLogin, serverRegister, ... } from '@/lib/graphql/auth-server';
+// Note: auth-server.ts exports are server-only and should be imported directly where needed.
 

@@ -1,7 +1,5 @@
 "use client";
 
-// components/ProductSectionWrapper.tsx
-
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";

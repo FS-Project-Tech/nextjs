@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import CartProvider from "@/components/CartProvider";
 import ToastProvider from "@/components/ToastProvider";
 import QueryProvider from "@/components/QueryProvider";
+import { SessionProviders } from "@/components/SessionProviders";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import { CouponProvider } from "@/components/CouponProvider";
@@ -111,7 +112,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="color-scheme-light">
       <body 
         suppressHydrationWarning
         className={`antialiased ${poppins.className}`}
@@ -124,31 +125,32 @@ export default function RootLayout({
         <AnalyticsInitializer />
         <NavigationProgress />
         <ErrorBoundary>
-          <QueryProvider>
-            <ToastProvider>
-              <AuthProvider>
-                <WishlistProvider>
-                  <CartProvider>
-                    <CouponProvider>
-                      {/* Unified Header Group - Header + Category Navigation */}
-                      <div className="sticky top-0 z-50 bg-white shadow-sm">
-                        <Header />
-                        <CategoriesNav />
-                      </div>
-                      <main suppressHydrationWarning>
-                        <MainContent>{children}</MainContent>
-                      </main>
-                      <Footer />
-                      <MiniCartDrawer />
-                      <BottomNav />
-                      <PWARegister />
-                    </CouponProvider>
-                  </CartProvider>
-                </WishlistProvider>
-              </AuthProvider>
-            </ToastProvider>
-          </QueryProvider>
-        </ErrorBoundary>
+  <QueryProvider>
+  <SessionProviders>
+      <ToastProvider>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <CouponProvider>
+                <div className="sticky top-0 z-50 bg-white shadow-sm">
+                  <Header />
+                  <CategoriesNav />
+                </div>
+                <main suppressHydrationWarning>
+                  <MainContent>{children}</MainContent>
+                </main>
+                <Footer />
+                <MiniCartDrawer />
+                <BottomNav />
+                <PWARegister />
+              </CouponProvider>
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </ToastProvider>
+   </SessionProviders>
+  </QueryProvider>
+</ErrorBoundary>
       </body>
     </html>
   );

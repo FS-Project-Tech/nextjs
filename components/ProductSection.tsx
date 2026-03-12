@@ -1,5 +1,3 @@
-// app/components/ProductSection.tsx
-
 import ProductSectionCard from "@/components/ProductSectionCard";
 import { fetchCategoryBySlug, fetchProducts } from "@/lib/woocommerce";
 import { Product } from "@/lib/types/product";

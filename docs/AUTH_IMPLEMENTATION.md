@@ -226,9 +226,10 @@ Logs out user and clears session cookie.
 - Check `WC_API_URL` in `.env.local`
 - Ensure URL is accessible
 
-### "JWT token validation failed"
-- Verify JWT plugin is installed and configured
-- Check `JWT_AUTH_SECRET_KEY` in WordPress
+### "JWT token validation failed" / "JWT is not configured properly" / Login then immediate logout
+- See **[JWT_WORDPRESS_SETUP.md](./JWT_WORDPRESS_SETUP.md)** for full steps.
+- Use a **dedicated** `JWT_AUTH_SECRET_KEY` in `wp-config.php` (not `AUTH_KEY`).
+- Ensure the server passes the `Authorization` header to PHP (e.g. `.htaccess` on Apache).
 
 ### "Registration endpoint not found"
 - Ensure PHP code from `docs/wordpress-endpoints.php` is added

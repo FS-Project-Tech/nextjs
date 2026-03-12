@@ -132,6 +132,16 @@ export async function validateToken(token: string): Promise<boolean> {
         }
       });
 
+      if (!response.ok && process.env.NODE_ENV === 'development') {
+        const body = await response.text();
+        console.warn(
+          '[auth] WordPress token/validate returned',
+          response.status,
+          '- If you get auto logout on refresh, add the Authorization header pass-through in WordPress .htaccess (see docs/JWT_WORDPRESS_SETUP.md).',
+          body ? `Body: ${body.slice(0, 120)}` : ''
+        );
+      }
+
       return response.ok;
     } catch (fetchError: unknown) {
       // Handle timeout and connection errors gracefully
@@ -351,26 +361,40 @@ export async function authenticateUser(username: string, password: string): Prom
     // WordPress will set its own cookies if needed
   });
 
-  const jwtData = await jwtResponse.json();
+  const rawBody = await jwtResponse.text();
+  let jwtData: { token?: string; message?: string; user?: any; data?: any } = {};
+  try {
+    jwtData = rawBody ? JSON.parse(rawBody) : {};
+  } catch {
+    if (!jwtResponse.ok && rawBody.trim().toLowerCase().startsWith('<!')) {
+      throw new Error('Login service returned an error page. Please ensure the WordPress JWT endpoint is enabled and the REST API is working.');
+    }
+    throw new Error('Invalid response from login service.');
+  }
 
   if (!jwtResponse.ok || !jwtData?.token) {
-    throw new Error(jwtData?.message || 'Invalid credentials.');
+    const msg = jwtData?.message || '';
+    if (msg.toLowerCase().includes('jwt is not configured properly') || msg.toLowerCase().includes('contact the admin')) {
+      throw new Error('JWT is not configured properly on the server. Please contact the site admin to set JWT_AUTH_SECRET_KEY in wp-config.php.');
+    }
+    throw new Error(msg || 'Invalid credentials.');
   }
 
   const rawUser = jwtData?.user || jwtData?.data || jwtData;
   let user = normalizeJwtUser(rawUser);
 
-  if (!user.email) {
-    const fetchedUser = await getUserData(jwtData.token);
-    if (fetchedUser) {
-      user = {
-        id: fetchedUser.id,
-        email: fetchedUser.email,
-        name: fetchedUser.name,
-        username: fetchedUser.username,
-        roles: fetchedUser.roles || [],
-      };
-    }
+  // Always fetch full user from WordPress (wp/v2/users/me) so name and roles are correct
+  // for all role types (Customer, NDIS Approved, Health Professional, etc.). JWT payload
+  // alone often has minimal or wrong data for non-Customer roles.
+  const fetchedUser = await getUserData(jwtData.token);
+  if (fetchedUser) {
+    user = {
+      id: fetchedUser.id,
+      email: fetchedUser.email,
+      name: fetchedUser.name,
+      username: fetchedUser.username,
+      roles: fetchedUser.roles || [],
+    };
   }
 
   const customer = await fetchCustomerByEmail(user.email, jwtData.token);

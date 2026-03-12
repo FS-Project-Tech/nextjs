@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWpBaseUrl } from '@/lib/auth';
-import { getAuthToken } from '@/lib/auth-server';
-import { getAddresses, addAddress, getDeletedIds } from '@/lib/addresses-memory-store';
+import { getAddresses, addAddress, getDeletedIds, upsertAddress, addDeletedId, removeDeletedId } from '@/lib/addresses-memory-store';
+import { loadFromFile } from '@/lib/addresses-file-store';
 import { normalizeAddressFromWp } from '@/lib/addresses-normalize';
+import { getToken } from "next-auth/jwt";
 
 async function getUserId(token: string): Promise<string | null> {
   const wpBase = getWpBaseUrl();
@@ -16,14 +17,37 @@ async function getUserId(token: string): Promise<string | null> {
   return user?.id != null ? String(user.id) : user?.slug ?? null;
 }
 
+/** Get all fallback addresses (memory + file) so they persist after refresh / different process */
+function getFallbackAddresses(userId: string): Record<string, unknown>[] {
+  const fromMemory = getAddresses(userId);
+  const fromFile = loadFromFile(userId);
+  const fileList = fromFile?.addresses ?? [];
+  const byId = new Map<string, Record<string, unknown>>();
+  // Merge both: file is source of truth for persistence (survives restart), memory may have recent updates
+  for (const a of fileList) {
+    const id = String(a.id ?? '');
+    if (id) byId.set(id, a);
+  }
+  for (const a of fromMemory) {
+    const id = String(a.id ?? '');
+    if (id) byId.set(id, a); // memory overwrites file (more recent)
+  }
+  return Array.from(byId.values());
+}
+
 /**
  * GET /api/dashboard/addresses
  * Fetch addresses for the authenticated user
  */
 export async function GET(req: NextRequest) {
   try {
-    const token = await getAuthToken();
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
     if (!token) {
+      if (process.env.NODE_ENV === 'development') console.log('[addresses] GET – 401 Not authenticated (no wpToken)');
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -33,9 +57,13 @@ export async function GET(req: NextRequest) {
     }
 
     const userId = await getUserId(token);
-    if (!userId) {
+    // Use userId (WordPress) as primary key; fallback to token.sub so save/load use same key after refresh
+    const fileStoreKey = (userId != null && String(userId).trim() !== '') ? String(userId) : ((nextAuthToken as any)?.sub != null ? String((nextAuthToken as any).sub) : '');
+    if (!fileStoreKey) {
+      if (process.env.NODE_ENV === 'development') console.log('[addresses] GET – no userId or sub');
       return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
     }
+    if (process.env.NODE_ENV === 'development') console.log('[addresses] GET userId:', userId, 'fileStoreKey:', fileStoreKey);
 
     const noStore = { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } };
 
@@ -44,25 +72,32 @@ export async function GET(req: NextRequest) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
-
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[addresses] GET secondary status:', secondaryResponse.status);
+    }
     if (secondaryResponse.ok) {
       const data = await secondaryResponse.json();
       const wpList = data.addresses || [];
-      const memoryList = getAddresses(userId);
-      const deleted = getDeletedIds(userId);
+      const fallbackList = getFallbackAddresses(fileStoreKey);
+      const deleted = getDeletedIds(fileStoreKey);
       const byId = new Map<string, Record<string, unknown>>();
       for (const a of wpList) {
         const raw = a as Record<string, unknown>;
         const id = String(raw.id ?? '');
         byId.set(id, normalizeAddressFromWp(raw, id));
       }
-      for (const a of memoryList) {
+      for (const a of fallbackList) {
         const id = String(a.id);
-        byId.set(id, normalizeAddressFromWp(a as Record<string, unknown>, id));
+        if (!byId.has(id)) {
+          byId.set(id, normalizeAddressFromWp(a as Record<string, unknown>, id));
+        }
       }
       const merged = Array.from(byId.values()).filter(
         (a) => !deleted.has(String(a.id).toLowerCase())
       );
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[addresses] GET (secondary) wp:', wpList.length, 'fallback:', fallbackList.length, 'merged:', merged.length);
+      }
       return NextResponse.json({ addresses: merged }, noStore);
     }
 
@@ -71,36 +106,53 @@ export async function GET(req: NextRequest) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
-
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[addresses] GET primary status:', addressesResponse.status);
+    }
     if (addressesResponse.ok) {
       const data = await addressesResponse.json();
       const wpList = data.addresses || [];
-      const memoryList = getAddresses(userId);
-      const deleted = getDeletedIds(userId);
+      const fallbackList = getFallbackAddresses(fileStoreKey);
+      const deleted = getDeletedIds(fileStoreKey);
       const byId = new Map<string, Record<string, unknown>>();
       for (const a of wpList) {
         const raw = a as Record<string, unknown>;
         const id = String(raw.id ?? '');
         byId.set(id, normalizeAddressFromWp(raw, id));
       }
-      for (const a of memoryList) {
+      for (const a of fallbackList) {
         const id = String(a.id);
-        byId.set(id, normalizeAddressFromWp(a as Record<string, unknown>, id));
+        if (!byId.has(id)) {
+          byId.set(id, normalizeAddressFromWp(a as Record<string, unknown>, id));
+        }
       }
       const merged = Array.from(byId.values()).filter(
         (a) => !deleted.has(String(a.id).toLowerCase())
       );
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[addresses] GET (primary) wp:', wpList.length, 'fallback:', fallbackList.length, 'merged:', merged.length);
+      }
       return NextResponse.json({ addresses: merged }, noStore);
     }
 
     if (addressesResponse.status === 404) {
-      const list = getAddresses(userId);
-      const deleted = getDeletedIds(userId);
+      const list = getFallbackAddresses(fileStoreKey);
+      const deleted = getDeletedIds(fileStoreKey);
       const filtered = list.filter((a) => !deleted.has(String(a.id).toLowerCase()));
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[addresses] GET (404 fallback) list:', list.length, 'filtered:', filtered.length);
+      }
       return NextResponse.json({ addresses: filtered }, noStore);
     }
 
-    throw new Error('Failed to fetch addresses');
+    // Both WordPress endpoints failed (e.g. 401 auth or 404). Return file-store addresses so they persist after refresh.
+    const list = getFallbackAddresses(fileStoreKey);
+    const deleted = getDeletedIds(fileStoreKey);
+    const filtered = list.filter((a) => !deleted.has(String(a.id).toLowerCase()));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[addresses] GET (fallback – WP not ok) secondary:', secondaryResponse.status, 'primary:', addressesResponse.status, 'list:', filtered.length);
+    }
+    return NextResponse.json({ addresses: filtered }, noStore);
   } catch (error) {
     console.error('Addresses API error:', error);
     return NextResponse.json(
@@ -140,9 +192,16 @@ function normalizeAddressBody(body: unknown): Record<string, string> {
  * POST /api/dashboard/addresses
  * Add a new address (uses WordPress endpoint if available, otherwise in-memory fallback)
  */
+// export async function POST(req: NextRequest) {
+//   try {
+//     const token = await getAuthToken();
+//     if (!token) {
+//       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+//     }
 export async function POST(req: NextRequest) {
   try {
-    const token = await getAuthToken();
+    const nextAuthToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = (nextAuthToken as any)?.wpToken;
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -154,7 +213,8 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = await getUserId(token);
-    if (!userId) {
+    const fileStoreKey = (userId != null && String(userId).trim() !== '') ? String(userId) : ((nextAuthToken as any)?.sub != null ? String((nextAuthToken as any).sub) : '');
+    if (!fileStoreKey) {
       return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
     }
 
@@ -174,7 +234,10 @@ export async function POST(req: NextRequest) {
     if (secondaryPost.ok) {
       const result = await secondaryPost.json();
       const addr = result.address as Record<string, unknown>;
-      const id = String(addr?.id ?? 'billing2');
+      const id = String(addr?.id ?? `local-${Date.now()}`);
+      // Persist to file using same key as GET (token.sub) so address survives refresh
+      upsertAddress(fileStoreKey, id, addr ?? {});
+      removeDeletedId(fileStoreKey, id); 
       return NextResponse.json({
         address: normalizeAddressFromWp(addr ?? {}, id),
         message: result.message || 'Address added successfully',
@@ -193,6 +256,19 @@ export async function POST(req: NextRequest) {
       errText.slice(0, 200)
     );
 
+    // When WordPress returns 401/404, still save to file store so address persists after refresh
+    const fallbackId = `local-${Date.now()}`;
+
+    const fallbackAddr: Record<string, unknown> = {
+      id: fallbackId,
+      type: body.type,
+      label: body.type === 'shipping' ? 'Shipping' : 'Billing',
+      ...payloadForWp,
+    };
+    upsertAddress(fileStoreKey, fallbackId, fallbackAddr);
+    removeDeletedId(fileStoreKey, fallbackId);
+
+
     const addResponse = await fetch(`${wpBase}/wp-json/customers/v1/addresses`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -204,6 +280,9 @@ export async function POST(req: NextRequest) {
       const result = await addResponse.json();
       const addr = result.address as Record<string, unknown>;
       const id = String(addr?.id ?? '');
+      // Persist to file using same key as GET so address survives refresh
+      if (id) upsertAddress(fileStoreKey, id, addr ?? {});
+      removeDeletedId(fileStoreKey, id);  // ADD THIS
       return NextResponse.json({
         address: normalizeAddressFromWp(addr ?? {}, id),
         message: result.message || 'Address added successfully',
@@ -211,22 +290,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (addResponse.status === 404 || addResponse.status === 501) {
-      const newAddress = addAddress(userId, payloadForWp);
-      const id = String(newAddress.id ?? '');
+      // Address already saved to file store above; return it so it persists after refresh
       return NextResponse.json({
-        address: normalizeAddressFromWp(newAddress as Record<string, unknown>, id),
+        address: normalizeAddressFromWp(fallbackAddr, fallbackId),
         message: 'Address added successfully',
       });
     }
 
-    let errorMessage = 'Failed to add address';
-    try {
-      const errBody = await addResponse.json();
-      if (errBody?.error) errorMessage = typeof errBody.error === 'string' ? errBody.error : errBody.error.message || errorMessage;
-    } catch {
-      // ignore
-    }
-    return NextResponse.json({ error: errorMessage }, { status: addResponse.status });
+    // Primary also failed (e.g. 401); still return success with the address we saved to file so it persists after refresh
+    return NextResponse.json({
+      address: normalizeAddressFromWp(fallbackAddr, fallbackId),
+      message: 'Address saved. Enable WordPress REST auth (JWT plugin) to sync to Edit User.',
+    });
   } catch (error) {
     console.error('Add address error:', error);
     return NextResponse.json(

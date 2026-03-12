@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthToken } from '@/lib/auth-server';
 import { getWpBaseUrl } from '@/lib/wp-utils';
+import { getToken } from 'next-auth/jwt';
 
 interface RouteParams {
   params: Promise<{ productId: string }>;
@@ -25,8 +25,12 @@ export async function DELETE(
       }, { status: 400 });
     }
     
-    const token = await getAuthToken();
-    
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
+
     if (!token) {
       return NextResponse.json({
         success: false,
@@ -104,8 +108,12 @@ export async function GET(
       }, { status: 400 });
     }
     
-    const token = await getAuthToken();
-    
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
+
     if (!token) {
       return NextResponse.json({
         success: true,

@@ -3,24 +3,42 @@
 import PrefetchLink from "@/components/PrefetchLink";
 import Image from "next/image";
 import { useEffect, useRef, useState, useCallback } from "react";
+// import { useCart } from "@/components/CartProvider";
+// import { useWishlist } from "@/contexts/WishlistContext";
+// import { useRouter } from "next/navigation";
+// import SearchBar from "@/components/SearchBar";
+// import { useToast } from "@/components/ToastProvider";
+// import { useAuth } from "@/components/AuthProvider";	
 import { useCart } from "@/components/CartProvider";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import { useToast } from "@/components/ToastProvider";
-import { useAuth } from "@/components/AuthProvider";	
+
+// NEW: NextAuth hooks
+import { useSession, signOut } from "next-auth/react";
+
 
 export default function Header() {
 	const [open, setOpen] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [userMenuOpen, setUserMenuOpen] = useState(false);
+	// const { open: openCart, items } = useCart();
+	// const { items: wishlistItems } = useWishlist();
+	// const { info } = useToast();
+	// const { user, loading, logout } = useAuth();
+	// const router = useRouter();
+	const userMenuRef = useRef<HTMLDivElement>(null);
+	const userMenuButtonRef = useRef<HTMLButtonElement>(null);
 	const { open: openCart, items } = useCart();
 	const { items: wishlistItems } = useWishlist();
 	const { info } = useToast();
-	const { user, loading, logout } = useAuth();
 	const router = useRouter();
-	const userMenuRef = useRef<HTMLDivElement>(null);
-	const userMenuButtonRef = useRef<HTMLButtonElement>(null);
+
+	// Use NextAuth session instead of custom AuthContext
+	const { data: session, status } = useSession();
+	const user = session?.user || null;
+	const loading = status === "loading";
 	
 	// Ensure component is mounted before accessing cart
 	useEffect(() => {
@@ -135,6 +153,8 @@ export default function Header() {
 					) : null}
 					</div>
 					<div className="hidden lg:flex items-center gap-4 nav-section" role="navigation" aria-label="Secondary navigation">
+					    <PrefetchLink href="/Funding Scheme" critical className="hover:underline">Funding Scheme</PrefetchLink>
+						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/ndis" critical className="hover:underline">NDIS</PrefetchLink>
 						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/health-professional" critical className="hover:underline">Health Professional</PrefetchLink>
@@ -142,6 +162,8 @@ export default function Header() {
 						<PrefetchLink href="/nursing" critical className="hover:underline">Nursing</PrefetchLink>
 						<span aria-hidden="true">|</span>
 						<PrefetchLink href="/catalogue" critical className="hover:underline">Catalogue</PrefetchLink>
+						<span aria-hidden="true">|</span>
+						<PrefetchLink href="/B2B" critical className="hover:underline">B2B</PrefetchLink>
 					</div>
 				</div>
 			</div>
@@ -303,7 +325,7 @@ export default function Header() {
 									>
 										Orders
 									</PrefetchLink>
-									<button
+									{/* <button
 										onClick={async () => {
 											try {
 												await fetch('/api/auth/logout', { method: 'POST' });
@@ -319,7 +341,22 @@ export default function Header() {
 										role="menuitem"
 									>
 										Log out
-									</button>
+									</button> */}
+									<button
+  onClick={async () => {
+    try {
+      await signOut({ callbackUrl: "/login" });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setUserMenuOpen(false);
+    }
+  }}
+  className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 focus:bg-red-50 focus:outline-none"
+  role="menuitem"
+>
+  Log out
+</button>
 								</div>
 							</div>
 						)}
@@ -365,28 +402,59 @@ export default function Header() {
                                 <div className="px-3 py-2">
                                     <div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
                                 </div>
-                            ) : user ? (
-                                <>
-                                    <PrefetchLink href="/dashboard" critical className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">Dashboard</PrefetchLink>
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                await fetch('/api/auth/logout', { method: 'POST' });
-                                            } catch (error) {
-                                                console.error('Logout error:', error);
-                                            } finally {
-                                                await logout();
-                                                router.push('/login');
-                                            }
-                                        }}
-                                        className="block w-full text-left rounded px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50"
-                                    >
-                                        Sign Out
-                                    </button>
-                                </>
-                            ) : (
-                                <PrefetchLink href="/login" critical className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">Login</PrefetchLink>
-                            )}
+                            // ) : user ? (
+                            //     <>
+                            //         <PrefetchLink href="/dashboard" critical className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">Dashboard</PrefetchLink>
+                            //         <button
+                            //             onClick={async () => {
+                            //                 try {
+                            //                     await fetch('/api/auth/logout', { method: 'POST' });
+                            //                 } catch (error) {
+                            //                     console.error('Logout error:', error);
+                            //                 } finally {
+                            //                     await logout();
+                            //                     router.push('/login');
+                            //                 }
+                            //             }}
+                            //             className="block w-full text-left rounded px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50"
+                            //         >
+                            //             Sign Out
+                            //         </button>
+                            //     </>
+                            // ) : (
+                            //     <PrefetchLink href="/login" critical className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50">Login</PrefetchLink>
+                            // )}
+						) : user ? (
+							<>
+							  <PrefetchLink
+								href="/dashboard"
+								critical
+								className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+							  >
+								Dashboard
+							  </PrefetchLink>
+							  <button
+								onClick={async () => {
+								  try {
+									await signOut({ callbackUrl: "/login" });
+								  } catch (error) {
+									console.error("Logout error:", error);
+								  }
+								}}
+								className="block w-full text-left rounded px-3 py-2 text-base font-medium text-red-600 hover:bg-red-50"
+							  >
+								Sign Out
+							  </button>
+							</>
+						  ) : (
+							<PrefetchLink
+							  href="/login"
+							  critical
+							  className="block rounded px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50"
+							>
+							  Login
+							</PrefetchLink>
+						  )}
                         </div>
                 </div>
             </div>

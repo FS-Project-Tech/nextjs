@@ -98,7 +98,11 @@ export default function HeroDualSlider({
         Mobile & Tablet: 1 column (stacked)
         Desktop (md+): 4 columns (3 + 1 layout)
       */}
+<<<<<<< HEAD
       <div className="grid gap-4 grid-cols-1">
+=======
+      <div className="grid gap-4 grid-cols-1 ">
+>>>>>>> 4be804d (product-card-design,remove-dualbanner,add-newbanner,guestmode)
         {/* -------- LEFT BANNER -------- */}
         <div className="md:col-span-3">
           <Swiper

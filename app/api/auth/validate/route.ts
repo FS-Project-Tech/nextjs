@@ -1,46 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import { getAuthToken, validateToken, getUserData, clearAuthToken } from '@/lib/auth-server';
 import { secureResponse } from '@/lib/security-headers';
 import { sanitizeUser } from '@/lib/sanitize';
 
 /**
  * GET /api/auth/validate
- * Validate current session and return user data if valid
- * Automatically clears invalid sessions
- * Includes timeout handling to prevent slow responses
+ * Validate current session and return user data if valid.
+ * Tries NextAuth session first (so login via NextAuth survives refresh), then legacy session cookie.
  */
+const LOG_VALIDATE = process.env.NODE_ENV === 'development';
+
 export async function GET(req: NextRequest) {
   try {
-    const token = await getAuthToken();
+    // 1) NextAuth session (user logged in via NextAuth with WordPress JWT)
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const wpToken = (nextAuthToken as any)?.wpToken;
 
+    if (LOG_VALIDATE) {
+      console.log('[auth/validate] NextAuth token present:', !!nextAuthToken, 'wpToken present:', !!wpToken);
+    }
+
+    if (wpToken) {
+      let user = null;
+      try {
+        user = await getUserData(wpToken);
+      } catch (error) {
+        const err = error as Error & { code?: string };
+        const isTimeoutError =
+          err?.name === 'AbortError' ||
+          err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+          err?.message?.includes('timeout') ||
+          err?.message?.includes('aborted');
+        if (!isTimeoutError) {
+          console.error('[auth/validate] getUserData (NextAuth) error:', error);
+        }
+      }
+      if (user) {
+        if (LOG_VALIDATE) console.log('[auth/validate] OK (NextAuth) user.id:', user?.id);
+        return secureResponse(
+          { valid: true, user: sanitizeUser(user) },
+          { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+        );
+      }
+      // Token present but user fetch failed – don’t clear NextAuth session; return 401 so client can retry
+      if (LOG_VALIDATE) console.log('[auth/validate] 401 – wpToken present but getUserData failed');
+      return secureResponse(
+        { valid: false, error: 'Unable to fetch user data' },
+        { status: 401 }
+      );
+    }
+
+    // 2) Legacy session cookie
+    const token = await getAuthToken();
+    if (LOG_VALIDATE) console.log('[auth/validate] Legacy cookie present:', !!token);
     if (!token) {
+      if (LOG_VALIDATE) console.log('[auth/validate] 401 – No session token (NextAuth or legacy)');
       return secureResponse(
         { valid: false, error: 'No session token found' },
         { status: 401 }
       );
     }
 
-    // Validate token with WordPress (with timeout handling)
     let isValid = false;
     try {
       isValid = await validateToken(token);
     } catch (error) {
-      // Timeout or connection errors - treat as invalid
       const err = error as Error & { code?: string };
-      const isTimeoutError = 
+      const isTimeoutError =
         err?.name === 'AbortError' ||
         err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
         err?.message?.includes('timeout') ||
         err?.message?.includes('aborted');
-      
       if (!isTimeoutError) {
         console.error('Token validation error:', error);
       }
       isValid = false;
     }
-    
+
     if (!isValid) {
-      // Clear invalid session
+      if (LOG_VALIDATE) console.log('[auth/validate] 401 – Legacy token invalid or expired');
       await clearAuthToken();
       return secureResponse(
         { valid: false, error: 'Invalid or expired session' },
@@ -48,27 +90,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get user data (with timeout handling)
     let user = null;
     try {
       user = await getUserData(token);
     } catch (error) {
-      // Timeout or connection errors
       const err = error as Error & { code?: string };
-      const isTimeoutError = 
+      const isTimeoutError =
         err?.name === 'AbortError' ||
         err?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
         err?.message?.includes('timeout') ||
         err?.message?.includes('aborted');
-      
       if (!isTimeoutError) {
         console.error('Get user data error:', error);
       }
       user = null;
     }
-    
+
     if (!user) {
-      // Clear invalid session if user data can't be fetched
+      if (LOG_VALIDATE) console.log('[auth/validate] 401 – Legacy: unable to fetch user data');
       await clearAuthToken();
       return secureResponse(
         { valid: false, error: 'Unable to fetch user data' },
@@ -76,28 +115,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Sanitize user data before returning
-    const sanitizedUser = sanitizeUser(user);
-
-    // Session is valid
-    return secureResponse({
-      valid: true,
-      user: sanitizedUser,
-    }, {
-      headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-      },
-    });
+    if (LOG_VALIDATE) console.log('[auth/validate] OK (legacy) user.id:', user?.id);
+    return secureResponse(
+      { valid: true, user: sanitizeUser(user) },
+      { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } }
+    );
   } catch (error) {
     console.error('[auth/validate] error:', error);
-    
-    // Clear session on error
     try {
       await clearAuthToken();
-    } catch (clearError) {
-      // Ignore clear errors
+    } catch {
+      // ignore
     }
-
     return secureResponse(
       { valid: false, error: 'Session validation failed' },
       { status: 500 }

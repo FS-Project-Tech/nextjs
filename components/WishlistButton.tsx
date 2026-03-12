@@ -2,7 +2,6 @@
 
 import React, { memo, useCallback, useState } from 'react';
 import { useWishlist } from '@/contexts/WishlistContext';
-import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Heart icon SVG path
@@ -43,7 +42,6 @@ function WishlistButtonComponent({
   onSuccess,
 }: WishlistButtonProps) {
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
-  const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const wishlisted = isInWishlist(productId);

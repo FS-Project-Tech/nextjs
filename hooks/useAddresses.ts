@@ -2,38 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-const DELETED_IDS_KEY = 'addresses-deleted-ids';
+// Note: address deletions are now persisted server-side (in WordPress and the
+// fallback file store via addresses-memory-store). We no longer filter by a
+// per-browser localStorage deleted list so deletions are consistent across
+// browsers/devices for the same user. The clearAddressesDeletedIds helper is
+// kept as a no-op so existing calls from AuthContext remain safe.
 
-function getDeletedIdsFromStorage(): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = localStorage.getItem(DELETED_IDS_KEY);
-    const arr = raw ? (JSON.parse(raw) as string[]) : [];
-    return new Set(arr.map((id) => String(id).toLowerCase()));
-  } catch {
-    return new Set();
-  }
-}
-
-function addDeletedIdToStorage(id: string): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const set = getDeletedIdsFromStorage();
-    set.add(String(id).toLowerCase());
-    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...set]));
-  } catch {
-    // ignore
-  }
-}
-
-/** Call on logout so the next user doesn't see the previous user's deleted list */
 export function clearAddressesDeletedIds(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem(DELETED_IDS_KEY);
-  } catch {
-    // ignore
-  }
+  // no-op – server-side deletedIds are used instead of localStorage
 }
 
 export interface Address {
@@ -64,6 +40,11 @@ export interface Address {
   hcp_approval?: boolean;
 }
 
+interface UseAddressesOptions {
+  /** When false, the query does not run. Set to true only after session/user is ready so refresh doesn't get 401. */
+  enabled?: boolean;
+}
+
 interface UseAddressesResult {
   addresses: Address[];
   isLoading: boolean;
@@ -77,7 +58,8 @@ interface UseAddressesResult {
   isDeleting: boolean;
 }
 
-export function useAddresses(): UseAddressesResult {
+export function useAddresses(options?: UseAddressesOptions): UseAddressesResult {
+  const { enabled = true } = options ?? {};
   const queryClient = useQueryClient();
 
   const {
@@ -87,6 +69,7 @@ export function useAddresses(): UseAddressesResult {
     refetch,
   } = useQuery({
     queryKey: ['addresses'],
+    enabled,
     queryFn: async () => {
       const response = await fetch('/api/dashboard/addresses', {
         credentials: 'include',
@@ -100,11 +83,12 @@ export function useAddresses(): UseAddressesResult {
 
       const result = await response.json();
       const list = result.addresses || [];
-      const deleted = getDeletedIdsFromStorage();
-      return list.filter((a) => !deleted.has(String(a.id).toLowerCase()));
+      return list as Address[];
     },
-    staleTime: 0,
-    gcTime: 0,
+    // Keep data fresh for 2 min so checkout/dashboard use cache after adding an address
+    // instead of refetching and sometimes getting empty before WordPress is ready
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const addMutation = useMutation({
@@ -135,8 +119,10 @@ export function useAddresses(): UseAddressesResult {
           }
           return [...list, { ...newAddress, id: newAddress.id }];
         });
+        // Do not invalidate here: refetch can run before WordPress has the new data
+        // and overwrite the cache with an empty list. The new address is already in
+        // the cache above; list will stay in sync on next natural refetch (e.g. revisit).
       }
-      queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
 
@@ -179,7 +165,7 @@ export function useAddresses(): UseAddressesResult {
           });
         });
       }
-      queryClient.invalidateQueries({ queryKey: ['addresses'] });
+      // Do not invalidate: refetch can overwrite cache with stale/different data and make the address disappear
     },
   });
 
@@ -199,10 +185,11 @@ export function useAddresses(): UseAddressesResult {
     },
     onSuccess: (_data, deletedId) => {
       const idStr = String(deletedId);
-      addDeletedIdToStorage(idStr);
       queryClient.setQueryData<Address[]>(['addresses'], (old) =>
         old ? old.filter((a) => String(a.id) !== idStr) : old
       );
+      // Invalidate so next refetch gets fresh data from API (prevents address reappearing after refresh)
+      queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
 

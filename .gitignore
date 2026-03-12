@@ -36,6 +36,9 @@ Thumbs.db
 .cache/
 .next/cache/
 
+# Local address fallback store (user data, do not commit)
+data/
+
 # Playwright
 /test-results/
 /playwright-report/

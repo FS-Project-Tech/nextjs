@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
@@ -11,7 +11,7 @@ import { useShippingAddress } from "@/hooks/useShippingAddress";
 import { calculateSubtotal, calculateGST, calculateTotal } from "@/lib/cart-utils";
 import { formatPrice, formatPriceWithLabel } from "@/lib/format-utils";
 import { getDeliveryFrequencyLabel } from "@/lib/delivery-utils";
-
+ 
 function CartPageContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -23,35 +23,35 @@ function CartPageContent() {
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [shippingCost, setShippingCost] = useState<number>(0);
   const { country: shippingCountry, zone: shippingZone } = useShippingAddress();
-
+ 
   // Ensure component is mounted before accessing browser APIs
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
+ 
   // Validate access token on mount (only after client mount)
   useEffect(() => {
     if (!isMounted || typeof window === "undefined") return;
-    
+   
     const token = searchParams.get("token") || getStoredToken();
-    
+   
     // Check if token is valid
     if (!validateAccessToken(token, "cart")) {
       // Redirect to home page if no valid token
       router.push("/");
       return;
     }
-    
+   
     // Check if cart has items
     if (items.length === 0) {
       // Redirect to shop if cart is empty
       router.push("/shop");
       return;
     }
-    
+   
     // Authorized - allow access
     setIsAuthorized(true);
-    
+   
     // Remove token from URL after validation (clean URL)
     if (searchParams.has("token")) {
       const params = new URLSearchParams(searchParams.toString());
@@ -60,17 +60,17 @@ function CartPageContent() {
       router.replace(cleanUrl);
     }
   }, [isMounted, searchParams, router, items.length, pathname]);
-
+ 
   const subtotal = useMemo(() => calculateSubtotal(items), [items]);
-
+ 
   const gst = useMemo(() => {
     return calculateGST(subtotal, shippingCost, discount);
   }, [subtotal, discount, shippingCost]);
-
+ 
   const total = useMemo(() => {
     return calculateTotal(subtotal, shippingCost, discount, gst);
   }, [subtotal, discount, shippingCost, gst]);
-
+ 
   const applyCoupon = () => {
     const code = coupon.trim().toUpperCase();
     if (!code) return;
@@ -80,7 +80,7 @@ function CartPageContent() {
       setDiscount(0);
     }
   };
-
+ 
   // Show loading if not mounted or not authorized
   if (!isMounted || !isAuthorized) {
     return (
@@ -90,15 +90,15 @@ function CartPageContent() {
         </div>
     );
   }
-
+ 
   return (
       <div className="px-4 sm:px-6 lg:px-8">
         <h1 className="mb-6 text-2xl font-semibold pt-4">Shopping Cart</h1>
-
+ 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Cart Items Section */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="rounded-xl border bg-white p-6">
+          <div className="rounded-xl bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold">Cart Items</h2>
               {items.length === 0 ? (
                 <div className="py-8 text-center text-gray-600">Your cart is empty.</div>
@@ -116,7 +116,7 @@ function CartPageContent() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-medium text-gray-900">{i.name}</h3>
-                          
+                         
                           {i.attributes && Object.keys(i.attributes).length > 0 && (
                             <div className="mt-1 text-sm text-gray-600">
                               <span className="font-medium">Variations: </span>
@@ -128,30 +128,30 @@ function CartPageContent() {
                               ))}
                             </div>
                           )}
-
+ 
                           {i.sku && (
                             <div className="mt-1 text-sm text-gray-600">
                               <span className="font-medium">SKU: </span>
                               <span className="text-gray-900">{i.sku}</span>
                             </div>
                           )}
-
+ 
                           {i.deliveryPlan && i.deliveryPlan !== "none" && (
                             <div className="mt-1 text-sm text-gray-600">
                               <span className="font-medium">Delivery: </span>
                               <span className="text-gray-900">{getDeliveryFrequencyLabel(i.deliveryPlan)}</span>
                             </div>
                           )}
-
+ 
                           <div className="mt-2 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <label className="text-sm text-gray-600">Qty:</label>
-                              <input 
-                                type="number" 
-                                min={1} 
-                                value={i.qty} 
-                                onChange={(e) => updateItemQty(i.id, Math.max(1, Number(e.target.value)))} 
-                                className="w-20 rounded border px-2 py-1 text-sm" 
+                              <input
+                                type="number"
+                                min={1}
+                                value={i.qty}
+                                onChange={(e) => updateItemQty(i.id, Math.max(1, Number(e.target.value)))}
+                                className="w-20 rounded border px-2 py-1 text-sm"
                               />
                             </div>
                             <div className="text-right">
@@ -177,8 +177,8 @@ function CartPageContent() {
                               })()}
                             </div>
                           </div>
-                          <button 
-                            onClick={() => removeItem(i.id)} 
+                          <button
+                            onClick={() => removeItem(i.id)}
                             className="mt-2 text-sm text-rose-600 hover:text-rose-700"
                           >
                             Remove
@@ -190,36 +190,33 @@ function CartPageContent() {
                 </ul>
               )}
             </div>
-          </div>
 
-          {/* Order Summary Section */}
-          <div className="lg:col-span-1">
-            <div className="rounded-xl border bg-white p-6 sticky top-4">
-              <h2 className="mb-4 text-lg font-semibold">Order Summary</h2>
-              
-              {/* Coupon Section */}
-              <div className="mb-4 border-b pb-4">
-                <label className="mb-2 block text-sm font-medium text-gray-700">Coupon Code</label>
-                <div className="flex gap-2">
-                  <input 
-                    value={coupon} 
-                    onChange={(e) => setCoupon(e.target.value)} 
-                    placeholder="Enter code" 
-                    className="flex-1 rounded border px-3 py-2 text-sm" 
-                  />
-                  <button 
-                    onClick={applyCoupon} 
-                    className="rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-black"
-                  >
-                    Apply
-                  </button>
-                </div>
-                {discount > 0 && (
-                  <div className="mt-2 text-xs text-green-600">Coupon applied: ${discount.toFixed(2)} off</div>
-                )}
+            <div className="rounded-xl bg-white p-6">
+              <h2 className="mb-2 text-sm font-medium text-gray-700">Have any discount code?</h2>
+              <div className="flex gap-2">
+                <input
+                  value={coupon}
+                  onChange={(e) => setCoupon(e.target.value)}
+                  placeholder="Enter coupon code"
+                  className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={applyCoupon}
+                  className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
+                >
+                  Apply
+                </button>
               </div>
-
-              {/* Shipping Options */}
+              {discount > 0 && (
+                <div className="mt-2 text-xs text-green-600">Coupon applied: ${discount.toFixed(2)} off</div>
+              )}
+            </div>
+          </div>
+ 
+          <div className="lg:col-span-1">
+          <div className="rounded-xl bg-white p-6 sticky top-4">
+              <h2 className="mb-4 text-lg font-semibold">Order Summary</h2>
+ 
               <div className="mb-4 border-b pb-4">
                 <ShippingOptions
                   country={shippingCountry}
@@ -230,7 +227,7 @@ function CartPageContent() {
                   showLabel={true}
                 />
               </div>
-
+ 
               {/* Totals Section */}
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
@@ -258,9 +255,9 @@ function CartPageContent() {
                   </div>
                 </div>
               </div>
-
+ 
               {isMounted && items.length > 0 && (
-                <Link 
+                <Link
                   href="/checkout"
                   className="mt-6 block w-full rounded-md bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white hover:bg-black"
                 >
@@ -273,7 +270,7 @@ function CartPageContent() {
       </div>
   );
 }
-
+ 
 export default function CartPage() {
   return (
     <Suspense fallback={
@@ -288,4 +285,6 @@ export default function CartPage() {
     </Suspense>
   );
 }
-
+ 
+ 
+ 

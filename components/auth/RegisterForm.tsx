@@ -18,17 +18,21 @@ export default function RegisterForm() {
 
     try {
       const formData = new FormData(event.currentTarget);
+      const password = String(formData.get("password"));
+      const confirmPassword = String(formData.get("confirmPassword"));
+
+      if (password !== confirmPassword) {
+        setFormError("Passwords do not match.");
+        setLoading(false);
+        return;
+      }
+
       const payload = {
+        email: String(formData.get("email")).trim(),
+        password,
         firstName: String(formData.get("firstName")).trim(),
         lastName: String(formData.get("lastName")).trim(),
-        email: String(formData.get("email")).trim(),
-        password: String(formData.get("password")),
-        confirmPassword: String(formData.get("confirmPassword")),
       };
-
-      if (payload.password !== payload.confirmPassword) {
-        throw new Error("Passwords do not match.");
-      }
 
       const response = await fetch("/api/auth/register", {
         method: "POST",
@@ -65,20 +69,21 @@ export default function RegisterForm() {
       </header>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4" aria-live="polite">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-4">
           <label className="text-sm font-medium text-slate-700">
             First name
             <input
+              type="text"
               name="firstName"
               required
               autoComplete="given-name"
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/40"
             />
           </label>
-
           <label className="text-sm font-medium text-slate-700">
             Last name
             <input
+              type="text"
               name="lastName"
               required
               autoComplete="family-name"

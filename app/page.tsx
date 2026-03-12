@@ -25,7 +25,6 @@ export const metadata: Metadata = {
 
 // Import ProductsPageClientWrapper - client component wrapper that handles dynamic import
 import ProductsPageClientWrapper from "@/components/ProductsPageClientWrapper";
-//  import { bgGradient } from "tailwindcss/defaultTheme";
 import ProductSection from "@/components/ProductSection";
 import RecommendedSection from "@/components/RecommendedSection";
 import CategoriesSection from "@/components/CategoriesSection";
@@ -85,6 +84,18 @@ export default async function Home({
         </Suspense>
       </AnimatedSection> */}
 
+<<<<<<< HEAD
+=======
+      {/* <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
+        <ProductSection
+          title="Featured Products"
+          subtitle="Handpicked favorites our customers love the most."
+          viewAllHref="/shop?featured=true"
+          query={{ featured: true }}
+        />
+      </Suspense> */}
+
+>>>>>>> 4be804d (product-card-design,remove-dualbanner,add-newbanner,guestmode)
       {/* Categories Section */}
       <AnimatedSection>
         <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded mb-10" />}>
@@ -106,6 +117,12 @@ export default async function Home({
           query={{ categorySlug: continenceSlug }}
         />
       </Suspense>
+      {/* NDIS CTA Section */}
+      <AnimatedSection>
+        <NDISCTASection />
+      </AnimatedSection>
+
+
 
       {/* NDIS CTA Section */}
       <AnimatedSection>

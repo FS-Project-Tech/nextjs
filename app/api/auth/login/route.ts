@@ -148,6 +148,9 @@ export async function POST(request: NextRequest) {
     if (message.includes('No route was found matching the URL and request method') || message.includes('rest_no_route')) {
       message = 'Login service is not available. Please ensure the WordPress JWT Authentication plugin is installed and the REST API is enabled.';
     }
+    if (message.toLowerCase().includes('jwt is not configured properly') || message.toLowerCase().includes('jwt_auth_secret_key')) {
+      message = 'Login is not configured on the server. Please contact the site admin to set up JWT (JWT_AUTH_SECRET_KEY in wp-config.php).';
+    }
     const status = message.toLowerCase().includes('credential') || message.toLowerCase().includes('invalid') ? 401 : 500;
 
     return NextResponse.json(

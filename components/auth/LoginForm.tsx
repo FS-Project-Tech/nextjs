@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useToast } from "@/components/ToastProvider";
-import { useAuth } from "@/components/AuthProvider";
+// import { useAuth } from "@/components/AuthProvider";
+import { signIn } from "next-auth/react";
 import { validateNextParam, ALLOWED_REDIRECT_PATHS } from "@/lib/redirectUtils";
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -45,11 +46,12 @@ export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { error: showToastError, success: showToastSuccess } = useToast();
-  const { login: authLogin } = useAuth();
+  // const { login: authLogin } = useAuth();
   
   // Get and validate next parameter securely
-  const nextParam = validateNextParam(params.get("next"), ALLOWED_REDIRECT_PATHS, '/my-account');
-  
+  // const nextParam = validateNextParam(params.get("next"), ALLOWED_REDIRECT_PATHS, '/my-account');
+  const nextParam = validateNextParam(params.get("next"), ALLOWED_REDIRECT_PATHS, '/dashboard');
+
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,24 +87,44 @@ export default function LoginForm() {
 
     try {
       // Use AuthContext login which handles state updates and redirect
-      const result = await authLogin(
-        data.username.trim(),
-        data.password,
-        nextParam // Pass the redirect URL
-      );
+      // const result = await authLogin(
+      //   data.username.trim(),
+      //   data.password,
+      //   nextParam // Pass the redirect URL
+      // );
 
-      if (!result.success) {
-        const errorMessage = result.error || "Unable to sign in. Please try again.";
+      // if (!result.success) {
+      //   const errorMessage = result.error || "Unable to sign in. Please try again.";
+      //   setFormError(errorMessage);
+      //   setError("root", { message: errorMessage });
+      //   showToastError(errorMessage);
+      //   return;
+      // }
+
+      // // Success - AuthContext handles the redirect
+      // setLoginSuccess(true);
+      // showToastSuccess("Login successful! Redirecting...");
+      
+      const result = await signIn("credentials", {
+        redirect: false,                  // handle redirect in the form
+        username: data.username.trim(),   // your WP username/email
+        password: data.password,
+        callbackUrl: nextParam,           // where to go after login
+      });
+      
+      if (!result || result.error) {
+        const errorMessage =
+          result?.error || "Unable to sign in. Please try again.";
         setFormError(errorMessage);
         setError("root", { message: errorMessage });
         showToastError(errorMessage);
         return;
       }
-
-      // Success - AuthContext handles the redirect
+      
+      // Login success: NextAuth session cookie is set
       setLoginSuccess(true);
       showToastSuccess("Login successful! Redirecting...");
-      
+      router.push(result.url || nextParam);
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
@@ -118,7 +140,7 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white/90 p-8 shadow-lg">
-      <div>
+      {/* <div>
         <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
         <p className="text-sm text-slate-500">
           Don’t have an account?{" "}
@@ -129,7 +151,7 @@ export default function LoginForm() {
             Create one
           </Link>
         </p>
-      </div>
+      </div> */}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" aria-live="polite" noValidate>
         {/* Username/Email Field */}
@@ -261,7 +283,6 @@ export default function LoginForm() {
             </div>
           </div>
         )}
-
         {/* Submit Button */}
         <button
           type="submit"

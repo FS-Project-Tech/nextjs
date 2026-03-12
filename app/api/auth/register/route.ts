@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createWooUser } from '@/lib/auth-server';
 import { rateLimit } from '@/lib/api-security';
-import { sanitizeString, sanitizeEmail } from '@/lib/sanitize';
+import { sanitizeEmail } from '@/lib/sanitize';
 import { secureResponse } from '@/lib/security-headers';
 
 export async function POST(request: NextRequest) {
@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
 
     // Sanitize input
     email = typeof email === 'string' ? sanitizeEmail(email) : null;
-    firstName = typeof firstName === 'string' ? sanitizeString(firstName.trim()) : '';
-    lastName = typeof lastName === 'string' ? sanitizeString(lastName.trim()) : '';
     password = typeof password === 'string' ? password : ''; // Don't sanitize password
+    firstName = typeof firstName === 'string' ? firstName.trim() : '';
+    lastName = typeof lastName === 'string' ? lastName.trim() : '';
 
     if (!email || !password) {
       return secureResponse(
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     const customer = await createWooUser({
       email,
       password,
-      firstName,
-      lastName,
+      firstName: firstName || undefined,
+      lastName: lastName || undefined,
     });
 
     return secureResponse({

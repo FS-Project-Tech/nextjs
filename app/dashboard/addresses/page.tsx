@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useAddresses, type Address } from "@/hooks/useAddresses";
 import { useToast } from "@/components/ToastProvider";
 import AddressForm from "@/components/dashboard/AddressForm";
@@ -27,13 +28,10 @@ function hasNdisOrSupportCoordinatorRole(roles: string[] | undefined): boolean {
 }
 
 export default function DashboardAddresses() {
-  const { user } = useUser();
-  const showNdisHcp = useMemo(() => {
-    if (hasNdisOrSupportCoordinatorRole(user?.roles)) return true;
-    // Fallback: treat email containing "ndis" as NDIS user (e.g. ndis123@gmail.com) when role isn't set
-    const email = user?.email ?? "";
-    return String(email).toLowerCase().includes("ndis");
-  }, [user?.roles, user?.email]);
+  const { data: session, status: sessionStatus } = useSession();
+  const { user, loading: userLoading } = useUser();
+  // Run addresses query when session is authenticated (not just !!user) so it runs reliably after refresh in regular mode
+  const sessionReady = sessionStatus === "authenticated";
   const {
     addresses,
     isLoading,
@@ -45,16 +43,29 @@ export default function DashboardAddresses() {
     isUpdating,
     isDeleting,
     refetch,
-  } = useAddresses();
+  } = useAddresses({ enabled: sessionReady });
   const { success, error: showError } = useToast();
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [addType, setAddType] = useState<"billing" | "shipping">("billing");
 
+  // Refetch addresses when session becomes authenticated (e.g. after refresh) so the request runs with the cookie
+  useEffect(() => {
+    if (sessionStatus === "authenticated") {
+      refetch();
+    }
+  }, [sessionStatus, refetch]);
+  const showNdisHcp = useMemo(() => {
+    if (hasNdisOrSupportCoordinatorRole(user?.roles)) return true;
+    const email = user?.email ?? "";
+    return String(email).toLowerCase().includes("ndis");
+  }, [user?.roles, user?.email]);
+
   const handleAdd = async (payload: Omit<Address, "id">) => {
     try {
       await addAddress(payload);
-      await refetch();
+      // Do not refetch here: the hook already adds the new address to the cache.
+      // A refetch can return before WordPress has the new data and overwrite the list.
       success("Address added successfully");
       setShowAddForm(false);
     } catch (err: unknown) {
@@ -87,13 +98,29 @@ export default function DashboardAddresses() {
     }
   };
 
-  if (isLoading) {
+  if (userLoading || isLoading) {
     return (
       <div className="flex justify-center py-12">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-gray-600">Loading addresses…</p>
+          <p className="mt-4 text-gray-600">{userLoading ? "Loading…" : "Loading addresses…"}</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+        <p className="font-medium text-red-800">Could not load addresses</p>
+        <p className="mt-2 text-sm text-red-700">{error.message}</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+        >
+          Try again
+        </button>
       </div>
     );
   }

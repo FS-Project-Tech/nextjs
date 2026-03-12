@@ -2,11 +2,13 @@
 /**
  * Paste this code into your theme's functions.php
  *
- * File path: /applications/avvxsaxstm/public_html/wp-content/themes/bootscore-child/functions.php
+ * Example path: wp-content/themes/your-theme/functions.php
  * (WordPress expects the filename to be "functions.php" with an "s".)
  *
- * Add this at the end of functions.php, or replace your existing secondary-addresses block.
- * Keep wordpress-secondary-addresses-rest-api.php in the same theme folder.
+ * - Add this block at the end of functions.php (or replace your existing secondary-addresses block).
+ * - Put wordpress-secondary-addresses-rest-api.php in the same theme folder; it is required at the bottom.
+ * - When admin clicks "Update User", billing2_* and shipping2_* are saved so the dashboard Addresses
+ *   page and REST API (customers/v1/addresses-secondary) stay in sync.
  */
 
 // Add Duplicate Billing & Shipping Sections

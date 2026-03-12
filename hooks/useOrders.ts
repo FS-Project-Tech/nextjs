@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export interface Order {
   id: number;
+  order_number: string | number;
   status: string;
   date_created: string;
   total: string;

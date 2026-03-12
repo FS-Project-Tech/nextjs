@@ -1,4 +1,3 @@
-// components/Footer.tsx (Server Component)
 import PrefetchLink from "@/components/PrefetchLink";
 import Image from "next/image";
 import { cache } from "react";

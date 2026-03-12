@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWpBaseUrl } from '@/lib/auth';
-import { getAuthToken } from '@/lib/auth-server';
-import { updateAddress as updateMemoryAddress, deleteAddress as deleteMemoryAddress, upsertAddress, addDeletedId } from '@/lib/addresses-memory-store';
+import { getToken } from 'next-auth/jwt';
+import { updateAddress as updateMemoryAddress, deleteAddress as deleteMemoryAddress, upsertAddress, addDeletedId, removeDeletedId } from '@/lib/addresses-memory-store';
 import { normalizeAddressFromWp } from '@/lib/addresses-normalize';
 
 async function getUserId(token: string): Promise<string | null> {
@@ -48,7 +48,8 @@ export async function PUT(
 ) {
   const noStore = { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' as const } };
   try {
-    const token = await getAuthToken();
+    const nextAuthToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = (nextAuthToken as any)?.wpToken;
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -69,16 +70,23 @@ export async function PUT(
       return NextResponse.json({ error: 'WordPress URL not configured' }, { status: 500 });
     }
 
+    const userId = await getUserId(token);
+    const fileStoreKey =
+    userId != null && String(userId).trim() !== ''
+      ? String(userId)
+      : (nextAuthToken as any)?.sub != null
+      ? String((nextAuthToken as any).sub)
+      : '';
     // Treat as local address if id looks like our in-memory id (case-insensitive)
     const isLocalId = addressId.toLowerCase().startsWith('local-');
     if (isLocalId) {
-      const userId = await getUserId(token);
-      if (!userId) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
-      let updated = updateMemoryAddress(userId, addressId, normalizedBody);
+      if (!fileStoreKey) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
+      let updated = updateMemoryAddress(fileStoreKey, addressId, normalizedBody);
       // If not found (e.g. server restarted), upsert so the edit still succeeds
       if (!updated) {
-        updated = upsertAddress(userId, addressId, normalizedBody);
+        updated = upsertAddress(fileStoreKey, addressId, normalizedBody);
       }
+      removeDeletedId(fileStoreKey, addressId);
       const addr = (updated ?? {}) as Record<string, unknown>;
       return NextResponse.json(
         {
@@ -101,6 +109,8 @@ export async function PUT(
         const result = await secondaryPut.json();
         const addr = (result.address ?? {}) as Record<string, unknown>;
         const normalized = normalizeAddressFromWp(addr, addressId);
+        if (fileStoreKey) upsertAddress(fileStoreKey, addressId, addr);
+        removeDeletedId(fileStoreKey, addressId);
         return NextResponse.json(
           {
             address: normalized,
@@ -121,6 +131,8 @@ export async function PUT(
     if (updateResponse.ok) {
       const result = await updateResponse.json();
       const addr = (result.address ?? {}) as Record<string, unknown>;
+      if (fileStoreKey) upsertAddress(fileStoreKey, addressId, addr);
+      removeDeletedId(fileStoreKey, addressId);
       return NextResponse.json(
         {
           address: normalizeAddressFromWp(addr, addressId),
@@ -131,9 +143,9 @@ export async function PUT(
     }
 
     // WordPress endpoint missing or failed – save update in our memory store so edit still works
-    const userId = await getUserId(token);
-    if (!userId) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
-    const updated = upsertAddress(userId, addressId, normalizedBody);
+    if (!fileStoreKey) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
+    const updated = upsertAddress(fileStoreKey, addressId, normalizedBody);
+    removeDeletedId(fileStoreKey, addressId);
     const addr = (updated ?? {}) as Record<string, unknown>;
     return NextResponse.json(
       {
@@ -160,7 +172,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const token = await getAuthToken();
+    const nextAuthToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    const token = (nextAuthToken as any)?.wpToken;
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
@@ -171,12 +184,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'WordPress URL not configured' }, { status: 500 });
     }
 
+    const userId = await getUserId(token);
+    const fileStoreKey =
+    userId != null && String(userId).trim() !== ''
+      ? String(userId)
+      : (nextAuthToken as any)?.sub != null
+      ? String((nextAuthToken as any).sub)
+      : '';
     const isLocalId = addressId.toLowerCase().startsWith('local-');
     if (isLocalId) {
-      const userId = await getUserId(token);
-      if (!userId) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
-      const removed = deleteMemoryAddress(userId, addressId);
-      if (!removed) addDeletedId(userId, addressId);
+      if (!fileStoreKey) return NextResponse.json({ error: 'Failed to get user data' }, { status: 401 });
+      const removed = deleteMemoryAddress(fileStoreKey, addressId);
+      if (!removed) addDeletedId(fileStoreKey, addressId);
       return NextResponse.json({ message: 'Address deleted successfully' }, { headers: { 'Cache-Control': 'no-store' } });
     }
 
@@ -189,6 +208,11 @@ export async function DELETE(
       });
       if (secondaryDelete.ok) {
         const result = await secondaryDelete.json().catch(() => ({}));
+      
+        if (fileStoreKey) {
+          addDeletedId(fileStoreKey, addressId);
+        }
+      
         return NextResponse.json(
           { message: (result as { message?: string }).message || 'Address deleted successfully' },
           { headers: { 'Cache-Control': 'no-store' } }
@@ -204,10 +228,9 @@ export async function DELETE(
 
     if (!deleteResponse.ok) {
       if (deleteResponse.status === 404) {
-        const userId = await getUserId(token);
-        if (userId) {
-          const deleted = deleteMemoryAddress(userId, addressId);
-          addDeletedId(userId, addressId);
+        if (fileStoreKey) {
+          deleteMemoryAddress(fileStoreKey, addressId);
+          addDeletedId(fileStoreKey, addressId);
           return NextResponse.json({ message: 'Address deleted successfully' }, { headers: { 'Cache-Control': 'no-store' } });
         }
       }
@@ -222,7 +245,15 @@ export async function DELETE(
     }
 
     const result = await deleteResponse.json();
-    return NextResponse.json({ message: result.message || 'Address deleted successfully' }, { headers: { 'Cache-Control': 'no-store' } });
+
+    if (fileStoreKey) {
+      addDeletedId(fileStoreKey, addressId);   // ⭐ IMPORTANT
+    }
+    
+    return NextResponse.json(
+      { message: result.message || 'Address deleted successfully' },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
     console.error('Delete address error:', error);
     return NextResponse.json({ error: 'An error occurred while deleting address' }, { status: 500 });

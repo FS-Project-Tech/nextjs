@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import type { Address } from "@/hooks/useAddresses";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 export type AddressFormValues = {
   type: "billing" | "shipping";
@@ -138,6 +139,7 @@ export default function AddressForm({
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors },
     setError,
   } = useForm<AddressFormValues>({
@@ -280,7 +282,31 @@ export default function AddressForm({
       {ROW4.map(({ key, label, required }) => (
         <div key={key} id={`${fieldIdPrefix}${key}_field`}>
           <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
-          <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete="address-line1" />
+          <Controller
+            name={key}
+            control={control}
+            render={({ field }) => (
+              <AddressAutocomplete
+                id={`${fieldIdPrefix}${key}`}
+                value={field.value}
+                onChange={field.onChange}
+                onPlaceSelect={(addr) => {
+                  setValue("address_1", addr.address_1);
+                  if (addr.address_2) setValue("address_2", addr.address_2);
+                
+                  if (addr.city) setValue("city", addr.city);
+                  if (addr.state) setValue("state", addr.state);
+                  if (addr.postcode) setValue("postcode", addr.postcode);
+                
+                  setValue("country", "AU");
+                }}
+                disabled={isLoading}
+                error={!!errors[key]?.message}
+                aria-label="Address line 1"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60"
+              />
+            )}
+          />
           {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
         </div>
       ))}
@@ -299,13 +325,26 @@ export default function AddressForm({
           </div>
         ))}
       </div>
-      {ROW7.map(({ key, label, required, placeholder }) => (
-        <div key={key} id={`${fieldIdPrefix}${key}_field`}>
-          <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
-          <input id={`${fieldIdPrefix}${key}`} type="text" placeholder={placeholder} disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete="country" />
-          {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
-        </div>
-      ))}
+      <div id={`${fieldIdPrefix}country_field`}>
+  <label className="mb-1 block text-sm font-medium text-gray-700">
+    Country <span className="text-red-500">*</span>
+  </label>
+
+  {/* Hidden value sent to backend */}
+  <input type="hidden" value="AU" {...register("country")} />
+
+  {/* Visible field */}
+  <input
+    type="text"
+    value="Australia"
+    disabled
+    className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm"
+  />
+
+  {errors.country?.message && (
+    <p className="mt-1 text-xs text-red-600">{errors.country.message}</p>
+  )}
+</div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {ROW8.map(({ key, label, type = "text" }) => (
           <div key={key} id={`${fieldIdPrefix}${key}_field`}>

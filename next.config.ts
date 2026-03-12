@@ -131,9 +131,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       // Add known WooCommerce media hosts here
+      // {
+      //   protocol: "https",
+      //   hostname: "wordpress-1496507-5718895.cloudwaysapps.com",
+      //   pathname: "/wp-content/uploads/**",
+      // },
       {
         protocol: "https",
-        hostname: "wordpress-1496507-5718895.cloudwaysapps.com",
+        hostname: "wordpress-1513595-6089575.cloudwaysapps.com",
         pathname: "/wp-content/uploads/**",
       },
       // Placeholder image host used in development/demo sliders

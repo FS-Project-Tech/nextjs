@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthToken, validateToken, getUserData } from './auth-server';
+import { getToken } from "next-auth/jwt";
 
 /**
  * Rate Limiting Store
@@ -92,20 +93,68 @@ export function rateLimit(config: Partial<RateLimitConfig> = {}) {
 /**
  * JWT Authentication Middleware
  */
+// export async function requireAuth(
+//   req: NextRequest
+// ): Promise<{ user: any; token: string } | NextResponse> {
+//   try {
+//     const token = await getAuthToken();
+
+//     if (!token) {
+//       return NextResponse.json(
+//         { error: 'Authentication required', message: 'Please login to access this resource' },
+//         { status: 401 }
+//       );
+//     }
+
+//     // Validate token
+//     const isValid = await validateToken(token);
+//     if (!isValid) {
+//       return NextResponse.json(
+//         { error: 'Invalid token', message: 'Your session has expired. Please login again.' },
+//         { status: 401 }
+//       );
+//     }
+
+//     // Get user data
+//     const user = await getUserData(token);
+//     if (!user) {
+//       return NextResponse.json(
+//         { error: 'User not found', message: 'Unable to fetch user data. Please login again.' },
+//         { status: 401 }
+//       );
+//     }
+
+//     return { user, token };
+//   } catch (error) {
+//     console.error('Auth middleware error:', error);
+//     return NextResponse.json(
+//       { error: 'Authentication failed', message: 'An error occurred during authentication' },
+//       { status: 500 }
+//     );
+//   }
+// }
 export async function requireAuth(
   req: NextRequest
 ): Promise<{ user: any; token: string } | NextResponse> {
   try {
-    const token = await getAuthToken();
+    // Read the NextAuth JWT from the request
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
 
-    if (!token) {
+    const wpToken = (nextAuthToken as any)?.wpToken;
+
+    if (!wpToken) {
       return NextResponse.json(
         { error: 'Authentication required', message: 'Please login to access this resource' },
         { status: 401 }
       );
     }
 
-    // Validate token
+    const token = wpToken; // this is the WordPress JWT
+
+    // Validate token with WordPress
     const isValid = await validateToken(token);
     if (!isValid) {
       return NextResponse.json(
@@ -114,7 +163,7 @@ export async function requireAuth(
       );
     }
 
-    // Get user data
+    // Get user data from WordPress
     const user = await getUserData(token);
     if (!user) {
       return NextResponse.json(

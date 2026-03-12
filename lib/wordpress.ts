@@ -1,5 +1,3 @@
-// lib/wordpress.ts
-
 export async function fetchProductSEO(slug: string) {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/wp/v2/product?slug=${slug}`,

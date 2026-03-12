@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import wcAPI from "@/lib/woocommerce";
 import { getWpBaseUrl } from "@/lib/auth";
 import { getAuthToken } from "@/lib/auth-server";
-import { verifyPayment } from "@/lib/payment-verification";
 
 /**
  * Create order in WooCommerce
@@ -30,20 +29,8 @@ export async function POST(req: NextRequest) {
         );
       }
       
-      // Verify payment was actually processed before creating order
-      // This ensures payment was successful and prevents order creation without payment
-      // TODO: Uncomment when payment gateway SDKs are integrated
-      // const paymentVerification = await verifyPayment(paymentIntentId, paymentMethod);
-      // if (!paymentVerification.verified) {
-      //   return NextResponse.json(
-      //     { 
-      //       error: "Payment verification failed", 
-      //       details: paymentVerification.error || "Payment could not be verified"
-      //     },
-      //     { status: 400 }
-      //   );
-      // }
-      
+      // Verify payment was actually processed before creating order.
+      // TODO: When payment gateway SDKs are integrated, call verifyPayment() here.
       // For now, if payment intent ID exists, assume payment was processed
       // In production with actual gateway integration, always verify
       if (paymentIntentId) {
@@ -190,7 +177,7 @@ export async function POST(req: NextRequest) {
     
     try {
       // Only add payment status note
-      let paymentStatusNote = `Payment Status: ${setPaid ? "Paid" : "Pending Payment"}`;
+      let paymentStatusNote = `Payment Status: ${setPaid ? "Paid" : "Processing"}`;
       if (paymentIntentId) {
         paymentStatusNote += `\nTransaction ID: ${paymentIntentId}`;
       }

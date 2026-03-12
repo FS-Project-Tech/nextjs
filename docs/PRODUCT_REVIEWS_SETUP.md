@@ -23,7 +23,7 @@ Follow these steps so the "No route was found" error is fixed and reviews work.
 
 ### Step 2: Paste into WordPress
 
-1. Log in to your **WordPress admin** (e.g. `https://wordpress-1496507-5718895.cloudwaysapps.com/wp-admin`).
+1. Log in to your **WordPress admin** (e.g. `https://wordpress-1513595-6089575.cloudwaysapps.com/wp-admin`).
 2. Go to **Appearance → Theme File Editor** (or use FTP/cPanel to edit the active theme’s `functions.php`).
 3. Open **Theme Functions** (`functions.php`).
 4. Scroll to the **very end** of the file (before `?>` if that tag exists).
@@ -34,7 +34,7 @@ Follow these steps so the "No route was found" error is fixed and reviews work.
 
 1. In the browser, open this URL (replace with your real WordPress URL):  
    **`https://YOUR-WORDPRESS-URL.com/wp-json/custom/v1/reviews-check`**  
-   Example: `https://wordpress-1496507-5718895.cloudwaysapps.com/wp-json/custom/v1/reviews-check`
+   Example: `https://wordpress-1513595-6089575.cloudwaysapps.com/wp-json/custom/v1/reviews-check`
 2. You should see: **`{"ok":true,"message":"Product reviews endpoint is active"}`**
 3. If you get **404** or "No route was found", the PHP code is **not** running. Go to **If you still see "No route was found"** below.
 

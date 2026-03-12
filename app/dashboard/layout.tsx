@@ -47,12 +47,14 @@ const TabIcon = ({ iconId, className = "h-5 w-5" }: { iconId: string; className?
   return icons[iconId] || null;
 };
 
+
+
 const tabs = [
   { id: 'overview', label: 'Overview', href: '/dashboard', iconId: 'overview' },
   { id: 'orders', label: 'Orders', href: '/dashboard/orders', iconId: 'orders' },
   { id: 'wishlist', label: 'Wishlist', href: '/dashboard/wishlist', iconId: 'wishlist' },
   { id: 'addresses', label: 'Addresses', href: '/dashboard/addresses', iconId: 'addresses' },
-  { id: 'quotes', label: 'Quotes', href: '/dashboard/quotes', iconId: 'quotes' },
+  // { id: 'quotes', label: 'Quotes', href: '/dashboard/quotes', iconId: 'quotes' },
   { id: 'settings', label: 'My Account', href: '/dashboard/settings', iconId: 'settings' },
 ];
 
@@ -70,6 +72,20 @@ export default function DashboardLayout({
   useEffect(() => {
     setMounted(true);
   }, []);
+  useEffect(() => {
+    if (!mounted) return;
+  
+    // Allow wishlist without login
+    if (!user && pathname !== "/dashboard/wishlist") {
+      router.replace("/login");
+    }
+  }, [mounted, user, pathname, router]);
+
+  if (!mounted) return null;
+
+if (!user && pathname !== "/dashboard/wishlist") {
+  return null;
+}
 
   const handleLogout = async () => {
     try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthToken } from '@/lib/auth-server';
 import { getWpBaseUrl } from '@/lib/wp-utils';
+import { getToken } from 'next-auth/jwt';
 
 /**
  * GET /api/wishlist
@@ -8,8 +8,12 @@ import { getWpBaseUrl } from '@/lib/wp-utils';
  */
 export async function GET(req: NextRequest) {
   try {
-    const token = await getAuthToken();
-    
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
+
     if (!token) {
       return NextResponse.json({
         success: true,
@@ -85,8 +89,12 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
     
-    const token = await getAuthToken();
-    
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
+
     if (!token) {
       return NextResponse.json({
         success: false,
@@ -171,8 +179,12 @@ export async function DELETE(req: NextRequest) {
       }, { status: 400 });
     }
     
-    const token = await getAuthToken();
-    
+    const nextAuthToken = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const token = (nextAuthToken as any)?.wpToken;
+
     if (!token) {
       return NextResponse.json({
         success: false,

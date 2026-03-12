@@ -1,6 +1,11 @@
-# Fix: Addresses Not Showing in WordPress Backend (Secondary)
+# Fix: Addresses Not Showing in WordPress Backend
 
-When you add an address on the **Addresses** page in the app, it should appear in WordPress under **Edit User → Customer Billing Address (Secondary)** / **Customer Shipping Address (Secondary)**. If those backend fields stay empty, follow this setup.
+When you add an address on the **Addresses** page in the app, it should appear in WordPress. The REST API saves to:
+
+- **Secondary** meta (`billing2_*` / `shipping2_*`) for the Addresses dashboard.
+- **Primary** WooCommerce meta (`billing_*` / `shipping_*`) **only when requested** (e.g. checkout save), so **Edit User → Customer billing address** / **Customer shipping address** and your DB report (e.g. `billing_first_name`, `billing_last_name`) show the checkout address.
+
+If those backend fields stay empty, follow this setup.
 
 ---
 
@@ -63,4 +68,8 @@ If it still fails:
 | 404 in Next.js logs | REST file missing or wrong path in `require_once`. |
 | 401 in Next.js logs | WordPress not authenticating Bearer token for REST; fix JWT plugin / hooks. |
 
-After both steps are done, addresses added on the Addresses page are stored in **Customer Billing/Shipping Address (Secondary)** in the backend.
+After both steps are done, addresses added on the Addresses page are stored in:
+
+- **Customer Billing/Shipping Address (Secondary)** (billing2_* / shipping2_*)
+
+Primary billing/shipping (`billing_*` / `shipping_*`) is updated only when the client sends `sync_primary: true` (the checkout flow does this).

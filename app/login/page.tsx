@@ -111,7 +111,7 @@ function LoginPageContent() {
           </div>
 
           {/* Login Form Card */}
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <div>
             <LoginForm />
           </div>
 
@@ -121,7 +121,7 @@ function LoginPageContent() {
               Don't have an account?{' '}
               <Link
                 href="/register"
-                className="font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                className="font-semibold text-gray-900 hover:text-gray-700 transition-colors underline"
               >
                 Create one now
               </Link>

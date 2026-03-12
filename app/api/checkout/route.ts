@@ -11,6 +11,7 @@ import {
 } from "@/lib/checkout-security";
 import { syncCartToWooCommerce } from "@/lib/cart-sync";
 import type { CartItem } from "@/lib/types/cart";
+import { getToken } from 'next-auth/jwt';
 
 /**
  * POST /api/checkout
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
       hcp_number,
       delivery_authority,
       delivery_instructions,
+      do_not_send_paperwork,
+      discreet_packaging,
       quote_id,
       quote_number,
     } = body;
@@ -140,7 +143,7 @@ export async function POST(req: NextRequest) {
       
       // Determine setPaid and orderStatus based on payment method
       let setPaid = false;
-      let orderStatus = 'pending'; // Default to pending
+      let orderStatus = 'processing'; // Default to pending
       
       if (payment_method === 'cod') {
         // Cash on Delivery - Order is being processed/fulfilled, payment will be received on delivery
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest) {
         setPaid = false; // Payment pending (will be paid on delivery)
       } else if (payment_method === 'bacs' || payment_method === 'bank_transfer' || payment_method === 'cheque') {
         // Bank Transfer / Cheque - remains pending until payment confirmed
-        orderStatus = 'pending';
+        orderStatus = 'processing';
         setPaid = false; // Payment pending (waiting for confirmation)
       } else {
         // Online payment methods (PayPal, Stripe, etc.)
@@ -176,9 +179,23 @@ export async function POST(req: NextRequest) {
           : "Without Signature";
         metaData.push({ key: "Delivery Authority", value: authorityLabel });
       }
+      // Theme-compatible key for WordPress backend (custom-checkout.php)
+      metaData.push({ key: "Signature Required", value: delivery_authority === "with_signature" ? "yes" : "no" });
 
       if (delivery_instructions) {
         metaData.push({ key: "Delivery Instructions", value: delivery_instructions });
+      }
+
+      if (do_not_send_paperwork) {
+        metaData.push({ key: "Do not send paperwork", value: "Yes" });
+        // Theme-compatible key for WordPress backend (custom-checkout.php)
+        metaData.push({ key: "Do not Send Paperwork With Delivery", value: "yes" });
+      } else {
+        metaData.push({ key: "Do not Send Paperwork With Delivery", value: "no" });
+      }
+
+      if (discreet_packaging) {
+        metaData.push({ key: "Discreet packaging", value: "Yes" });
       }
 
       if (body.subscribe_newsletter) {
@@ -201,43 +218,47 @@ export async function POST(req: NextRequest) {
       const realIp = req.headers.get("x-real-ip");
       const customerIp = forwarded?.split(",")[0]?.trim() || realIp || req.headers.get("cf-connecting-ip") || "";
 
-      // 8.5. Get customer ID if user is logged in
-      let customerId: number | null = null;
-      try {
-        const token = await getAuthToken();
-        if (token) {
-          const wpBase = getWpBaseUrl();
-          if (wpBase) {
-            // Get user data
-            const userResponse = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              cache: 'no-store',
-            });
+ // 8.5. Get customer ID if user is logged in
+let customerId: number | null = null;
+try {
+  // 1) Try NextAuth session first
+  const nextAuthToken = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const wpToken = (nextAuthToken as any)?.wpToken;
 
-            if (userResponse.ok) {
-              const user = await userResponse.json();
-              const userEmail = user.email || billing.email;
-              
-              // Get WooCommerce customer ID using optimized hybrid approach
-              if (userEmail) {
-                const { getCustomerIdWithFallback, toIntCustomerId } = await import('@/lib/customer-utils');
-                customerId = await getCustomerIdWithFallback(userEmail, token);
-                
-                // Fallback to WordPress user ID if WooCommerce customer not found
-                if (!customerId && user.id) {
-                  customerId = toIntCustomerId(user.id);
-                }
-              }
-            }
+  // 2) Fallback to legacy getAuthToken if wpToken is not set
+  const legacyToken = wpToken ? null : await getAuthToken();
+  const token = wpToken || legacyToken;  // this is the JWT we use below
+
+  if (token) {
+    const wpBase = getWpBaseUrl();
+    if (wpBase) {
+      const userResponse = await fetch(`${wpBase}/wp-json/wp/v2/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store',
+      });
+
+      if (userResponse.ok) {
+        const user = await userResponse.json();
+        const userEmail = user.email || billing.email;
+
+        if (userEmail) {
+          const { getCustomerIdWithFallback, toIntCustomerId } = await import('@/lib/customer-utils');
+          customerId = await getCustomerIdWithFallback(userEmail, token);
+
+          // Fallback to WordPress user ID if WooCommerce customer not found
+          if (!customerId && user.id) {
+            customerId = toIntCustomerId(user.id);
           }
         }
-      } catch (authError) {
-        // If authentication fails, continue as guest order
-        console.warn('Could not get customer ID, creating guest order:', authError);
       }
+    }
+  }
+} catch (authError) {
+  console.warn('Could not get customer ID, creating guest order:', authError);
+}
 
       // 9. Build WooCommerce order payload
       const orderPayload: any = {
@@ -257,17 +278,19 @@ export async function POST(req: NextRequest) {
           city: billing.city || '',
           state: billing.state || '',
           postcode: billing.postcode || '',
-          country: billing.country || '',
+          country: (billing.country && String(billing.country).trim()) || 'AU',
         },
-        shipping: shipping || {
-          first_name: billing.first_name,
-          last_name: billing.last_name,
-          address_1: billing.address_1 || '',
-          address_2: billing.address_2 || '',
-          city: billing.city || '',
-          state: billing.state || '',
-          postcode: billing.postcode || '',
-          country: billing.country || '',
+        shipping: {
+          ...(shipping || {
+            first_name: billing.first_name,
+            last_name: billing.last_name,
+            address_1: billing.address_1 || '',
+            address_2: billing.address_2 || '',
+            city: billing.city || '',
+            state: billing.state || '',
+            postcode: billing.postcode || '',
+          }),
+          country: (shipping?.country && String(shipping.country).trim()) || (billing.country && String(billing.country).trim()) || 'AU',
         },
         line_items: cartSync.items.map((item) => ({
           product_id: item.product_id,
@@ -416,15 +439,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Get payment method display title
- */
 function getPaymentMethodTitle(method: string): string {
   const titles: Record<string, string> = {
     paypal: "PayPal",
+    bacs: "On account",
+    bank_transfer: "On account",
     cod: "Cash on Delivery",
-    bacs: "Direct Bank Transfer",
-    bank_transfer: "Bank Transfer",
     cheque: "Cheque Payment",
     stripe: "Credit Card (Stripe)",
   };

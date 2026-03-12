@@ -63,14 +63,14 @@ export default function DashboardOrders() {
       <div className="space-y-3">
         {orders.map((order) => (
           <div
-            key={order.id}
+            key={order.order_number}
             className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-6 flex-1">
                 <div>
                   <p className="text-xs text-gray-500">Order #</p>
-                  <p className="text-base font-semibold text-gray-900">{order.id}</p>
+                  <p className="text-base font-semibold text-gray-900">{order.order_number}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Date</p>
@@ -118,7 +118,7 @@ export default function DashboardOrders() {
                   <button
                     onClick={async () => {
                       try {
-                        const response = await fetch(`/api/dashboard/orders/${order.id}/pay`, {
+                        const response = await fetch(`/api/dashboard/orders/${order.order_number}/pay`, {
                           method: 'POST',
                           credentials: 'include',
                         });
@@ -144,7 +144,7 @@ export default function DashboardOrders() {
                   </button>
                 )}
                 <Link
-                  href={`/dashboard/orders/${order.id}`}
+                  href={`/dashboard/orders/${order.order_number}`}
                   className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                 >
                   View Details

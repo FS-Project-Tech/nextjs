@@ -16,6 +16,8 @@ interface OrderItem {
 
 interface Order {
   id: number;
+  number?: string;
+  order_number?: string;
   order_key: string;
   status: string;
   total: string;
@@ -131,7 +133,7 @@ function OrderReviewContent() {
 
       const opt = {
         margin: [15, 15, 15, 15] as [number, number, number, number],
-        filename: `Invoice-${order.id}.pdf`,
+        filename: `Invoice-${order.number ?? order.order_number ?? orderId ?? order.id}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { 
           scale: 2, 
@@ -171,7 +173,7 @@ function OrderReviewContent() {
     } finally {
       setDownloadingPDF(false);
     }
-  }, [order]);
+  }, [order, orderId]);
 
   if (loading) {
     return (
@@ -223,6 +225,21 @@ function OrderReviewContent() {
     return instructionsMeta?.value || null;
   };
 
+  const getDoNotSendPaperwork = () => {
+    const meta = order.meta_data?.find((m) => m.key === "Do not send paperwork");
+    return meta?.value === "Yes" ? "Yes" : null;
+  };
+
+  const getDiscreetPackaging = () => {
+    const meta = order.meta_data?.find((m) => m.key === "Discreet packaging");
+    return meta?.value === "Yes" ? "Yes" : null;
+  };
+
+  const getNewsletterSubscription = () => {
+    const meta = order.meta_data?.find((m) => m.key === "Newsletter Subscription");
+    return meta?.value === "Yes" ? "Yes" : null;
+  };
+
   const isPaid = order.status === "processing" || order.status === "completed";
   const offlinePaymentMethods = ["cod", "bacs", "bank_transfer", "cheque"];
   
@@ -269,7 +286,7 @@ function OrderReviewContent() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-1">Order Summary</h2>
-                <p className="text-gray-300 text-sm">Order #{order.id}</p>
+                <p className="text-gray-300 text-sm">Order #{order.number ?? order.order_number ?? orderId ?? order.id}</p>
               </div>
               <div className="mt-4 md:mt-0 text-right">
                 <p className="text-sm text-gray-300">Date</p>
@@ -446,7 +463,7 @@ function OrderReviewContent() {
             </div>
 
             {/* Additional Information */}
-            {(getNDISNumber() || getHCPNumber() || getDeliveryAuthority() || getDeliveryInstructions()) && (
+            {(getNDISNumber() || getHCPNumber() || getDeliveryAuthority() || getDeliveryInstructions() || getDoNotSendPaperwork() || getDiscreetPackaging() || getNewsletterSubscription()) && (
               <div className="mb-8 pb-8 border-b">
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Additional Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -466,6 +483,24 @@ function OrderReviewContent() {
                     <div>
                       <span className="font-medium text-gray-700">Delivery Authority:</span>{" "}
                       <span className="text-gray-900">{getDeliveryAuthority()}</span>
+                    </div>
+                  )}
+                  {getDoNotSendPaperwork() && (
+                    <div>
+                      <span className="font-medium text-gray-700">Do not Send Paperwork With Delivery:</span>{" "}
+                      <span className="text-gray-900">Yes</span>
+                    </div>
+                  )}
+                  {getDiscreetPackaging() && (
+                    <div>
+                      <span className="font-medium text-gray-700">Discreet Packaging:</span>{" "}
+                      <span className="text-gray-900">Yes</span>
+                    </div>
+                  )}
+                  {getNewsletterSubscription() && (
+                    <div>
+                      <span className="font-medium text-gray-700">Newsletter Subscription:</span>{" "}
+                      <span className="text-gray-900">Yes</span>
                     </div>
                   )}
                   {getDeliveryInstructions() && (

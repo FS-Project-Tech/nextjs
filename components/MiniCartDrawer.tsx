@@ -13,6 +13,7 @@ import { parseCartTotal, calculateTotal } from "@/lib/cart-utils";
 import { formatPrice, formatPriceWithLabel } from "@/lib/format-utils";
 import { getDeliveryFrequencyLabel } from "@/lib/delivery-utils";
 import { sanitizeString } from "@/lib/sanitize";
+import { getCartUrl } from "@/lib/access-token";
 
 // Dynamically import RequestQuoteModal - only needed when quote button is clicked
 // Using a function to ensure stable module resolution during HMR
@@ -230,7 +231,8 @@ export default function MiniCartDrawer() {
 						</button>
 					</div>
 
-					<div className="flex-1" suppressHydrationWarning>
+					<div className="flex-1 flex flex-col min-h-0" suppressHydrationWarning>
+						<div className="flex-1 overflow-y-auto min-h-0">
 						{items.length === 0 ? (
 							<div className="flex flex-col items-center justify-center py-16 px-4 text-center" suppressHydrationWarning>
 								<div className="mb-3 rounded-full bg-gray-100 p-5">
@@ -253,7 +255,7 @@ export default function MiniCartDrawer() {
 							<div className="border-t bg-gray-50" suppressHydrationWarning>
 								<div className="p-3 space-y-3">
 								{/* Shipping Options - Always Visible */}
-								{isOpen && items.length > 0 && (
+								{/* {isOpen && items.length > 0 && (
 									<div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
 										<div className="flex items-center justify-between">
 											<div>
@@ -283,7 +285,7 @@ export default function MiniCartDrawer() {
 											className="space-y-2"
 										/>
 									</div>
-								)}
+								)} */}
 
 								<div className="rounded-2xl border border-gray-200 bg-white p-4 space-y-3">
 									<div className="text-sm font-semibold text-gray-900">Have a promo code?</div>
@@ -313,7 +315,13 @@ export default function MiniCartDrawer() {
 										<p className="text-xs text-gray-500 mt-0.5">GST calculated at checkout if applicable.</p>
 									</div>
 								</div>
+							</div>
+							</div>
+						)}
+						</div>
 
+						{items.length > 0 && (
+							<div className="shrink-0 mt-auto border-t border-gray-200 bg-white p-3 space-y-2">
 								<div className="flex flex-col gap-2 sm:flex-row">
 									<button 
 										onClick={clear} 
@@ -330,15 +338,22 @@ export default function MiniCartDrawer() {
 										</button>
 									)}
 								</div>
-								
-								<Link
-									href="/checkout"
-									onClick={close}
-									className="block w-full rounded-xl bg-linear-to-r from-gray-900 to-gray-800 px-4 py-3 text-center text-base font-semibold text-white hover:from-black hover:to-gray-900 transition-all shadow-lg hover:shadow-xl"
-								>
-									Proceed to checkout
-								</Link>
-							</div>
+								<div className="grid grid-cols-1 gap-2">
+									<Link
+										href={getCartUrl()}
+										onClick={close}
+										className="block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-center text-sm font-semibold text-gray-800 hover:bg-gray-50 transition-colors"
+									>
+										View cart
+									</Link>
+									<Link
+										href="/checkout"
+										onClick={close}
+										className="block w-full rounded-xl bg-linear-to-r from-gray-900 to-gray-800 px-4 py-3 text-center text-base font-semibold text-white hover:from-black hover:to-gray-900 transition-all shadow-lg hover:shadow-xl"
+									>
+										Proceed to checkout
+									</Link>
+								</div>
 							</div>
 						)}
 					</div>

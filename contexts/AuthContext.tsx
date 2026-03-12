@@ -65,8 +65,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
  * Storage key for cross-tab synchronization
  */
 const AUTH_SYNC_KEY = 'auth-sync';
-const SESSION_CHECK_INTERVAL = 5 * 60 * 1000; // Check session every 5 minutes
-const TOKEN_REFRESH_THRESHOLD = 10 * 60 * 1000; // Refresh if less than 10 minutes remaining
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
+const TOKEN_REFRESH_THRESHOLD = 10 * 60 * 1000;
+const INACTIVITY_TIMEOUT = 7 * 24 * 60 * 60 * 1000;
+const INACTIVITY_CHECK_INTERVAL = 60 * 1000;
 
 /**
  * AuthProvider Component
@@ -79,11 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<AuthError>(null);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const inactivityCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityRef = useRef<number>(Date.now());
   const isInitializedRef = useRef(false);
 
-  /**
-   * Clear all intervals
-   */
   const clearIntervals = useCallback(() => {
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
@@ -92,6 +93,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (sessionCheckIntervalRef.current) {
       clearInterval(sessionCheckIntervalRef.current);
       sessionCheckIntervalRef.current = null;
+    }
+    if (inactivityCheckIntervalRef.current) {
+      clearInterval(inactivityCheckIntervalRef.current);
+      inactivityCheckIntervalRef.current = null;
     }
   }, []);
 
@@ -319,39 +324,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Logout function
+   * Clear state and redirect immediately so the login page never sees stale "authenticated"
+   * state and shows "Redirecting to your account...". API call runs in background to clear cookie.
    */
   const logout = useCallback(async () => {
-    try {
-      setStatus('loading');
+    // Clear state and redirect immediately (avoids login page showing "Redirecting to your account..." briefly)
+    setUser(null);
+    setStatus('unauthenticated');
+    setError(null);
+    clearIntervals();
+    clearAddressesDeletedIds();
+    broadcastAuthChange('logout');
+    router.push('/login');
 
-      // Call logout API
+    try {
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       }).catch(() => {
-        // Ignore errors - still clear local state
+        // Ignore errors - state already cleared
       });
-
-      // Clear local state
-      setUser(null);
-      setStatus('unauthenticated');
-      setError(null);
-      clearIntervals();
-      clearAddressesDeletedIds();
-      broadcastAuthChange('logout');
-
-      // Redirect to login
-      router.push('/login');
     } catch (err: any) {
       console.error('Logout error:', err);
-      // Still clear state even if API call fails
-      setUser(null);
-      setStatus('unauthenticated');
-      setError(null);
-      clearIntervals();
-      clearAddressesDeletedIds();
-      broadcastAuthChange('logout');
-      router.push('/login');
     }
   }, [router, clearIntervals, broadcastAuthChange]);
 
@@ -396,6 +390,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearIntervals();
     };
   }, [status, user, refreshSession, validateSession, clearIntervals]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || status !== 'authenticated' || !user) return;
+
+    lastActivityRef.current = Date.now();
+
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'] as const;
+    events.forEach((ev) => window.addEventListener(ev, updateActivity));
+
+    if (inactivityCheckIntervalRef.current) {
+      clearInterval(inactivityCheckIntervalRef.current);
+    }
+    inactivityCheckIntervalRef.current = setInterval(() => {
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_TIMEOUT) {
+        if (inactivityCheckIntervalRef.current) {
+          clearInterval(inactivityCheckIntervalRef.current);
+          inactivityCheckIntervalRef.current = null;
+        }
+        logout();
+      }
+    }, INACTIVITY_CHECK_INTERVAL);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, updateActivity));
+      if (inactivityCheckIntervalRef.current) {
+        clearInterval(inactivityCheckIntervalRef.current);
+        inactivityCheckIntervalRef.current = null;
+      }
+    };
+  }, [status, user, logout]);
 
   /**
    * Listen for cross-tab auth changes
