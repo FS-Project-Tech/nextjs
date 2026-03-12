@@ -65,10 +65,20 @@ const checkoutSchema = yup.object({
   discreetPackaging: yup.boolean().optional(),
   ndis_number: yup.string().optional(),
   ndis_participant_name: yup.string().optional(),
+  cust_woo_ndis_participant_name: yup.string().optional(),
   ndis_dob: yup.string().optional(),
   ndis_funding_type: yup.string().optional(),
   ndis_approval: yup.boolean().optional(),
   billing_ndis_invoice_email: yup.string().email("Invalid email").optional(),
+  cust_woo_ndis_number: yup.string().optional(),
+  cust_woo_ndis_dob: yup.string().optional(),
+  cust_woo_ndis_funding_type: yup.string().optional(),
+  cust_woo_invoice_email: yup.string().email("Invalid email").optional(),
+  cust_woo_ndis_approval: yup.boolean().optional(),
+  cust_woo_hcp_participant_name: yup.string().optional(),
+  cust_woo_hcp_number: yup.string().optional(),
+  cust_woo_provider_email: yup.string().optional(),
+  cust_woo_hcp_approval: yup.boolean().optional(),
   hcp_number: yup.string().optional(),
   hcp_participant_name: yup.string().optional(),
   hcp_provider_email: yup.string().optional(),
@@ -149,10 +159,20 @@ function CheckoutPageContent() {
       discreetPackaging: false,
       ndis_number: "",
       ndis_participant_name: "",
+      cust_woo_ndis_participant_name: "",
       ndis_dob: "",
       ndis_funding_type: "",
       ndis_approval: false,
       billing_ndis_invoice_email: "",
+      cust_woo_ndis_number: "",
+      cust_woo_ndis_dob: "",
+      cust_woo_ndis_funding_type: "",
+      cust_woo_invoice_email: "",
+      cust_woo_ndis_approval: false,
+      cust_woo_hcp_participant_name: "",
+      cust_woo_hcp_number: "",
+      cust_woo_provider_email: "",
+      cust_woo_hcp_approval: false,
       hcp_number: "",
       hcp_participant_name: "",
       hcp_provider_email: "",
@@ -398,37 +418,27 @@ function CheckoutPageContent() {
         checkoutPayload.csrf_token = csrfToken;
       }
 
-      if (data.ndis_number) {
-        checkoutPayload.ndis_number = data.ndis_number;
-      }
-      if (data.ndis_participant_name) {
-        checkoutPayload.ndis_participant_name = data.ndis_participant_name;
-      }
-      if (data.ndis_dob) {
-        checkoutPayload.ndis_dob = data.ndis_dob;
-      }
-      if (data.ndis_funding_type) {
-        checkoutPayload.ndis_funding_type = data.ndis_funding_type;
-      }
-      if (data.ndis_approval) {
-        checkoutPayload.ndis_approval = data.ndis_approval;
-      }
-      if (data.billing_ndis_invoice_email) {
-        checkoutPayload.billing_ndis_invoice_email = data.billing_ndis_invoice_email;
-      }
+      const ndisNumber = data.cust_woo_ndis_number || data.ndis_number;
+      if (ndisNumber) checkoutPayload.ndis_number = ndisNumber;
+      const ndisParticipantName = data.cust_woo_ndis_participant_name || data.ndis_participant_name;
+      if (ndisParticipantName) checkoutPayload.ndis_participant_name = ndisParticipantName;
+      const ndisDob = data.cust_woo_ndis_dob || data.ndis_dob;
+      if (ndisDob) checkoutPayload.ndis_dob = ndisDob;
+      const ndisFundingType = data.cust_woo_ndis_funding_type || data.ndis_funding_type;
+      if (ndisFundingType) checkoutPayload.ndis_funding_type = ndisFundingType;
+      const ndisApproval = data.cust_woo_ndis_approval ?? data.ndis_approval;
+      if (ndisApproval) checkoutPayload.ndis_approval = ndisApproval;
+      const ndisInvoiceEmail = data.cust_woo_invoice_email || data.billing_ndis_invoice_email;
+      if (ndisInvoiceEmail) checkoutPayload.billing_ndis_invoice_email = ndisInvoiceEmail;
 
-      if (data.hcp_number) {
-        checkoutPayload.hcp_number = data.hcp_number;
-      }
-      if (data.hcp_participant_name) {
-        checkoutPayload.hcp_participant_name = data.hcp_participant_name;
-      }
-      if (data.hcp_provider_email) {
-        checkoutPayload.hcp_provider_email = data.hcp_provider_email;
-      }
-      if (data.hcp_approval) {
-        checkoutPayload.hcp_approval = data.hcp_approval;
-      }
+      const hcpNumber = data.cust_woo_hcp_number || data.hcp_number;
+      if (hcpNumber) checkoutPayload.hcp_number = hcpNumber;
+      const hcpParticipantName = data.cust_woo_hcp_participant_name || data.hcp_participant_name;
+      if (hcpParticipantName) checkoutPayload.hcp_participant_name = hcpParticipantName;
+      const hcpProviderEmail = data.cust_woo_provider_email || data.hcp_provider_email;
+      if (hcpProviderEmail) checkoutPayload.hcp_provider_email = hcpProviderEmail;
+      const hcpApproval = data.cust_woo_hcp_approval ?? data.hcp_approval;
+      if (hcpApproval) checkoutPayload.hcp_approval = hcpApproval;
 
       checkoutPayload.delivery_authority = data.deliveryAuthority || "with_signature";
 
@@ -557,16 +567,16 @@ function CheckoutPageContent() {
             state: billing.state,
             postcode: billing.postcode,
             country: billing.country,
-            ndis_participant_name: data.ndis_participant_name || "",
-            ndis_number: data.ndis_number || "",
-            ndis_dob: data.ndis_dob || "",
-            ndis_funding_type: data.ndis_funding_type || "",
-            ndis_approval: data.ndis_approval || false,
-            ndis_invoice_email: data.billing_ndis_invoice_email || "",
-            hcp_participant_name: data.hcp_participant_name || "",
-            hcp_number: data.hcp_number || "",
-            hcp_provider_email: data.hcp_provider_email || "",
-            hcp_approval: data.hcp_approval || false,
+            ndis_participant_name: data.cust_woo_ndis_participant_name || data.ndis_participant_name || "",
+            ndis_number: data.cust_woo_ndis_number || data.ndis_number || "",
+            ndis_dob: data.cust_woo_ndis_dob || data.ndis_dob || "",
+            ndis_funding_type: data.cust_woo_ndis_funding_type || data.ndis_funding_type || "",
+            ndis_approval: data.cust_woo_ndis_approval ?? data.ndis_approval ?? false,
+            ndis_invoice_email: data.cust_woo_invoice_email || data.billing_ndis_invoice_email || "",
+            hcp_participant_name: data.cust_woo_hcp_participant_name || data.hcp_participant_name || "",
+            hcp_number: data.cust_woo_hcp_number || data.hcp_number || "",
+            hcp_provider_email: data.cust_woo_provider_email || data.hcp_provider_email || "",
+            hcp_approval: data.cust_woo_hcp_approval ?? data.hcp_approval ?? false,
           };
           try {
             await fetch("/api/dashboard/addresses", {
@@ -708,15 +718,25 @@ function CheckoutPageContent() {
                           setValue('billing_postcode', address.postcode);
                           setValue('billing_country', address.country);
                           setValue('ndis_participant_name', address.ndis_participant_name || '');
+                          setValue('cust_woo_ndis_participant_name', address.ndis_participant_name || '');
                           setValue('ndis_number', address.ndis_number || '');
+                          setValue('cust_woo_ndis_number', address.ndis_number || '');
                           setValue('ndis_dob', address.ndis_dob || '');
+                          setValue('cust_woo_ndis_dob', address.ndis_dob || '');
                           setValue('ndis_funding_type', address.ndis_funding_type || '');
+                          setValue('cust_woo_ndis_funding_type', address.ndis_funding_type || '');
                           setValue('ndis_approval', Boolean(address.ndis_approval));
+                          setValue('cust_woo_ndis_approval', Boolean(address.ndis_approval));
                           setValue('billing_ndis_invoice_email', (address as { ndis_invoice_email?: string }).ndis_invoice_email || '');
+                          setValue('cust_woo_invoice_email', (address as { ndis_invoice_email?: string }).ndis_invoice_email || '');
                           setValue('hcp_participant_name', address.hcp_participant_name || '');
+                          setValue('cust_woo_hcp_participant_name', address.hcp_participant_name || '');
                           setValue('hcp_number', address.hcp_number || '');
+                          setValue('cust_woo_hcp_number', address.hcp_number || '');
                           setValue('hcp_provider_email', address.hcp_provider_email || '');
+                          setValue('cust_woo_provider_email', address.hcp_provider_email || '');
                           setValue('hcp_approval', Boolean(address.hcp_approval));
+                          setValue('cust_woo_hcp_approval', Boolean(address.hcp_approval));
                         }
                       } else {
                         setValue('billing_first_name', '');
@@ -731,15 +751,25 @@ function CheckoutPageContent() {
                         setValue('billing_postcode', '');
                         setValue('billing_country', 'AU');
                         setValue('ndis_participant_name', '');
+                        setValue('cust_woo_ndis_participant_name', '');
                         setValue('ndis_number', '');
+                        setValue('cust_woo_ndis_number', '');
                         setValue('ndis_dob', '');
+                        setValue('cust_woo_ndis_dob', '');
                         setValue('ndis_funding_type', '');
+                        setValue('cust_woo_ndis_funding_type', '');
                         setValue('ndis_approval', false);
+                        setValue('cust_woo_ndis_approval', false);
                         setValue('billing_ndis_invoice_email', '');
+                        setValue('cust_woo_invoice_email', '');
                         setValue('hcp_participant_name', '');
+                        setValue('cust_woo_hcp_participant_name', '');
                         setValue('hcp_number', '');
+                        setValue('cust_woo_hcp_number', '');
                         setValue('hcp_provider_email', '');
+                        setValue('cust_woo_provider_email', '');
                         setValue('hcp_approval', false);
+                        setValue('cust_woo_hcp_approval', false);
                       }
                     }}
                     className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
