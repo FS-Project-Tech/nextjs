@@ -1,22 +1,12 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Script from "next/script";
-import Header from "@/components/Header";
-import CartProvider from "@/components/CartProvider";
-import ToastProvider from "@/components/ToastProvider";
-import QueryProvider from "@/components/QueryProvider";
-import { SessionProviders } from "@/components/SessionProviders";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { WishlistProvider } from "@/contexts/WishlistContext";
-import { CouponProvider } from "@/components/CouponProvider";
-import CategoriesNav from "@/components/CategoriesNav";
-import Footer from "@/components/Footer";
-import BottomNav from "@/components/BottomNav";
 import PWARegister from "@/components/PWARegister";
-import AnalyticsInitializer from "@/components/AnalyticsInitializer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NavigationProgress from "@/components/NavigationProgress";
 import MainContent from "@/components/MainContent";
+import CoreProviders from "@/components/CoreProviders";
+import CommerceProviders from "@/components/CommerceProviders";
 import { Poppins } from 'next/font/google'
 const poppins = Poppins({
   subsets: ['latin'],
@@ -35,6 +25,19 @@ if (typeof window === 'undefined') {
     console.error('Startup validation failed:', error);
   }
 }
+const Header = dynamic(() => import("@/components/Header"));
+const Footer = dynamic(
+  () => import("@/components/Footer"),
+  {
+    loading: () => <div className="h-40" />,
+  }
+);
+const BottomNav = dynamic(() => import("@/components/BottomNav"));
+const CategoriesNav = dynamic(() => import("@/components/CategoriesNav"));
+// const AnalyticsInitializer = dynamic(
+//   () => import("@/components/AnalyticsInitializer"),
+//   { ssr: false }
+// );
 
 // Dynamically import MiniCartDrawer - only loaded when cart opens
 // This reduces initial bundle size by ~100-150KB on every page
@@ -122,35 +125,31 @@ export default function RootLayout({
           src="/remove-extension-attributes.js"
           strategy="beforeInteractive"
         />
-        <AnalyticsInitializer />
+
         <NavigationProgress />
         <ErrorBoundary>
-  <QueryProvider>
-  <SessionProviders>
-      <ToastProvider>
-        <AuthProvider>
-          <WishlistProvider>
-            <CartProvider>
-              <CouponProvider>
-                <div className="sticky top-0 z-50 bg-white shadow-sm">
-                  <Header />
-                  <CategoriesNav />
-                </div>
-                <main suppressHydrationWarning>
-                  <MainContent>{children}</MainContent>
-                </main>
-                <Footer />
-                <MiniCartDrawer />
-                <BottomNav />
-                <PWARegister />
-              </CouponProvider>
-            </CartProvider>
-          </WishlistProvider>
-        </AuthProvider>
-      </ToastProvider>
-   </SessionProviders>
-  </QueryProvider>
-</ErrorBoundary>
+          <CoreProviders>
+            <CommerceProviders>
+
+              {/* <AnalyticsInitializer /> */}
+
+              <div className="sticky top-0 z-50 bg-white shadow-sm">
+                <Header />
+                <CategoriesNav />
+              </div>
+
+              <main suppressHydrationWarning>
+                <MainContent>{children}</MainContent>
+              </main>
+
+              <Footer />
+              <MiniCartDrawer />
+              <BottomNav />
+              <PWARegister />
+
+            </CommerceProviders>
+          </CoreProviders>
+        </ErrorBoundary>
       </body>
     </html>
   );
