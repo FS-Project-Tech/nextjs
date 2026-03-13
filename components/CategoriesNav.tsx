@@ -38,14 +38,14 @@ async function CategoriesNavContent() {
   );
 
   return (
-    <nav className="border-b bg-white hidden md:block">
+    <nav className="bg-nav-header hidden md:block">
       <div className="container mx-auto w-full sm:w-[85vw]">
         <ul
-          className="flex items-center gap-3 py-3 text-sm"
+          className="flex items-center gap-3 text-sm"
           aria-label="Category navigation"
         >
           <li>
-            <AllCategoriesDrawer className="px-3 py-1.5 rounded-md hover:bg-gray-50" />
+            <AllCategoriesDrawer className="px-3 py-2 text-white" />
           </li>
 
           {parentCategories.map((category) => {
@@ -59,7 +59,7 @@ async function CategoriesNavContent() {
                 {/* Parent link */}
                 <PrefetchLink
                   href={`/product-category/${category.slug}`}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  className="inline-flex items-center px-3 py-2 text-white hover:bg-nav-hover"
                   aria-haspopup={subCategories.length > 0}
                 >
                   {category.name}
@@ -124,13 +124,13 @@ async function CategoriesNavContent() {
 
           {/* Fixed links – NDIS goes to dedicated NDIS page */}
           <li>
-            <PrefetchLink href="/ndis" className="px-3 py-1.5 rounded-md hover:bg-gray-50">
+            <PrefetchLink href="/ndis" className="px-3 py-1.5 hover:bg-nav-hover text-white">
               NDIS
             </PrefetchLink>
           </li>
 
           <li>
-            <PrefetchLink href="/brands" className="px-3 py-1.5 rounded-md hover:bg-gray-50">
+            <PrefetchLink href="/brands" className="px-3 py-1.5 hover:bg-nav-hover text-white">
               Brands
             </PrefetchLink>
           </li>
