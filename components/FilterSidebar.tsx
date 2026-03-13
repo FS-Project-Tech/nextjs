@@ -23,13 +23,17 @@ interface Brand {
 
 interface Props {
   categorySlug?: string;
+  isMobileDrawer?: boolean;
+  onClose?: () => void;
 }
 
 /* ----------------------------
 Component
 ---------------------------- */
 
-export default function FilterSidebar({ categorySlug }: Props) {
+export default function FilterSidebar({ categorySlug,
+  isMobileDrawer,
+  onClose}: Props) {
 
   const router = useRouter();
   const pathname = usePathname();
@@ -149,6 +153,9 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
   function goCategory(slug: string) {
     router.push(`/product-category/${slug}`);
+    if (isMobileDrawer && onClose) {
+      onClose();
+    }
   }
 
   /* Brand checkbox toggle */

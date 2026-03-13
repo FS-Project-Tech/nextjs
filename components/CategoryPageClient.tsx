@@ -88,7 +88,7 @@ export default function CategoryPageClient({
           
           {/* LEFT FILTER SIDEBAR */}
           <aside className="lg:w-64 flex-shrink-0">
-            <FilterSidebar categorySlug={categorySlug} />
+            <FilterSidebar categorySlug={categorySlug} isMobileDrawer={false} onClose={undefined} />
           </aside>
 
           {/* RIGHT CONTENT */}
