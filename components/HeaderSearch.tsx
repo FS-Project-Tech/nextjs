@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { liteClient as algoliasearch } from "algoliasearch/lite";
-
-const searchClient = algoliasearch(
-  process.env.ALGOLIA_APP_ID || "",
-  process.env.ALGOLIA_SEARCH_API_KEY || ""
-);
 
 type AlgoliaHit = {
   objectID: string;
@@ -15,10 +10,31 @@ type AlgoliaHit = {
   slug?: string;
 };
 
+type SearchResponseWithHits<T> = {
+  hits: T[];
+};
+
+function hasHits<T>(result: unknown): result is SearchResponseWithHits<T> {
+  return (
+    typeof result === "object" &&
+    result !== null &&
+    "hits" in result &&
+    Array.isArray((result as SearchResponseWithHits<T>).hits)
+  );
+}
+
 export default function HeaderSearch() {
   const [value, setValue] = useState("");
   const [results, setResults] = useState<AlgoliaHit[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const appId = process.env.ALGOLIA_APP_ID;
+  const apiKey = process.env.ALGOLIA_SEARCH_API_KEY;
+
+  const searchClient = useMemo(() => {
+    if (!appId || !apiKey) return null;
+    return algoliasearch(appId, apiKey);
+  }, [appId, apiKey]);
 
   const handleSearch = async (nextValue: string) => {
     setValue(nextValue);
@@ -28,10 +44,16 @@ export default function HeaderSearch() {
       return;
     }
 
+    if (!searchClient) {
+      console.warn("Algolia env vars are missing.");
+      setResults([]);
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const { results } = await searchClient.search<AlgoliaHit>([
+      const response = await searchClient.search<AlgoliaHit>([
         {
           indexName: "woocommerce_products",
           params: {
@@ -41,8 +63,9 @@ export default function HeaderSearch() {
         },
       ]);
 
-      const firstResult = results?.[0];
-      const hits = firstResult && "hits" in firstResult ? (firstResult.hits as AlgoliaHit[]) : [];
+      const firstResult = response.results?.[0];
+      const hits = hasHits<AlgoliaHit>(firstResult) ? firstResult.hits : [];
+
       setResults(hits);
     } catch (error) {
       console.error("Algolia search error:", error);
