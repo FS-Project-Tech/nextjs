@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import DOMPurify from "dompurify";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ProductGrid from "@/components/ProductGrid";
 import ProductGridSkeleton from "@/components/skeletons/ProductGridSkeleton";
 import FilterSidebarSkeleton from "@/components/skeletons/FilterSidebarSkeleton";
 import Container from "@/components/Container";
-import { Suspense } from "react";
 
 const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
   loading: () => <FilterSidebarSkeleton />,
@@ -26,15 +26,15 @@ export default function BrandPageClient({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
-    if (mobileFiltersOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = mobileFiltersOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [mobileFiltersOpen]);
+
+  const safeDescription = brandDescription
+    ? DOMPurify.sanitize(brandDescription)
+    : "";
 
   return (
     <div className="min-h-screen py-8">
@@ -50,31 +50,42 @@ export default function BrandPageClient({
 
         <div className="mt-6 mb-8 w-full">
           <h1 className="text-3xl font-bold text-gray-900">{brandName}</h1>
-          {brandDescription && (
-            <div className="mt-4 w-full text-gray-600 text-sm leading-relaxed">
-              {brandDescription}
-            </div>
+
+          {safeDescription && (
+            <div
+              className="mt-4 w-full text-sm leading-relaxed text-gray-600"
+              dangerouslySetInnerHTML={{ __html: safeDescription }}
+            />
           )}
+
           <div className="mt-4 h-1 w-20 rounded-full bg-teal-600" />
         </div>
 
-        {/* Mobile filter button - same pattern as shop page */}
-        <div className="lg:hidden sticky top-[72px] z-40 -mx-4 px-4 py-3 bg-white border-b border-gray-200 mb-4">
+        <div className="sticky top-[72px] z-40 -mx-4 mb-4 border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileFiltersOpen(true)}
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 py-2.5 font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
             aria-expanded={mobileFiltersOpen}
             aria-controls="brand-mobile-filter-drawer"
           >
-            <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            <svg
+              className="h-5 w-5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
             </svg>
             <span>Filters</span>
           </button>
         </div>
 
-        {/* Mobile filter drawer */}
         {mobileFiltersOpen && (
           <>
             <div
@@ -91,15 +102,17 @@ export default function BrandPageClient({
             >
               <div className="h-full overflow-y-auto p-4 pb-24">
                 <FilterSidebar
+                  brandSlug={brandSlug}
                   isMobileDrawer
                   onClose={() => setMobileFiltersOpen(false)}
                 />
               </div>
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
+
+              <div className="absolute right-0 bottom-0 left-0 border-t border-gray-200 bg-white p-4">
                 <button
                   type="button"
                   onClick={() => setMobileFiltersOpen(false)}
-                  className="w-full px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                  className="w-full rounded-lg bg-teal-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                 >
                   Apply Filters
                 </button>
@@ -108,13 +121,14 @@ export default function BrandPageClient({
           </>
         )}
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <aside className="hidden lg:block lg:w-64 flex-shrink-0">
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <aside className="hidden flex-shrink-0 lg:block lg:w-64">
             <div className="sticky top-24">
-              <FilterSidebar />
+              <FilterSidebar brandSlug={brandSlug} />
             </div>
           </aside>
-          <div className="flex-1 min-w-0">
+
+          <div className="min-w-0 flex-1">
             <Suspense fallback={<ProductGridSkeleton />}>
               <ProductGrid brandSlug={brandSlug} />
             </Suspense>

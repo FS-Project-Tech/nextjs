@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 import DOMPurify from "dompurify";
 import Breadcrumbs from "@/components/Breadcrumbs";
@@ -10,20 +9,10 @@ import ProductGridSkeleton from "@/components/skeletons/ProductGridSkeleton";
 import FilterSidebarSkeleton from "@/components/skeletons/FilterSidebarSkeleton";
 import Container from "@/components/Container";
 
-// Dynamically import FilterSidebar
 const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
   loading: () => <FilterSidebarSkeleton />,
   ssr: false,
 });
-
-// Extract slug from pathname
-function extractSlugFromPath(pathname: string | null): string | null {
-  if (!pathname) return null;
-
-  return pathname.startsWith("/product-category/")
-    ? pathname.split("/product-category/")[1]?.split("/")[0] ?? null
-    : null;
-}
 
 interface CategoryResponse {
   category?: {
@@ -35,23 +24,20 @@ interface CategoryResponse {
 export default function CategoryPageClient({
   initialSlug,
   initialCategoryName,
+  initialCategoryDescription = "",
 }: {
   initialSlug: string;
   initialCategoryName?: string;
+  initialCategoryDescription?: string;
 }) {
-  const pathname = usePathname();
-
   const [categoryName, setCategoryName] = useState(
     initialCategoryName || "Category"
   );
-
-  const [categoryDesc, setCategoryDesc] = useState("");
-
-  const slugFromPath = extractSlugFromPath(pathname);
-  const categorySlug = slugFromPath || initialSlug;
+  const [categoryDesc, setCategoryDesc] = useState(initialCategoryDescription);
   const [expanded, setExpanded] = useState(false);
 
-  // Fetch category data
+  const categorySlug = initialSlug;
+
   const fetchCategoryData = useCallback(async (slug: string) => {
     try {
       const res = await fetch(
@@ -66,35 +52,32 @@ export default function CategoryPageClient({
         setCategoryName(json.category.name);
       }
 
-      if (json.category?.description) {
-        setCategoryDesc(json.category.description);
-      }
+      setCategoryDesc(json.category?.description || "");
     } catch (error) {
       console.error("Category fetch error:", error);
     }
   }, []);
 
-  // Always fetch category data
   useEffect(() => {
-    if (!categoryDesc && categorySlug) {
+    if (!initialCategoryDescription && categorySlug) {
       fetchCategoryData(categorySlug);
     }
-  }, [categorySlug, categoryDesc, fetchCategoryData]);
+  }, [categorySlug, initialCategoryDescription, fetchCategoryData]);
+
+  const showReadMore = categoryDesc.replace(/<[^>]*>/g, "").trim().length > 180;
 
   return (
     <div className="min-h-screen py-6">
       <Container>
-        <div className="flex flex-col lg:flex-row gap-6">
-          
-          {/* LEFT FILTER SIDEBAR */}
-          <aside className="lg:w-64 flex-shrink-0">
-            <FilterSidebar categorySlug={categorySlug} isMobileDrawer={false} onClose={undefined} />
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <aside className="flex-shrink-0 lg:w-64">
+            <FilterSidebar
+              categorySlug={categorySlug}
+              isMobileDrawer={false}
+            />
           </aside>
 
-          {/* RIGHT CONTENT */}
           <div className="flex-1">
-            
-            {/* Breadcrumb */}
             <Breadcrumbs
               items={[
                 { label: "Home", href: "/" },
@@ -103,35 +86,32 @@ export default function CategoryPageClient({
               ]}
             />
 
-            {/* Category Title */}
-            <h1 className="text-2xl font-semibold text-gray-900 mt-2">
+            <h1 className="mt-2 text-2xl font-semibold text-gray-900">
               {categoryName}
             </h1>
 
-            {/* Category Description */}
             {categoryDesc && (
-              <div className="mt-3 mb-4 text-sm text-gray-600 leading-relaxed">
+              <div className="mt-3 mb-4 text-sm leading-relaxed text-gray-600">
+                <div
+                  className={expanded || !showReadMore ? "" : "line-clamp-3"}
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(categoryDesc),
+                  }}
+                />
 
-              <div
-                className={expanded ? "" : "line-clamp-3"}
-                dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(categoryDesc),
-                }}
-              />
-        
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="mt-2 text-orange-600 font-medium hover:underline"
-              >
-                {expanded ? "Read Less" : "Read More"}
-              </button>
-        
-            </div>
+                {showReadMore && (
+                  <button
+                    onClick={() => setExpanded((prev) => !prev)}
+                    className="mt-2 font-medium text-orange-600 hover:underline"
+                  >
+                    {expanded ? "Read Less" : "Read More"}
+                  </button>
+                )}
+              </div>
             )}
 
-            {/* Product Grid */}
             <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductGrid categorySlug={categorySlug || undefined} />
+              <ProductGrid categorySlug={categorySlug} />
             </Suspense>
           </div>
         </div>

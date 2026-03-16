@@ -181,7 +181,10 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
           throw new Error((err?.error as string) || (err?.message as string) || `HTTP ${res.status}`);
         }
 
-        const rawProducts = Array.isArray(json) ? json : (json as Record<string, unknown>)?.products;
+        const rawProducts = Array.isArray(json)
+          ? json
+          : (json as Record<string, unknown>)?.products;
+
         if (!Array.isArray(rawProducts)) {
           dispatch({
             type: 'FETCH_SUCCESS',
@@ -194,8 +197,17 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
           return;
         }
 
-        const total = (json as Record<string, unknown>)?.total as number ?? rawProducts.length;
-        const totalPages = (json as Record<string, unknown>)?.totalPages as number ?? 1;
+        const jsonObject = Array.isArray(json) ? null : (json as Record<string, unknown>);
+
+        const total =
+          typeof jsonObject?.total === "number"
+            ? jsonObject.total
+            : rawProducts.length;
+
+        const totalPages =
+          typeof jsonObject?.totalPages === "number"
+            ? jsonObject.totalPages
+            : 1;
 
         dispatch({
           type: 'FETCH_SUCCESS',

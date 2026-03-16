@@ -1,22 +1,45 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import wcAPI from "@/lib/woocommerce";
 
-const WP = process.env.WP_API_URL!;
+type Brand = {
+  id: number;
+  name: string;
+  slug: string;
+  count?: number;
+  image?: string | null;
+};
 
-export async function GET(req: NextRequest) {
+export async function GET() {
+  try {
+    const response = await wcAPI.get("/products/brands", {
+      params: {
+        per_page: 100,
+      },
+    });
 
-  const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
+    const rawBrands = Array.isArray(response.data) ? response.data : [];
 
-  const url = category
-    ? `${WP}/wp-json/custom/v1/brands?category=${category}`
-    : `${WP}/wp-json/custom/v1/brands`;
+    const brands: Brand[] = rawBrands.map((brand: any) => ({
+      id: brand.id,
+      name: brand.name,
+      slug: brand.slug,
+      count: brand.count ?? 0,
+      image: brand.image?.src || brand.image || null,
+    }));
 
-  const res = await fetch(url, {
-    next: { revalidate: 600 }
-  });
-
-  const brands = await res.json();
-
-  return NextResponse.json({ brands });
-
+    return NextResponse.json(
+      { brands },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=600, stale-while-revalidate=1200",
+        },
+      }
+    );
+  } catch (error) {
+    console.error("Brands API error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch brands" },
+      { status: 500 }
+    );
+  }
 }
