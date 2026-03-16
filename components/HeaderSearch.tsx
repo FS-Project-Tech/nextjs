@@ -155,3 +155,5 @@ export default function HeaderSearch() {
     </div>
   );
 }
+
+console.log("ALGOLIA APP ID:", process.env.NEXT_PUBLIC_ALGOLIA_APP_ID);
