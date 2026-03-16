@@ -13,6 +13,7 @@ const poppins = Poppins({
   weight: ['400', '500', '600', '700'],
 })
 import "./globals.css";
+import TawkToWidget from "@/components/TawkToWidget";
 
 // Validate environment variables at startup (server-side only)
 if (typeof window === 'undefined') {
@@ -141,12 +142,12 @@ export default function RootLayout({
               <main suppressHydrationWarning>
                 <MainContent>{children}</MainContent>
               </main>
-
+              
               <Footer />
               <MiniCartDrawer />
               <BottomNav />
               <PWARegister />
-
+              <TawkToWidget />
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>
