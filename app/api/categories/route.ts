@@ -1,28 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchCategories } from '@/lib/woocommerce';
-import { 
-  cached, 
-  categoriesKey, 
-  CACHE_TTL, 
+import {
+  cached,
+  categoriesKey,
+  CACHE_TTL,
   CACHE_TAGS,
-  STATIC_CACHE_HEADERS,
-} from '@/lib/cache';
+} from '@/lib/cache/index';
+import { PRODUCT_CACHE_HEADERS } from '@/lib/cache/api-cache';
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    
-    // Check for cache bypass
-    const bypassCache = request.headers.get('cache-control')?.includes('no-cache') ||
-                        request.headers.get('x-bypass-cache') === 'true';
-    
-    // Convert searchParams to object with proper types
+
+    const bypassCache =
+      request.headers.get('cache-control')?.includes('no-cache') ||
+      request.headers.get('x-bypass-cache') === 'true';
+
     const params: {
       per_page?: number;
       parent?: number;
       hide_empty?: boolean;
     } = {};
-    
+
     searchParams.forEach((value, key) => {
       if (key === 'per_page') {
         params.per_page = parseInt(value, 10);
@@ -33,10 +32,8 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Generate cache key
     const cacheKey = categoriesKey(params);
-    
-    // Fetch categories with caching (longer TTL since categories rarely change)
+
     const categories = await cached(
       cacheKey,
       () => fetchCategories(params),
@@ -49,15 +46,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(categories, {
       headers: {
-        ...STATIC_CACHE_HEADERS,
+        ...PRODUCT_CACHE_HEADERS,
         'X-Cache-Key': cacheKey,
       },
     });
   } catch (error) {
     console.error('Error fetching categories:', error);
+
     return NextResponse.json(
       { error: 'Failed to fetch categories' },
-      { 
+      {
         status: 500,
         headers: {
           'Cache-Control': 'no-store',

@@ -49,11 +49,11 @@
     "lucide-react": "^0.552.0",
     "meilisearch": "^0.55.0",
     "mysql2": "^3.15.3",
-    "next": "^16.0.7",
+    "next": "^16.1.6",
     "next-auth": "^4.24.13",
     "next-seo": "^7.0.1",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-hook-form": "^7.66.0",
     "react-instantsearch": "^7.22.1",
     "react-pageflip": "^2.0.3",
@@ -70,8 +70,8 @@
     "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4",
     "@types/google.maps": "^3.58.1",
-    "@types/node": "^20.19.25",
-    "@types/react": "^19",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "babel-plugin-react-compiler": "1.0.0",
@@ -85,6 +85,6 @@
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }
