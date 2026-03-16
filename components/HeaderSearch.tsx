@@ -1,131 +1,76 @@
 "use client";
 
 import { useState } from "react";
-import { searchClient } from "@/lib/algolia";
-import Image from "next/image";
-import Link from "next/link";
+import { liteClient as algoliasearch } from "algoliasearch/lite";
 
-function safeImage(src?: string) {
-  if (!src || src.trim() === "") {
-    return "/placeholder-product.png";
-  }
-  return src;
-}
+const searchClient = algoliasearch(
+  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID || "",
+  process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_API_KEY || ""
+);
+
+type AlgoliaHit = {
+  objectID: string;
+  name?: string;
+  title?: string;
+  slug?: string;
+};
 
 export default function HeaderSearch() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [value, setValue] = useState("");
+  const [results, setResults] = useState<AlgoliaHit[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  let timer: NodeJS.Timeout;
+  const handleSearch = async (nextValue: string) => {
+    setValue(nextValue);
 
-    function handleSearch(value: string) {
-      setQuery(value);
-
-      clearTimeout(timer);
-
-      timer = setTimeout(async () => {
-        if (!value) {
-          setResults([]);
-          return;
-        }
-
-        const { results }: any = await searchClient.search([
-          {
-            indexName: "woocommerce_products",
-            query: value,
-            hitsPerPage: 6,
-          },
-        ]);
-
-        setResults(results[0].hits);
-      }, 300);
+    if (!nextValue.trim()) {
+      setResults([]);
+      return;
     }
 
-  return (
-    <div className="relative w-full max-w-xl">
+    try {
+      setLoading(true);
 
-      {/* search input */}
+      const { results } = await searchClient.search<AlgoliaHit>([
+        {
+          indexName: "woocommerce_products",
+          params: {
+            query: nextValue,
+            hitsPerPage: 6,
+          },
+        },
+      ]);
+
+      const firstResult = results?.[0];
+      const hits = firstResult && "hits" in firstResult ? (firstResult.hits as AlgoliaHit[]) : [];
+      setResults(hits);
+    } catch (error) {
+      console.error("Algolia search error:", error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
       <input
         type="text"
-        value={query}
+        value={value}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder="Search products..."
-        className="w-full border rounded-lg px-4 py-2"
       />
 
-      {/* dropdown */}
-      {query && results.length > 0 && (
-        <div className="absolute top-full mt-2 w-full bg-white border rounded-lg shadow-lg z-50">
+      {loading && <p>Loading...</p>}
 
+      {!loading && results.length > 0 && (
+        <ul>
           {results.map((item) => (
-            <Link
-              key={item.objectID}
-              href={`/products/${item.slug}`}
-              className="flex items-center gap-3 p-3 hover:bg-gray-100"
-            >
-              <Image
-                loader={({ src }) => src}
-                src={safeImage(item.image)}
-                alt={item.name || "Product"}
-                width={40}
-                height={40}
-                className="rounded border object-contain bg-white"
-              />
-
-<div className="flex flex-col gap-1">
-
-{/* Product Name */}
-<span className="text-sm font-medium text-gray-800 line-clamp-2">
-  {item.name}
-</span>
-
-{/* Category */}
-{item.category?.[0] && (
-  <span className="text-xs text-gray-500">
-    {item.category[0]}
-  </span>
-)}
-
-{/* Price Section */}
-<div className="flex items-center gap-2">
-
-  {/* Sale Price */}
-  {item.on_sale ? (
-    <>
-      <span className="text-sm font-semibold text-green-600">
-        ₹{item.sale_price}
-      </span>
-
-      <span className="text-xs line-through text-gray-400">
-        ₹{item.regular_price}
-      </span>
-
-      <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded">
-        SALE
-      </span>
-    </>
-  ) : (
-    <span className="text-sm font-semibold text-green-600">
-      ₹{item.price}
-    </span>
-  )}
-
-</div>
-
-{/* GST Label */}
-<span className="text-[11px] text-gray-500">
-  {item.tax_status === "none"
-    ? "GST Free"
-    : item.prices_include_tax
-    ? "Incl. GST"
-    : "Excl. GST"}
-</span>
-
-</div>
-            </Link>
+            <li key={item.objectID}>
+              {item.name || item.title || item.objectID}
+            </li>
           ))}
-
-        </div>
+        </ul>
       )}
     </div>
   );
