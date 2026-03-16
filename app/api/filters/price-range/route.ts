@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import wcAPI from '@/lib/woocommerce';
-import { cached, CACHE_TTL, CACHE_TAGS, STATIC_CACHE_HEADERS } from '@/lib/cache';
+import { cached, CACHE_TTL, CACHE_TAGS } from '@/lib/cache/index';
 
 /**
  * GET /api/filters/price-range
