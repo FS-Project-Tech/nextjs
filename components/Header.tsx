@@ -5,9 +5,11 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { useWishlist } from "@/contexts/WishlistContext";
-import SearchBar from "@/components/SearchBar";
 import { useToast } from "@/components/ToastProvider";
 import { useSession, signOut } from "next-auth/react";
+import HeaderSearch from "@/components/HeaderSearch";
+import { apiFetchJson } from "@/lib/api";
+import { safeLogoUrl } from "@/lib/api-fallbacks";
 
 
 export default function Header() {
@@ -37,49 +39,42 @@ export default function Header() {
 		setIsMounted(true);
 	}, []);
 
-	const cartCount = isMounted
-		? items.reduce((sum, item) => sum + item.qty, 0)
-		: 0;
+	const cartCount = items.reduce((sum, item) => sum + item.qty, 0);
 
 	useEffect(() => {
-		if (!userMenuOpen) return;
-
-		const handleClickOutside = (e: MouseEvent) => {
-			if (
-				userMenuRef.current &&
-				!userMenuRef.current.contains(e.target as Node)
-			) {
-				setUserMenuOpen(false);
-			}
-		};
-
+		function handleClickOutside(e: MouseEvent) {
+		  if (
+			userMenuRef.current &&
+			!userMenuRef.current.contains(e.target as Node)
+		  ) {
+			setUserMenuOpen(false);
+		  }
+		}
+	  
 		document.addEventListener("mousedown", handleClickOutside);
-
-		return () =>
-			document.removeEventListener("mousedown", handleClickOutside);
-	}, [userMenuOpen]);
+	  
+		return () => {
+		  document.removeEventListener("mousedown", handleClickOutside);
+		};
+	  }, []);
 
 	useEffect(() => {
-		const timer = setTimeout(async () => {
-			try {
-				const { apiFetchJson } = await import("@/lib/api");
-				const { safeLogoUrl } = await import("@/lib/api-fallbacks");
-
-				const json = await apiFetchJson<{
-					logo?: string;
-					tagline?: string;
-				}>("/api/cms/header");
-
-				if (json.logo) setLogoUrl(safeLogoUrl(json.logo));
-				if (json.tagline) setTagline(json.tagline);
-			} catch {
-				const { safeLogoUrl } = await import("@/lib/api-fallbacks");
-				setLogoUrl(safeLogoUrl(null));
-			}
-		}, 100);
-
-		return () => clearTimeout(timer);
-	}, []);
+		async function loadHeaderData() {
+		  try {
+			const json = await apiFetchJson<{
+			  logo?: string;
+			  tagline?: string;
+			}>("/api/cms/header");
+	  
+			if (json.logo) setLogoUrl(safeLogoUrl(json.logo));
+			if (json.tagline) setTagline(json.tagline);
+		  } catch {
+			setLogoUrl(safeLogoUrl(null));
+		  }
+		}
+	  
+		loadHeaderData();
+	  }, []);
 
 	return (
 		<header className="bg-white">
@@ -118,10 +113,11 @@ export default function Header() {
 						{logoUrl ? (
 							<div className="relative w-40 h-16">
 								<Image
-									src={logoUrl}
+									src={logoUrl || "/logo-placeholder.png"}
 									alt="Logo"
 									fill
 									className="object-contain"
+									priority
 								/>
 							</div>
 						) : (
@@ -147,6 +143,7 @@ export default function Header() {
 				<div className="hidden lg:flex lg:col-span-7 justify-center">
 					<div className="w-full max-w-xl">
 						{/* <SearchBar /> */}
+						<HeaderSearch />
 					</div>
 				</div>
 

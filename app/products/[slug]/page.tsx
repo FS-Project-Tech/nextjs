@@ -36,7 +36,7 @@ import {
 	try {
 	  const result = await fetchProducts({
 		per_page: 100,
-		featured: true,
+		orderby: "date",
 	  });
   
 	  return (
@@ -84,10 +84,10 @@ import {
   // ============================================================================
   export default async function ProductPage(
 	props: { params: Promise<{ slug: string }> }
-  ) {
+	) {
 	const { slug } = await props.params;
 	const decodedSlug = decodeURIComponent(slug);
-  
+
 	const product = await fetchProductBySlug(decodedSlug);
 	if (!product) notFound();
 
@@ -117,10 +117,12 @@ import {
 		  : Promise.resolve({ products: [] as any[] }),
 		fetchProductReviews(product.id, { per_page: 20 }),
 	  ]);
+	  
 
 	const categoryIds = product.categories?.map((c) => c.id) || [];
 	const activePromotions = getActivePromotions(promotions, categoryIds);
-	const categoryProducts = categoryProductsResult?.products ?? [];
+	const categoryProducts =
+  categoryProductsResult?.products?.filter(p => p.id !== product.id) ?? [];
 
 	// =======================================================
 	// TOP SELLING (same category)
@@ -207,6 +209,7 @@ import {
 				href={promo.link?.url}
 				className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
 			  >
+				{promo.image?.url && (
 				<Image
 				  src={promo.image?.url}
 				  alt={promo.image?.alt || ""}
@@ -214,6 +217,7 @@ import {
 				  height={520}
 				  className="h-[590px] w-full object-cover"
 				/>
+				)}
 			  </a>
 			))}
 		  </aside>

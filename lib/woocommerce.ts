@@ -2,6 +2,8 @@ import axios, { AxiosRequestHeaders } from 'axios';
 import { validateEnvironmentVariables } from './env-validation';
 import { normalizeError, getErrorMessage, hasAxiosResponse, getAxiosErrorDetails, isTimeoutError } from '@/lib/utils/errors';
 import { getWpBaseUrl } from '@/lib/wp-utils';
+import { cache } from 'react';
+
 
 // Validate environment variables (server-side only)
 if (typeof window === 'undefined') {
@@ -565,7 +567,7 @@ async function fetchProductsByBrandTaxonomyMulti(
 }
 
 // UPDATED: Fetch all products with pagination support
-export const fetchProducts = async (params?: {
+export const fetchProducts = cache(async (params?: {
   per_page?: number;
   page?: number;
   orderby?: string;
@@ -581,7 +583,8 @@ export const fetchProducts = async (params?: {
   maxPrice?: string;
   sortBy?: string;
   include?: number[];
-  on_sale?: boolean;  // Fetch specific product IDs
+  on_sale?: boolean;
+  _fields?: string;
 }): Promise<PaginatedProductResponse> => {
   try {
     // Clean up params
@@ -833,7 +836,7 @@ export const fetchProducts = async (params?: {
     }
     throw error;
   }
-};
+});
 
 /**
  * Apply client-side sorting for brand taxonomy helpers based on sortBy value.
@@ -863,7 +866,7 @@ function applySortBy(products: any[], sortBy: string): any[] {
 }
 
 // Fetch a single product by ID
-export const fetchProduct = async (id: number): Promise<WooCommerceProduct> => {
+export const fetchProduct = cache(async (id: number): Promise<WooCommerceProduct> => {
   try {
     const response = await wcAPI.get(`/products/${id}`);
     return response.data;
@@ -871,10 +874,10 @@ export const fetchProduct = async (id: number): Promise<WooCommerceProduct> => {
     console.error('Error fetching product:', getErrorMessage(error));
     throw error;
   }
-};
+});
 
 // Fetch a single product by slug
-export const fetchProductBySlug = async (slug: string): Promise<WooCommerceProduct | null> => {
+export const fetchProductBySlug = cache(async (slug: string): Promise<WooCommerceProduct | null> => {
   // Validate slug input
   if (!slug || typeof slug !== 'string' || slug.trim().length === 0) {
     return null;
@@ -904,7 +907,7 @@ export const fetchProductBySlug = async (slug: string): Promise<WooCommerceProdu
     
     return null;
   }
-};
+});
 
 // Fetch products by category
 export const fetchProductsByCategory = async (categoryId: number): Promise<WooCommerceProduct[]> => {
@@ -1075,7 +1078,7 @@ export interface WooCommerceCategory {
   description?: string;
 }
 
-export const fetchCategories = async (params?: { per_page?: number; parent?: number; hide_empty?: boolean }): Promise<WooCommerceCategory[]> => {
+export const fetchCategories = cache(async (params?: { per_page?: number; parent?: number; hide_empty?: boolean }): Promise<WooCommerceCategory[]> => {
   try {
     const response = await wcAPI.get('/products/categories', { params });
     return response.data || [];
@@ -1095,9 +1098,9 @@ export const fetchCategories = async (params?: { per_page?: number; parent?: num
     // Components handle empty arrays gracefully
     return [];
   }
-};
+});
 
-export const fetchCategoryBySlug = async (slug: string): Promise<WooCommerceCategory | null> => {
+export const fetchCategoryBySlug = cache(async (slug: string): Promise<WooCommerceCategory | null> => {
   try {
     const response = await wcAPI.get('/products/categories', { params: { slug } });
     const categories: WooCommerceCategory[] = response.data;
@@ -1119,6 +1122,6 @@ export const fetchCategoryBySlug = async (slug: string): Promise<WooCommerceCate
     // Return null instead of throwing to prevent breaking the UI
     return null;
   }
-};
+});
 
 export default wcAPI;

@@ -8,7 +8,7 @@ type Category = {
   name: string;
   slug: string;
   parent: number;
-  description?: string;
+  // description?: string;
 };
 
 async function CategoriesNavContent() {
@@ -68,7 +68,7 @@ async function CategoriesNavContent() {
                 {/* Mega submenu */}
                 {subCategories.length > 0 && (
                   <div
-                    className="absolute left-0 top-full z-50 hidden w-[900px] rounded-lg border bg-white shadow-xl group-hover:flex"
+                    className="absolute left-0 top-full z-50 hidden max-w-[900px] w-[90vw] rounded-lg border bg-white shadow-xl group-hover:flex"
                     role="menu"
                   >
                     {/* LEFT – Subcategories list */}
@@ -86,35 +86,6 @@ async function CategoriesNavContent() {
                           </li>
                         ))}
                       </ul>
-                    </div>
-
-                    {/* RIGHT – Category content */}
-                    <div className="w-2/3 p-6 flex gap-6">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {category.name}
-                        </h3>
-
-                        <p className="mt-2 text-sm text-gray-600 line-clamp-4">
-                          {category.description ||
-                            "Explore products designed to support independence and daily living."}
-                        </p>
-
-                        <PrefetchLink
-                          href={`/product-category/${category.slug}`}
-                          className="inline-block mt-4 rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-white transition"
-                        >
-                          Shop This Category
-                        </PrefetchLink>
-                      </div>
-
-                      {/* Optional image */}
-                      <div className="w-48 h-32 bg-gray-100 rounded-md overflow-hidden">
-                        {/* Replace with real category image if available */}
-                        <div className="flex h-full items-center justify-center text-xs text-gray-400">
-                          Category Image
-                        </div>
-                      </div>
                     </div>
                   </div>
                 )}

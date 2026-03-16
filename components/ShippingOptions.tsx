@@ -41,10 +41,21 @@ export default function ShippingOptions({
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [loadingRates, setLoadingRates] = useState(false);
   const [internalSelectedId, setInternalSelectedId] = useState<string>("");
-  const serializedItems = useMemo(() => JSON.stringify(items ?? []), [items]);
-
+  const serializedItems = useMemo(() => {
+    return JSON.stringify(
+      items.map(i => ({ id: i.productId, q: i.qty }))
+    );
+  }, [items]);
+  const [error, setError] = useState(false);
   // Use controlled or internal state
   const currentSelectedId = selectedRateId !== undefined ? selectedRateId : internalSelectedId;
+
+  const [debouncedPostcode, setDebouncedPostcode] = useState(postcode);
+
+    useEffect(() => {
+      const t = setTimeout(() => setDebouncedPostcode(postcode), 400);
+      return () => clearTimeout(t);
+    }, [postcode]);
 
   useEffect(() => {
     if (!country) return;
@@ -56,7 +67,7 @@ export default function ShippingOptions({
         const params = new URLSearchParams();
         if (country) params.set("country", country);
         if (zone) params.set("zone", zone);
-        if (postcode) params.set("postcode", postcode);
+        if (debouncedPostcode) params.set("postcode", debouncedPostcode);
         if (state) params.set("state", state);
         
         // Add cart data for rule-based filtering
@@ -74,18 +85,27 @@ export default function ShippingOptions({
         if (!cancelled) {
           setRates(fetched);
           if (fetched.length > 0) {
-            const firstId = fetched[0].id;
-            if (selectedRateId === undefined) {
-              setInternalSelectedId(firstId);
+
+            const selected = fetched.find(r => r.id === currentSelectedId);
+          
+            if (!selected) {
+              const first = fetched[0];
+          
+              if (selectedRateId === undefined) {
+                setInternalSelectedId(first.id);
+              }
+          
+              if (onRateChange) {
+                onRateChange(first.id, first);
+              }
             }
-            if (onRateChange && fetched[0]) {
-              onRateChange(firstId, fetched[0]);
-            }
+          
           }
         }
       } catch {
         if (!cancelled) {
           setRates([]);
+          setError(true);
         }
       } finally {
         if (!cancelled) {

@@ -130,12 +130,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      // Add known WooCommerce media hosts here
-      // {
-      //   protocol: "https",
-      //   hostname: "wordpress-1496507-5718895.cloudwaysapps.com",
-      //   pathname: "/wp-content/uploads/**",
-      // },
       {
         protocol: "https",
         hostname: "wordpress-1513595-6089575.cloudwaysapps.com",
@@ -175,6 +169,8 @@ const nextConfig: NextConfig = {
         },
       ] : []),
     ],
+    dangerouslyAllowSVG: true,
+    dangerouslyAllowLocalIP: true,
     // Optimize images for better performance
     formats: ['image/avif', 'image/webp'],
     // Cache images longer (1 hour) to reduce upstream requests
@@ -183,7 +179,6 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     // Enable image optimization
-    dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Increase timeout for slow upstream servers (30 seconds)

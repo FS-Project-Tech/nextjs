@@ -2,10 +2,6 @@ import ProductSectionCard from "@/components/ProductSectionCard";
 import { fetchCategoryBySlug, fetchProducts } from "@/lib/woocommerce";
 import { Product } from "@/lib/types/product";
 
-/**
- * Revalidate this section every 5 minutes
- * (Ideal for homepage / category sections)
- */
 export const revalidate = 300;
 
 const SECTION_SIZE = 5;
@@ -29,16 +25,21 @@ export default async function ProductSection({
   query,
 }: ProductSectionProps) {
   let categoryId: number | undefined;
-  let products: Product[] = [];
+
+  /* ---------------- CATEGORY LOOKUP ---------------- */
 
   if (query?.categorySlug) {
     try {
       const category = await fetchCategoryBySlug(query.categorySlug);
-      if (category?.id) categoryId = category.id;
+      categoryId = category?.id;
     } catch {
-      // fallback below
+      categoryId = undefined;
     }
   }
+
+  /* ---------------- PRODUCTS FETCH ---------------- */
+
+  let products: Product[] = [];
 
   try {
     const result = await fetchProducts({
@@ -48,23 +49,29 @@ export default async function ProductSection({
       order: query?.order,
       featured: query?.featured,
     });
+
     products = result?.products ?? [];
   } catch {
     products = [];
   }
 
-  if (products.length === 0) {
+  /* ---------------- FALLBACK PRODUCTS ---------------- */
+
+  if (!products.length) {
     try {
       const fallback = await fetchProducts({
         per_page: SECTION_SIZE,
         orderby: "popularity",
         order: "desc",
       });
+
       products = fallback?.products ?? [];
     } catch {
       products = [];
     }
   }
+
+  /* ---------------- UI ---------------- */
 
   return (
     <ProductSectionCard

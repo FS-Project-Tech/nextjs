@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Order Lock (prevent duplicate orders)
-    const orderLockKey = `guest-${Date.now()}-${idempotencyKey.slice(0, 8)}`;
+    const orderLockKey = `order-${idempotencyKey}`;
     const lockResult = acquireOrderLock(orderLockKey);
     
     if (!lockResult.success) {
@@ -119,13 +119,13 @@ export async function POST(req: NextRequest) {
       // 5. Validate cart items and sync with WooCommerce
       const cartItems: CartItem[] = line_items.map((item: any) => ({
         id: `${item.product_id}${item.variation_id ? ':' + item.variation_id : ''}`,
-        productId: item.product_id,
-        variationId: item.variation_id,
-        name: item.name || '',
-        slug: item.slug || '',
-        price: String(item.price || 0),
-        qty: item.quantity,
-        sku: item.sku,
+        productId: Number(item.product_id),
+        variationId: item.variation_id || undefined,
+        name: item.name ?? '',
+        slug: item.slug ?? '',
+        price: String(item.price ?? 0),
+        qty: Number(item.quantity),
+        sku: item.sku ?? '',
       }));
 
       const cartSync = await syncCartToWooCommerce(cartItems, coupon_code);
@@ -297,7 +297,10 @@ try {
           variation_id: item.variation_id,
           quantity: item.quantity,
         })),
-        shipping_lines: shipping_lines || [],
+        shipping_lines:
+  Array.isArray(shipping_lines) && shipping_lines.length > 0
+    ? shipping_lines
+    : undefined,
         meta_data: metaData,
       };
 

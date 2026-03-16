@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
 import Image from "next/image";
-import { validateAccessToken, getStoredToken, getCartUrl } from "@/lib/access-token";
 import Link from "next/link";
 import ShippingOptions from "@/components/ShippingOptions";
 import { useShippingAddress } from "@/hooks/useShippingAddress";
 import { calculateSubtotal, calculateGST, calculateTotal } from "@/lib/cart-utils";
 import { formatPrice, formatPriceWithLabel } from "@/lib/format-utils";
 import { getDeliveryFrequencyLabel } from "@/lib/delivery-utils";
- 
+  
+
 function CartPageContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -19,7 +19,6 @@ function CartPageContent() {
   const { items, updateItemQty, removeItem } = useCart();
   const [coupon, setCoupon] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [isMounted, setIsMounted] = useState<boolean>(false);
   const [shippingCost, setShippingCost] = useState<number>(0);
   const { country: shippingCountry, zone: shippingZone } = useShippingAddress();
@@ -31,35 +30,20 @@ function CartPageContent() {
  
   // Validate access token on mount (only after client mount)
   useEffect(() => {
-    if (!isMounted || typeof window === "undefined") return;
-   
-    const token = searchParams.get("token") || getStoredToken();
-   
-    // Check if token is valid
-    if (!validateAccessToken(token, "cart")) {
-      // Redirect to home page if no valid token
-      router.push("/");
-      return;
-    }
-   
-    // Check if cart has items
-    if (items.length === 0) {
-      // Redirect to shop if cart is empty
-      router.push("/shop");
-      return;
-    }
-   
-    // Authorized - allow access
-    setIsAuthorized(true);
-   
-    // Remove token from URL after validation (clean URL)
+    if (!isMounted) return;
+  
+    // Remove token from URL if present
     if (searchParams.has("token")) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("token");
-      const cleanUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
+  
+      const cleanUrl = params.toString()
+        ? `${pathname}?${params.toString()}`
+        : pathname;
+  
       router.replace(cleanUrl);
     }
-  }, [isMounted, searchParams, router, items.length, pathname]);
+  }, [isMounted, searchParams, router, pathname]);
  
   const subtotal = useMemo(() => calculateSubtotal(items), [items]);
  
@@ -82,7 +66,7 @@ function CartPageContent() {
   };
  
   // Show loading if not mounted or not authorized
-  if (!isMounted || !isAuthorized) {
+  if (!isMounted) {
     return (
         <div className="text-center">
           <div className="text-gray-600 mb-2">Redirecting...</div>
@@ -101,8 +85,16 @@ function CartPageContent() {
           <div className="rounded-xl bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold">Cart Items</h2>
               {items.length === 0 ? (
-                <div className="py-8 text-center text-gray-600">Your cart is empty.</div>
-              ) : (
+                  <div className="py-12 text-center">
+                    <p className="text-gray-600 mb-4">Your cart is empty</p>
+                    <Link
+                      href="/shop"
+                      className="inline-block rounded bg-gray-900 px-5 py-2 text-white"
+                    >
+                      Continue Shopping
+                    </Link>
+                  </div>
+                ) : (
                 <ul className="space-y-4 divide-y">
                   {items.map((i) => (
                     <li key={i.id} className="pt-4 first:pt-0">

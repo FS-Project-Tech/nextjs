@@ -224,10 +224,9 @@ function ProductCardComponent({
   const [imageError, setImageError] = useState(false);
 
   // Memoized calculations
-  const priceData = useMemo(
-    () => calculatePriceData(price, sale_price, regular_price, on_sale, tax_class, tax_status),
-    [price, sale_price, regular_price, on_sale, tax_class, tax_status]
-  );
+  const priceData = useMemo(() => {
+    return calculatePriceData(price, sale_price, regular_price, on_sale, tax_class, tax_status);
+  }, [price, sale_price, regular_price, on_sale, tax_class, tax_status]);
 
   const ratingData = useMemo(
     () => calculateRatingData(rating_count, average_rating),
@@ -274,132 +273,6 @@ function ProductCardComponent({
     }
   }, [id, name, slug, imageUrl, price, sale_price, sku, tax_class, tax_status, addingToCart, addItem, openCart, success, showError]);
 
-  // Render
-  // return (
-  //   <article
-  //     className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
-  //     style={{ contain: "layout style paint" }}
-  //   >
-  //     {/* Image Section */}
-  //     <Link
-  //       href={productUrl}
-  //       className="block rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-  //       aria-label={`View ${name}`}
-  //       prefetch={false}
-  //     >
-  //       <div className={`relative bg-gray-100 ${compact ? "aspect-[4/3]" : "aspect-square"}`}>
-  //         <Image
-  //           src={imageSrc}
-  //           alt={imageAlt || name}
-  //           width={400}
-  //           height={400}
-  //           className="object-contain transition-transform duration-300 will-change-transform p-5 bg-white"
-  //           loading={priority ? "eager" : "lazy"}
-  //           priority={priority}
-  //           onError={handleImageError}
-  //         />
-  //         {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
-  //         priceData.isOnSale ||
-  //         on_sale ? (
-  //           <DiscountBadge
-  //             discount={
-  //               salePercentageFromBackend != null && salePercentageFromBackend > 0
-  //                 ? salePercentageFromBackend
-  //                 : priceData.discount
-  //             }
-  //             saleOnly={
-  //               on_sale &&
-  //               !priceData.isOnSale &&
-  //               (salePercentageFromBackend == null || salePercentageFromBackend <= 0)
-  //             }
-  //           />
-  //         ) : null}
-  //       </div>
-  //     </Link>
-
-  //     {/* Content Section */}
-  //     <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-3 sm:p-4"}`}>
-  //       {/* Product Info */}
-  //       <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
-  //         <Link
-  //           href={productUrl}
-  //           className={'block font-medium text-[14px] line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline'}
-  //           prefetch={false}
-  //         >
-  //           {name}
-  //         </Link>
-
-  //         <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs text-dark">
-  //           {sku ? `SKU: ${sku}` : "\u00A0"}
-  //         </p>
-
-
-  //         <div className="hidden min-h-[1.25rem] sm:block">
-  //           {ratingData && <StarRating rating={ratingData} />}
-  //         </div>
-
-  //       </div>
-
-  //       {/* Pricing */}
-  //       <div className="space-y-1 min-h-[2.75rem] sm:min-h-[3.5rem]">
-  //         {priceData.isOnSale && (
-  //           <div className="flex flex-wrap items-center gap-2">
-  //             <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularWithLabel}</p>
-  //             <span className="text-xs font-semibold text-green-600">
-  //               Save {priceData.savings}
-  //             </span>
-  //           </div>
-  //         )}
-
-  //         <div className={priceData.isGstFree ? "text-emerald-700" : undefined}>
-  //           <p className={`font-bold text-[16px]`}>
-  //             {priceData.label}: {priceData.formattedCurrent}
-  //           </p>
-
-  //           {priceData.exclPrice && (
-  //             <p className="hidden text-xs text-gray-600 sm:block">
-  //               Excl. GST: {priceData.exclPrice}
-  //             </p>
-  //           )}
-  //         </div>
-
-  //         {priceData.isOnSale && (
-  //           <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-  //             Sale
-  //           </span>
-  //         )}
-  //       </div>
-
-  //       {/* Actions */}
-  //       <div className="mt-auto flex items-center gap-2 pt-2">
-  //         <button
-  //           type="button"
-  //           onClick={handleAddToCart}
-  //           disabled={addingToCart}
-  //           className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-  //           aria-label={`Add ${name} to cart`}
-  //           aria-busy={addingToCart}
-  //         >
-  //           {addingToCart ? (
-  //             <>
-  //               <LoadingSpinner />
-  //               <span className="sr-only sm:not-sr-only">Adding…</span>
-  //             </>
-  //           ) : (
-  //             <>
-  //               <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-  //                 <path strokeLinecap="round" strokeLinejoin="round" d={CART_ICON_PATH} />
-  //               </svg>
-  //               <span className="sr-only sm:not-sr-only">Add to cart</span>
-  //             </>
-  //           )}
-  //         </button>
-          
-  //         <WishlistButton productId={id} size="md" variant="icon" />
-  //       </div>
-  //     </div>
-  //   </article>
-  // );
   return (
     <article
       className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-md"
@@ -417,7 +290,9 @@ function ProductCardComponent({
             src={imageSrc}
             alt={imageAlt || name}
             fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            loading={priority ? "eager" : "lazy"}
+            priority={priority}
             className="object-contain p-4"
             onError={handleImageError}
           />
