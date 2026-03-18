@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import PrefetchLink from "@/components/PrefetchLink";
+import { useMemo } from "react";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -22,17 +23,50 @@ const defaultLeft: SliderImage[] = [
   { src: "https://picsum.photos/1200/500?random=3", alt: "Placeholder 3" },
 ];
 
+const defaultRight: SliderImage[] = [
+  { src: "https://picsum.photos/600/500?random=11", alt: "Placeholder A" },
+  { src: "https://picsum.photos/600/500?random=12", alt: "Placeholder B" },
+  { src: "https://picsum.photos/600/500?random=13", alt: "Placeholder C" },
+];
+
+/* ---------------- COMPONENT ---------------- */
+
 export default function HeroDualSlider({
   leftImages = [],
+  rightImages = [],
 }: {
   leftImages?: SliderImage[];
+  rightImages?: SliderImage[];
 }) {
-  const leftData = leftImages.length ? leftImages : defaultLeft;
+  /* ---- Normalize data ---- */
+  const { leftData, rightData } = useMemo(() => {
+    const normalize = (images: any[]): SliderImage[] =>
+      Array.isArray(images)
+        ? images
+            .map((img) => ({
+              src: img?.src || img?.url || "",
+              alt: img?.alt || "",
+              link: img?.link || undefined,
+            }))
+            .filter((img) => img.src.trim())
+        : [];
 
+    return {
+      leftData: normalize(leftImages).length
+        ? normalize(leftImages)
+        : defaultLeft,
+      rightData: normalize(rightImages).length
+        ? normalize(rightImages)
+        : defaultRight,
+    };
+  }, [leftImages, rightImages]);
+
+  /* ---- Slide renderer ---- */
   const renderSlide = (
     img: SliderImage,
     index: number,
-    sizes: string
+    sizes: string,
+    objectPosition: "left" | "center" = "center"
   ) => {
     const image = (
       <div className="relative h-56 w-full overflow-hidden rounded-xl sm:h-72 md:h-80 lg:h-96">
@@ -56,11 +90,16 @@ export default function HeroDualSlider({
     );
   };
 
+  /* ---------------- UI ---------------- */
+
   return (
     <div className="container mx-auto">
-      <div className="grid gap-4 grid-cols-1">
-
-        {/* LEFT SLIDER */}
+      {/* 
+        Mobile & Tablet: 1 column (stacked)
+        Desktop (md+): 4 columns (3 + 1 layout)
+      */}
+      <div className="grid gap-4 grid-cols-1 ">
+        {/* -------- LEFT BANNER -------- */}
         <div className="md:col-span-3">
           <Swiper
             modules={[Pagination, Autoplay]}
@@ -70,15 +109,30 @@ export default function HeroDualSlider({
           >
             {leftData.map((img, i) => (
               <SwiperSlide key={i}>
-                {renderSlide(img, i, "(max-width:768px) 100vw, 75vw")}
+                {renderSlide(img, i, "(max-width: 768px) 100vw, 75vw", "left")}
               </SwiperSlide>
             ))}
           </Swiper>
         </div>
 
+        {/* -------- RIGHT BANNER -------- */}
+        {/* <div className="md:col-span-1">
+          <Swiper
+            modules={[Pagination, Autoplay]}
+            pagination={{ clickable: true }}
+            autoplay={{ delay: 4500, disableOnInteraction: false }}
+            className="hero-slider-right"
+          >
+            {rightData.map((img, i) => (
+              <SwiperSlide key={i}>
+                {renderSlide(img, i, "(max-width: 768px) 100vw, 25vw", "center")}
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </div> */}
       </div>
 
-      {/* Pagination styles */}
+      {/* -------- Pagination styles -------- */}
       <style jsx global>{`
         .hero-slider-left .swiper-pagination,
         .hero-slider-right .swiper-pagination {

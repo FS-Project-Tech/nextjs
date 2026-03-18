@@ -40,14 +40,14 @@ export async function syncCartToWooCommerce(
   try {
     const lineItems = items.map((item) => ({
       product_id: item.productId,
-      variation_id: item.variationId ?? undefined,
+      variation_id: item.variationId || undefined,
       quantity: item.qty,
     }));
 
     const orderData: Record<string, unknown> = {
       line_items: lineItems,
-      status: "draft",
       ...(couponCode ? { coupon_lines: [{ code: couponCode }] } : {}),
+      set_paid: false,
     };
 
     const response = await wcAPI.post("/orders", orderData);
@@ -124,8 +124,7 @@ export async function validateCartItems(
   const errors: Array<{ itemId: string; message: string }> = [];
 
   try {
-    await Promise.all(
-      items.map(async (item) => {
+    for (const item of items) {
       try {
         const endpoint = item.variationId
           ? `/products/${item.productId}/variations/${item.variationId}`
@@ -161,8 +160,7 @@ export async function validateCartItems(
           message: `Unable to validate ${item.name}`,
         });
       }
-    })
-    );
+    }
 
     return {
       valid: errors.length === 0,

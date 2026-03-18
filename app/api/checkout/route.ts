@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Order Lock (prevent duplicate orders)
-    const orderLockKey = `order-${idempotencyKey}`;
+    const orderLockKey = `guest-${Date.now()}-${idempotencyKey.slice(0, 8)}`;
     const lockResult = acquireOrderLock(orderLockKey);
     
     if (!lockResult.success) {
@@ -119,13 +119,13 @@ export async function POST(req: NextRequest) {
       // 5. Validate cart items and sync with WooCommerce
       const cartItems: CartItem[] = line_items.map((item: any) => ({
         id: `${item.product_id}${item.variation_id ? ':' + item.variation_id : ''}`,
-        productId: Number(item.product_id),
-        variationId: item.variation_id || undefined,
-        name: item.name ?? '',
-        slug: item.slug ?? '',
-        price: String(item.price ?? 0),
-        qty: Number(item.quantity),
-        sku: item.sku ?? '',
+        productId: item.product_id,
+        variationId: item.variation_id,
+        name: item.name || '',
+        slug: item.slug || '',
+        price: String(item.price || 0),
+        qty: item.quantity,
+        sku: item.sku,
       }));
 
       const cartSync = await syncCartToWooCommerce(cartItems, coupon_code);
@@ -179,28 +179,40 @@ export async function POST(req: NextRequest) {
           : "Without Signature";
         metaData.push({ key: "Delivery Authority", value: authorityLabel });
       }
-      // Theme-compatible key for WordPress backend (custom-checkout.php)
-      metaData.push({ key: "Signature Required", value: delivery_authority === "with_signature" ? "yes" : "no" });
+// Build WooCommerce order meta data
 
-      if (delivery_instructions) {
-        metaData.push({ key: "Delivery Instructions", value: delivery_instructions });
-      }
 
-      if (do_not_send_paperwork) {
-        metaData.push({ key: "Do not send paperwork", value: "Yes" });
-        // Theme-compatible key for WordPress backend (custom-checkout.php)
-        metaData.push({ key: "Do not Send Paperwork With Delivery", value: "yes" });
-      } else {
-        metaData.push({ key: "Do not Send Paperwork With Delivery", value: "no" });
-      }
+// Signature Required
+metaData.push({
+  key: "Signature Required",
+  value: delivery_authority === "with_signature" ? "yes" : "no",
+});
 
-      if (discreet_packaging) {
-        metaData.push({ key: "Discreet packaging", value: "Yes" });
-      }
+// Delivery Instructions
+if (delivery_instructions) {
+  metaData.push({
+    key: "Delivery Instructions",
+    value: delivery_instructions,
+  });
+}
 
-      if (body.subscribe_newsletter) {
-        metaData.push({ key: "Newsletter Subscription", value: "Yes" });
-      }
+// Do not send paperwork
+metaData.push({
+  key: "Do not Send Paperwork With Delivery",
+  value: do_not_send_paperwork ? "yes" : "no",
+});
+
+// Discreet packaging
+metaData.push({
+  key: "Discreet Packaging",
+  value: discreet_packaging ? "yes" : "no",
+});
+
+// Newsletter subscription
+metaData.push({
+  key: "Newsletter Subscription",
+  value: body.subscribe_newsletter ? "yes" : "no",
+});
 
       // Add idempotency key to meta for tracking
       metaData.push({ key: "_idempotency_key", value: idempotencyKey });
@@ -297,10 +309,7 @@ try {
           variation_id: item.variation_id,
           quantity: item.quantity,
         })),
-        shipping_lines:
-  Array.isArray(shipping_lines) && shipping_lines.length > 0
-    ? shipping_lines
-    : undefined,
+        shipping_lines: shipping_lines || [],
         meta_data: metaData,
       };
 

@@ -1,9 +1,9 @@
 'use client';
 
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeHTML } from '@/lib/xss-sanitizer';
 import parse from 'html-react-parser';
 
 export default function ProductDescription({ html }: { html: string }) {
-  const clean = DOMPurify.sanitize(html);
+  const clean = sanitizeHTML(html);
   return <>{parse(clean)}</>;
 }

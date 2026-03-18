@@ -3,10 +3,8 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-// import DOMPurify from 'dompurify';
 import { useAuth } from '@/contexts/AuthContext';
-import { sanitizeHTML } from '@/lib/xss-sanitizer';
-import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeReview } from '@/lib/xss-sanitizer';
 
 const STAR_PATH = 'M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z';
 
@@ -189,7 +187,7 @@ export default function ProductReviews({
               <div
                 className="mt-1.5 text-sm text-gray-700 prose prose-sm max-w-none prose-p:my-0.5 prose-p:leading-snug"
                 dangerouslySetInnerHTML={{
-                  __html: DOMPurify.sanitize(r.review, { ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'] }),
+                  __html: sanitizeReview(r.review),
                 }}
               />
             </li>

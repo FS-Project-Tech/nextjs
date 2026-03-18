@@ -215,29 +215,33 @@ function OrderReviewContent() {
     return hcpMeta?.value || null;
   };
 
+  const getMetaValue = (key: string) => {
+    const meta = order.meta_data?.find((m) => m.key === key);
+    return meta?.value ?? null;
+  };
+  
   const getDeliveryAuthority = () => {
-    const authMeta = order.meta_data?.find((m) => m.key === "Delivery Authority");
-    return authMeta?.value || null;
+    const value = getMetaValue("Signature Required");
+    return value === "yes" ? "With Signature" : null;
   };
-
+  
   const getDeliveryInstructions = () => {
-    const instructionsMeta = order.meta_data?.find((m) => m.key === "Delivery Instructions");
-    return instructionsMeta?.value || null;
+    return getMetaValue("Delivery Instructions");
   };
-
+  
   const getDoNotSendPaperwork = () => {
-    const meta = order.meta_data?.find((m) => m.key === "Do not send paperwork");
-    return meta?.value === "Yes" ? "Yes" : null;
+    const value = getMetaValue("Do not Send Paperwork With Delivery");
+    return value === "yes";
   };
-
+  
   const getDiscreetPackaging = () => {
-    const meta = order.meta_data?.find((m) => m.key === "Discreet packaging");
-    return meta?.value === "Yes" ? "Yes" : null;
+    const value = getMetaValue("Discreet Packaging");
+    return value === "yes";
   };
-
+  
   const getNewsletterSubscription = () => {
-    const meta = order.meta_data?.find((m) => m.key === "Newsletter Subscription");
-    return meta?.value === "Yes" ? "Yes" : null;
+    const value = getMetaValue("Newsletter Subscription");
+    return value === "yes";
   };
 
   const isPaid = order.status === "processing" || order.status === "completed";

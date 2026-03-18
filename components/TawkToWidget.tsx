@@ -1,7 +1,7 @@
 "use client";
- 
+
 import Script from "next/script";
- 
+
 /**
  * Tawk.to live chat widget
  * Loads via script - no npm package (avoids React 19 peer dependency conflict)
@@ -9,9 +9,9 @@ import Script from "next/script";
 export default function TawkToWidget() {
   const propertyId = process.env.NEXT_PUBLIC_TAWK_PROPERTY_ID || "";
   const widgetId = process.env.NEXT_PUBLIC_TAWK_WIDGET_ID || "";
- 
+
   if (!propertyId || !widgetId) return null;
- 
+
   return (
     <Script
       id="tawk-to"

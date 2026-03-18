@@ -20,7 +20,8 @@ import {
   
   import { getActivePromotions } from "@/lib/getActivePromotions";
   import { fetchGlobalPromotions } from "@/lib/promotions";
-  import { fetchProductSEO } from "@/lib/wordpress";
+   import { fetchProductSEO } from "@/lib/wordpress";
+   import Script from "next/script";
   import { ProductCardProduct } from "@/lib/types/product";
   
   // ============================================================================
@@ -36,7 +37,7 @@ import {
 	try {
 	  const result = await fetchProducts({
 		per_page: 100,
-		orderby: "date",
+		featured: true,
 	  });
   
 	  return (
@@ -55,39 +56,90 @@ import {
   // ============================================================================
   // Metadata seo
   // ============================================================================
-  export async function generateMetadata(
+//   export async function generateMetadata(
+// 	props: { params: Promise<{ slug: string }> }
+//   ): Promise<Metadata> {
+// 	try {
+// 	  const { slug } = await props.params;
+// 	  const decodedSlug = decodeURIComponent(slug);
+  
+// 	  const wpProduct = await fetchProductSEO(decodedSlug);
+// 	  const yoast = wpProduct?.yoast_head_json;
+  
+// 	  if (!yoast) {
+// 		return { title: wpProduct?.title?.rendered || "Product" };
+// 	  }
+  
+// 	  return {
+// 		title: yoast.title,
+// 		description: yoast.description,
+// 		alternates: { canonical: yoast.canonical },
+// 	  };
+// 	} catch {
+// 	  return { title: "Product" };
+// 	}
+//   }
+  
+export async function generateMetadata(
 	props: { params: Promise<{ slug: string }> }
   ): Promise<Metadata> {
-	try {
-	  const { slug } = await props.params;
-	  const decodedSlug = decodeURIComponent(slug);
   
-	  const wpProduct = await fetchProductSEO(decodedSlug);
-	  const yoast = wpProduct?.yoast_head_json;
+	const { slug } = await props.params;
+	const decodedSlug = decodeURIComponent(slug);
   
-	  if (!yoast) {
-		return { title: wpProduct?.title?.rendered || "Product" };
-	  }
+	const product = await fetchProductBySlug(decodedSlug);
   
-	  return {
-		title: yoast.title,
-		description: yoast.description,
-		alternates: { canonical: yoast.canonical },
-	  };
-	} catch {
-	  return { title: "Product" };
+	if (!product) {
+	  return { title: "Product not found" };
 	}
-  }
   
+	const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  
+	return {
+	  title: product.name,
+	  description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
+  
+	  alternates: {
+		canonical: `${siteUrl}/products/${product.slug}`,
+	  },
+  
+	  openGraph: {
+		title: product.name,
+		description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
+		type: "website",
+		url: `${siteUrl}/products/${product.slug}`,
+		images: product.images?.length
+		  ? [
+			  {
+				url: product.images[0].src,
+				width: 1200,
+				height: 630,
+				alt: product.name,
+			  },
+			]
+		  : [],
+	  },
+  
+	  twitter: {
+		card: "summary_large_image",
+		title: product.name,
+		description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
+		images: product.images?.length ? [product.images[0].src] : [],
+	  },
+	};
+  }
+
+
+
   // ============================================================================
   // Page
   // ============================================================================
   export default async function ProductPage(
 	props: { params: Promise<{ slug: string }> }
-	) {
+  ) {
 	const { slug } = await props.params;
 	const decodedSlug = decodeURIComponent(slug);
-
+  
 	const product = await fetchProductBySlug(decodedSlug);
 	if (!product) notFound();
 
@@ -117,12 +169,10 @@ import {
 		  : Promise.resolve({ products: [] as any[] }),
 		fetchProductReviews(product.id, { per_page: 20 }),
 	  ]);
-	  
 
 	const categoryIds = product.categories?.map((c) => c.id) || [];
 	const activePromotions = getActivePromotions(promotions, categoryIds);
-	const categoryProducts =
-  categoryProductsResult?.products?.filter(p => p.id !== product.id) ?? [];
+	const categoryProducts = categoryProductsResult?.products ?? [];
 
 	// =======================================================
 	// TOP SELLING (same category)
@@ -165,6 +215,41 @@ import {
 	});
   
 	return (
+		<>
+		{/* Product Structured Data for SEO */}
+		<Script
+			id="product-schema"
+			type="application/ld+json"
+			strategy="beforeInteractive"
+			dangerouslySetInnerHTML={{
+				__html: JSON.stringify({
+				"@context": "https://schema.org/",
+				"@type": "Product",
+				name: product.name,
+				image: product.images?.map((img:any)=>img.src),
+				description: product.short_description?.replace(/<[^>]+>/g,""),
+				sku: product.sku,
+				aggregateRating:
+				product.rating_count > 0
+				  ? {
+					  "@type": "AggregateRating",
+					  ratingValue: product.average_rating,
+					  reviewCount: product.rating_count
+					}
+				  : undefined,
+				offers: {
+					"@type": "Offer",
+					priceCurrency: "AUD",
+					price: product.price,
+					availability:
+					product.stock_status === "instock"
+						? "https://schema.org/InStock"
+						: "https://schema.org/OutOfStock",
+					url: `${process.env.NEXT_PUBLIC_SITE_URL}/products/${product.slug}`,
+				},
+				}),
+			}}
+			/>
 	  <main id="main-content" className="min-h-screen py-12">
 		{/* Breadcrumb */}
 		<Container>
@@ -209,7 +294,6 @@ import {
 				href={promo.link?.url}
 				className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md"
 			  >
-				{promo.image?.url && (
 				<Image
 				  src={promo.image?.url}
 				  alt={promo.image?.alt || ""}
@@ -217,7 +301,6 @@ import {
 				  height={520}
 				  className="h-[590px] w-full object-cover"
 				/>
-				)}
 			  </a>
 			))}
 		  </aside>
@@ -317,6 +400,7 @@ import {
 		  </Container>
 		)}
 	  </main>
+	  </>
 	);
   }
   

@@ -65,20 +65,10 @@ const checkoutSchema = yup.object({
   discreetPackaging: yup.boolean().optional(),
   ndis_number: yup.string().optional(),
   ndis_participant_name: yup.string().optional(),
-  cust_woo_ndis_participant_name: yup.string().optional(),
   ndis_dob: yup.string().optional(),
   ndis_funding_type: yup.string().optional(),
   ndis_approval: yup.boolean().optional(),
   billing_ndis_invoice_email: yup.string().email("Invalid email").optional(),
-  cust_woo_ndis_number: yup.string().optional(),
-  cust_woo_ndis_dob: yup.string().optional(),
-  cust_woo_ndis_funding_type: yup.string().optional(),
-  cust_woo_invoice_email: yup.string().email("Invalid email").optional(),
-  cust_woo_ndis_approval: yup.boolean().optional(),
-  cust_woo_hcp_participant_name: yup.string().optional(),
-  cust_woo_hcp_number: yup.string().optional(),
-  cust_woo_provider_email: yup.string().optional(),
-  cust_woo_hcp_approval: yup.boolean().optional(),
   hcp_number: yup.string().optional(),
   hcp_participant_name: yup.string().optional(),
   hcp_provider_email: yup.string().optional(),
@@ -159,20 +149,10 @@ function CheckoutPageContent() {
       discreetPackaging: false,
       ndis_number: "",
       ndis_participant_name: "",
-      cust_woo_ndis_participant_name: "",
       ndis_dob: "",
       ndis_funding_type: "",
       ndis_approval: false,
       billing_ndis_invoice_email: "",
-      cust_woo_ndis_number: "",
-      cust_woo_ndis_dob: "",
-      cust_woo_ndis_funding_type: "",
-      cust_woo_invoice_email: "",
-      cust_woo_ndis_approval: false,
-      cust_woo_hcp_participant_name: "",
-      cust_woo_hcp_number: "",
-      cust_woo_provider_email: "",
-      cust_woo_hcp_approval: false,
       hcp_number: "",
       hcp_participant_name: "",
       hcp_provider_email: "",
@@ -244,6 +224,10 @@ function CheckoutPageContent() {
 
   const cartSubtotal = useMemo(() => parseCartTotal(total), [total]);
   const itemsCount = items.length;
+  const itemsString = useMemo(() => {
+    if (items.length === 0) return '[]';
+    return JSON.stringify(items);
+  }, [itemsCount]);
 
   useEffect(() => {
     if (!isMounted) return;
@@ -298,87 +282,361 @@ function CheckoutPageContent() {
   const orderTotal = calculateTotal(subtotal, shippingCost, couponDiscount, gst);
 
   const onSubmit = async (data: CheckoutFormData): Promise<void> => {
-
     if (items.length === 0) {
       showError("Your cart is empty");
       return;
     }
-  
+
     setPlacing(true);
-  
+
+    const billing = {
+      first_name: data.billing_first_name || "",
+      last_name: data.billing_last_name || "",
+      email: data.billing_email || "",
+      phone: data.billing_phone || "",
+      company: data.billing_company || "",
+      address_1: data.billing_address_1 || "",
+      address_2: data.billing_address_2 || "",
+      city: data.billing_city || "",
+      state: data.billing_state || "",
+      postcode: data.billing_postcode || "",
+      country: data.billing_country || "AU",
+    };
+    const shipping = {
+      first_name: data.shipping_first_name || "",
+      last_name: data.shipping_last_name || "",
+      company: data.shipping_company || "",
+      address_1: data.shipping_address_1 || "",
+      address_2: data.shipping_address_2 || "",
+      city: data.shipping_city || "",
+      state: data.shipping_state || "",
+      postcode: data.shipping_postcode || "",
+      country: data.shipping_country || "AU",
+    };
+
     try {
-  
-      const billing = {
-        first_name: data.billing_first_name || "",
-        last_name: data.billing_last_name || "",
-        email: data.billing_email || "",
-        phone: data.billing_phone || "",
-        company: data.billing_company || "",
-        address_1: data.billing_address_1 || "",
-        address_2: data.billing_address_2 || "",
-        city: data.billing_city || "",
-        state: data.billing_state || "",
-        postcode: data.billing_postcode || "",
-        country: data.billing_country || "AU",
-      };
-  
-      const shipping = {
-        first_name: data.shipping_first_name || "",
-        last_name: data.shipping_last_name || "",
-        company: data.shipping_company || "",
-        address_1: data.shipping_address_1 || "",
-        address_2: data.shipping_address_2 || "",
-        city: data.shipping_city || "",
-        state: data.shipping_state || "",
-        postcode: data.shipping_postcode || "",
-        country: data.shipping_country || "AU",
-      };
-  
-      // Sync cart
       await syncWithWooCommerce();
-  
+
       let paymentProcessed = false;
-  
       const offlinePaymentMethods = ["cod", "bacs", "bank_transfer", "cheque"];
       const isOfflinePayment = offlinePaymentMethods.includes(data.paymentMethod);
-  
-      if (!isOfflinePayment) {
-  
-        const paymentRes = await fetch("/api/payments/process", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            payment_method: data.paymentMethod,
-            amount: orderTotal,
-            currency: "AUD",
-            billing,
-            return_url: typeof window !== "undefined" ? window.location.href : "",
-          }),
-        });
-  
-        const paymentData = await paymentRes.json();
-  
-        if (!paymentRes.ok || !paymentData.success) {
-          showError(paymentData.error || "Payment processing failed");
+
+      if (!isOfflinePayment && data.paymentMethod === "paypal") {
+        try {
+          const paymentRes = await fetch("/api/payments/process", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              payment_method: data.paymentMethod,
+              amount: orderTotal,
+              currency: "AUD",
+              billing,
+              return_url: typeof window !== "undefined" ? window.location.href : "",
+            }),
+          });
+
+          const paymentData = await paymentRes.json();
+          if (!paymentRes.ok || !paymentData.success) {
+            showError(paymentData.error || "Payment processing failed");
+            setPlacing(false);
+            return;
+          }
+          paymentProcessed = paymentData.requires_payment !== false;
+        } catch (paymentError) {
+          console.error("Payment processing error:", paymentError);
+          showError("Payment processing failed");
+          setPlacing(false);
           return;
         }
-  
-        paymentProcessed = paymentData.requires_payment !== false;
       }
-  
-      // ---- continue existing checkout logic here ----
-  
-    } catch (error: any) {
-  
-      console.error("Checkout error:", error);
-      showError(error.message || "An error occurred while placing your order");
-  
-    } finally {
-  
-      setPlacing(false);
-  
-    }
-  
+
+      const finalShipping = data.shipToDifferentAddress ? shipping : billing;
+
+      let shippingMethodData: any = null;
+      if (data.shippingMethod) {
+        const sm = data.shippingMethod as ShippingMethodType;
+        shippingMethodData = {
+          method_id: sm.method_id || "flat_rate",
+          total: String(sm.total || sm.cost || 0),
+        };
+      }
+
+      const checkoutPayload: any = {
+        billing,
+        shipping: {
+          first_name: finalShipping.first_name || "",
+          last_name: finalShipping.last_name || "",
+          company: finalShipping.company || "",
+          address_1: finalShipping.address_1 || "",
+          address_2: finalShipping.address_2 || "",
+          city: finalShipping.city || "",
+          state: finalShipping.state || "",
+          postcode: finalShipping.postcode || "",
+          country: finalShipping.country || "AU",
+        },
+        payment_method: data.paymentMethod || "",
+        payment_processed: paymentProcessed,
+        line_items: items.map((i) => ({
+          product_id: i.productId,
+          variation_id: i.variationId || undefined,
+          quantity: i.qty,
+          name: i.name || "",
+          price: i.price || "0",
+          sku: i.sku || "",
+          slug: i.slug || "",
+        })),
+        shipping_lines: shippingMethodData ? [shippingMethodData] : [],
+        total: orderTotal,
+      };
+
+      const couponCode = appliedCoupon?.code || searchParams.get("coupon");
+      if (couponCode) {
+        checkoutPayload.coupon_code = couponCode;
+      }
+
+      if (csrfToken) {
+        checkoutPayload.csrf_token = csrfToken;
+      }
+
+      if (data.ndis_number) {
+        checkoutPayload.ndis_number = data.ndis_number;
+      }
+      if (data.ndis_participant_name) {
+        checkoutPayload.ndis_participant_name = data.ndis_participant_name;
+      }
+      if (data.ndis_dob) {
+        checkoutPayload.ndis_dob = data.ndis_dob;
+      }
+      if (data.ndis_funding_type) {
+        checkoutPayload.ndis_funding_type = data.ndis_funding_type;
+      }
+      if (data.ndis_approval) {
+        checkoutPayload.ndis_approval = data.ndis_approval;
+      }
+      if (data.billing_ndis_invoice_email) {
+        checkoutPayload.billing_ndis_invoice_email = data.billing_ndis_invoice_email;
+      }
+
+      if (data.hcp_number) {
+        checkoutPayload.hcp_number = data.hcp_number;
+      }
+      if (data.hcp_participant_name) {
+        checkoutPayload.hcp_participant_name = data.hcp_participant_name;
+      }
+      if (data.hcp_provider_email) {
+        checkoutPayload.hcp_provider_email = data.hcp_provider_email;
+      }
+      if (data.hcp_approval) {
+        checkoutPayload.hcp_approval = data.hcp_approval;
+      }
+
+      checkoutPayload.delivery_authority = data.deliveryAuthority || "with_signature";
+
+      if (data.deliveryInstructions) {
+        checkoutPayload.delivery_instructions = data.deliveryInstructions;
+      }
+
+      checkoutPayload.do_not_send_paperwork = data.doNotSendPaperwork || false;
+      checkoutPayload.discreet_packaging = data.discreetPackaging || false;
+      checkoutPayload.subscribe_newsletter = data.subscribe_newsletter || false;
+
+      if (quoteConversion) {
+        checkoutPayload.quote_id = quoteConversion.quote_id;
+        checkoutPayload.quote_number = quoteConversion.quote_number;
+      }
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (csrfToken) {
+        headers["x-csrf-token"] = csrfToken;
+      }
+
+      let payloadString: string;
+      try {
+        payloadString = JSON.stringify(checkoutPayload);
+      } catch (stringifyError) {
+        console.error("Error stringifying checkout payload:", stringifyError);
+        showError("Invalid checkout data. Please refresh and try again.");
+        setPlacing(false);
+        return;
+      }
+
+      const checkoutRes = await fetch("/api/checkout", {
+        method: "POST",
+        headers,
+        body: payloadString,
+      });
+
+      if (!checkoutRes.ok) {
+        let errorData: any = {};
+        let errorMessage = "Failed to create order";
+        
+        try {
+          const text = await checkoutRes.text();
+          if (text) {
+            try {
+              errorData = JSON.parse(text);
+              errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (parseError) {
+              console.error("Error parsing error response:", parseError);
+              errorMessage = text || `Server returned ${checkoutRes.status} ${checkoutRes.statusText}`;
+            }
+          } else {
+            errorMessage = `Server returned ${checkoutRes.status} ${checkoutRes.statusText || 'error'}`;
+          }
+        } catch (readError) {
+          console.error("Error reading error response:", readError);
+          errorMessage = `Server error (${checkoutRes.status}). Please try again.`;
+        }
+        
+        console.error("Checkout API error:", {
+          status: checkoutRes.status,
+          statusText: checkoutRes.statusText,
+          error: errorData,
+        });
+        
+        showError(errorMessage);
+        setPlacing(false);
+        return;
+      }
+
+      let checkoutData: any = {};
+      try {
+        const text = await checkoutRes.text();
+        if (!text) {
+          throw new Error("Empty response from server");
+        }
+        
+        try {
+          checkoutData = JSON.parse(text);
+        } catch (parseError) {
+          console.error("Error parsing checkout response:", {
+            error: parseError,
+            responseText: text.substring(0, 200), // Log first 200 chars for debugging
+            status: checkoutRes.status,
+            headers: Object.fromEntries(checkoutRes.headers.entries()),
+          });
+          throw new Error("Invalid JSON response from server");
+        }
+        if (!checkoutData || typeof checkoutData !== 'object') {
+          throw new Error("Invalid response format");
+        }
+      } catch (parseError: any) {
+        console.error("Error processing checkout response:", parseError);
+        const errorMsg = parseError.message || "Invalid response from server. Please try again.";
+        showError(errorMsg);
+        setPlacing(false);
+        return;
+      }
+
+      if (checkoutData.success && checkoutData.order) {
+        if (data.subscribe_newsletter && data.billing_email) {
+          try {
+            await fetch("/api/newsletter/subscribe", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: data.billing_email }),
+            });
+          } catch {}
+        }
+
+        // Save checkout billing/shipping to user's address book so they appear in WP backend (Edit User → Customer Billing/Shipping Address Secondary)
+        if (user) {
+          const billingPayload = {
+            type: "billing",
+            sync_primary: true,
+            first_name: billing.first_name,
+            last_name: billing.last_name,
+            email: billing.email,
+            phone: billing.phone,
+            company: billing.company,
+            address_1: billing.address_1,
+            address_2: billing.address_2,
+            city: billing.city,
+            state: billing.state,
+            postcode: billing.postcode,
+            country: billing.country,
+            ndis_participant_name: data.ndis_participant_name || "",
+            ndis_number: data.ndis_number || "",
+            ndis_dob: data.ndis_dob || "",
+            ndis_funding_type: data.ndis_funding_type || "",
+            ndis_approval: data.ndis_approval || false,
+            ndis_invoice_email: data.billing_ndis_invoice_email || "",
+            hcp_participant_name: data.hcp_participant_name || "",
+            hcp_number: data.hcp_number || "",
+            hcp_provider_email: data.hcp_provider_email || "",
+            hcp_approval: data.hcp_approval || false,
+          };
+          try {
+            await fetch("/api/dashboard/addresses", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(billingPayload),
+            });
+          } catch {}
+          if (data.shipToDifferentAddress) {
+            const shippingPayload = {
+              type: "shipping",
+              sync_primary: true,
+              first_name: shipping.first_name,
+              last_name: shipping.last_name,
+              company: shipping.company,
+              address_1: shipping.address_1,
+              address_2: shipping.address_2,
+              city: shipping.city,
+              state: shipping.state,
+              postcode: shipping.postcode,
+              country: shipping.country,
+              phone: billing.phone,
+              email: billing.email,
+            };
+            try {
+              await fetch("/api/dashboard/addresses", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(shippingPayload),
+              });
+            } catch {}
+          }
+        }
+        success("Order placed successfully!");
+
+        const redirectUrl =
+          checkoutData.redirect_url ||
+          `/checkout/order-review?orderId=${checkoutData.order.id}`;
+        
+        try {
+          // ✅ Clear cart state
+          clear();
+        
+          // ✅ Optional: clear server cart for logged-in users
+          if (user?.id) {
+            await fetch("/api/dashboard/cart/save", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ items: [] }),
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to fully clear cart:", e);
+        }
+        
+        // redirect after cart cleared
+        window.location.href = redirectUrl;
+        
+        } else {
+          showError("Failed to create order");
+        }
+        } catch (error: any) {
+          console.error("Checkout error:", error);
+          showError(error.message || "An error occurred while placing your order");
+        } finally {
+          setPlacing(false);
+        }
   };
 
   if (!isMounted) {
@@ -450,25 +708,15 @@ function CheckoutPageContent() {
                           setValue('billing_postcode', address.postcode);
                           setValue('billing_country', address.country);
                           setValue('ndis_participant_name', address.ndis_participant_name || '');
-                          setValue('cust_woo_ndis_participant_name', address.ndis_participant_name || '');
                           setValue('ndis_number', address.ndis_number || '');
-                          setValue('cust_woo_ndis_number', address.ndis_number || '');
                           setValue('ndis_dob', address.ndis_dob || '');
-                          setValue('cust_woo_ndis_dob', address.ndis_dob || '');
                           setValue('ndis_funding_type', address.ndis_funding_type || '');
-                          setValue('cust_woo_ndis_funding_type', address.ndis_funding_type || '');
                           setValue('ndis_approval', Boolean(address.ndis_approval));
-                          setValue('cust_woo_ndis_approval', Boolean(address.ndis_approval));
                           setValue('billing_ndis_invoice_email', (address as { ndis_invoice_email?: string }).ndis_invoice_email || '');
-                          setValue('cust_woo_invoice_email', (address as { ndis_invoice_email?: string }).ndis_invoice_email || '');
                           setValue('hcp_participant_name', address.hcp_participant_name || '');
-                          setValue('cust_woo_hcp_participant_name', address.hcp_participant_name || '');
                           setValue('hcp_number', address.hcp_number || '');
-                          setValue('cust_woo_hcp_number', address.hcp_number || '');
                           setValue('hcp_provider_email', address.hcp_provider_email || '');
-                          setValue('cust_woo_provider_email', address.hcp_provider_email || '');
                           setValue('hcp_approval', Boolean(address.hcp_approval));
-                          setValue('cust_woo_hcp_approval', Boolean(address.hcp_approval));
                         }
                       } else {
                         setValue('billing_first_name', '');
@@ -483,25 +731,15 @@ function CheckoutPageContent() {
                         setValue('billing_postcode', '');
                         setValue('billing_country', 'AU');
                         setValue('ndis_participant_name', '');
-                        setValue('cust_woo_ndis_participant_name', '');
                         setValue('ndis_number', '');
-                        setValue('cust_woo_ndis_number', '');
                         setValue('ndis_dob', '');
-                        setValue('cust_woo_ndis_dob', '');
                         setValue('ndis_funding_type', '');
-                        setValue('cust_woo_ndis_funding_type', '');
                         setValue('ndis_approval', false);
-                        setValue('cust_woo_ndis_approval', false);
                         setValue('billing_ndis_invoice_email', '');
-                        setValue('cust_woo_invoice_email', '');
                         setValue('hcp_participant_name', '');
-                        setValue('cust_woo_hcp_participant_name', '');
                         setValue('hcp_number', '');
-                        setValue('cust_woo_hcp_number', '');
                         setValue('hcp_provider_email', '');
-                        setValue('cust_woo_provider_email', '');
                         setValue('hcp_approval', false);
-                        setValue('cust_woo_hcp_approval', false);
                       }
                     }}
                     className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
@@ -1376,13 +1614,13 @@ function CheckoutPageContent() {
                   </span>
                 </label>
                 {errors.termsAccepted && (
-                  <p className="mt-1 text-xs text-rose-600">{errors && errors.termsAccepted.message}</p>
+                  <p className="mt-1 text-xs text-rose-600">{errors.termsAccepted.message}</p>
                 )}
               </div>
 
               <button
                 type="submit"
-                disabled={placing  || !watchedShippingMethod}
+                disabled={placing}
                 className="mt-6 w-full rounded-md bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {placing ? "Processing..." : "Place Order"}

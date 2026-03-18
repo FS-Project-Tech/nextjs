@@ -1,4 +1,4 @@
-@import "tailwindcss";
+ @import "tailwindcss";
 @import "swiper/css";
 @import "swiper/css/navigation";
 
@@ -61,6 +61,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+main{background-color: #fff;}
 
 .btn-brand {
   background-color: var(--primary);
@@ -211,9 +213,148 @@ body {
       max-width: 104rem;
     }
 }
-
-
 /* Header */
 main{background-color: #fff;}
 .bg-nav-header{background:#1f4551;}
 .hover\:bg-nav-hover:hover{background:#146f7b;}
+/* ============================================
+   Info pages (privacy, terms, faq, shipping)
+   ============================================ */
+.info-content {
+  max-width: none;
+  line-height: 1.6;
+}
+.info-content p {
+  margin: 0.5rem 0 1rem;
+  color: #374151;
+}
+.info-content ul,
+.info-content ol {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.5rem;
+  list-style-position: outside;
+}
+.info-content ul {
+  list-style-type: disc;
+}
+.info-content ol {
+  list-style-type: decimal;
+}
+.info-content li {
+  margin: 0.25rem 0;
+}
+.info-content strong {
+  font-weight: 600;
+}
+.info-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.info-content a:hover {
+  color: var(--primary-dark);
+}
+
+/* FAQ: Main topic → Question → Answer structure */
+.info-content--faq {
+  counter-reset: faq-section 0 faq-question 0;
+}
+.info-content--faq h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 2.5rem 0 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  counter-increment: faq-section;
+  counter-set: faq-question 0;
+}
+.info-content--faq h2::before {
+  content: counter(faq-section) ". ";
+}
+.info-content--faq h2:first-child {
+  margin-top: 0;
+}
+.info-content--faq h3,
+.info-content--faq h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 1.25rem 0 0.5rem;
+  padding-left: 2.5rem;
+  counter-increment: faq-question;
+}
+.info-content--faq h3::before,
+.info-content--faq h4::before {
+  content: counter(faq-section) "." counter(faq-question) " ";
+  margin-left: -2.5rem;
+  margin-right: 0.25rem;
+}
+/* ... rest stays the same ... */
+/* Terms/Privacy: Hierarchical numbered structure */
+.info-content--terms h2,
+.info-content--terms h3 {
+  font-weight: 700;
+  color: #111827;
+  margin: 1.5rem 0 0.75rem;
+}
+.info-content--terms h2 {
+  font-size: 1.125rem;
+  color: var(--primary);
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.25rem;
+}
+.info-content--terms h2:first-child {
+  margin-top: 0;
+}
+.info-content--terms h3 {
+  font-size: 1rem;
+  margin-left: 0.5rem;
+}
+.info-content--terms p {
+  margin-left: 0.75rem;
+}
+/* Accordion (details/summary) for info pages */
+.prose details,
+.info-page-content details {
+  margin: 1rem 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+.prose summary,
+.info-page-content summary {
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  background: #f9fafb;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.prose summary::-webkit-details-marker,
+.info-page-content summary::-webkit-details-marker {
+  display: none;
+}
+.prose summary::after,
+.info-page-content summary::after {
+  content: "+";
+  font-size: 1.25rem;
+}
+.prose details[open] summary::after,
+.info-page-content details[open] summary::after {
+  content: "−";
+}
+.prose details[open] summary,
+.info-page-content details[open] summary {
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+.prose details > *:not(summary),
+.info-page-content details > *:not(summary) {
+  padding: 1rem 1.25rem;
+  margin: 0;
+}

@@ -83,7 +83,7 @@ interface StatCard {
 
 const stats: StatCard[] = [
   {
-    value: 5000,
+    value: 9000,
     label: "Total Products",
     icon: (
       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ const stats: StatCard[] = [
     ),
   },
   {
-    value: 2500,
+    value: 1000,
     label: "NDIS Registered Items",
     icon: (
       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@ const stats: StatCard[] = [
     ),
   },
   {
-    value: 10000,
+    value: 15000,
     label: "Active Customers",
     icon: (
       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,7 +110,7 @@ const stats: StatCard[] = [
     ),
   },
   {
-    value: 4.9,
+    value: 4.8,
     label: "Google Rating",
     icon: (
       <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">

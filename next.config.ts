@@ -130,6 +130,12 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
+      // Add known WooCommerce media hosts here
+      // {
+      //   protocol: "https",
+      //   hostname: "wordpress-1496507-5718895.cloudwaysapps.com",
+      //   pathname: "/wp-content/uploads/**",
+      // },
       {
         protocol: "https",
         hostname: "wordpress-1513595-6089575.cloudwaysapps.com",
@@ -169,8 +175,6 @@ const nextConfig: NextConfig = {
         },
       ] : []),
     ],
-    dangerouslyAllowSVG: true,
-    dangerouslyAllowLocalIP: true,
     // Optimize images for better performance
     formats: ['image/avif', 'image/webp'],
     // Cache images longer (1 hour) to reduce upstream requests
@@ -179,6 +183,7 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     // Enable image optimization
+    dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Increase timeout for slow upstream servers (30 seconds)
@@ -188,6 +193,19 @@ const nextConfig: NextConfig = {
   
   // Increase timeout for static page generation (for slow APIs)
   staticPageGenerationTimeout: 120,
+  
+  // Redirect legacy URLs to info pages (privacy, terms, faq, shipping from WordPress)
+  async redirects() {
+    return [
+      { source: '/privacy', destination: '/info/privacy', permanent: true },
+      { source: '/terms', destination: '/info/terms', permanent: true },
+      { source: '/faq', destination: '/info/faq', permanent: true },
+      { source: '/shipping', destination: '/info/shipping', permanent: true },
+      { source: '/collection-statement', destination: '/info/collection-statement', permanent: true },
+      { source: '/collection-statement-general-enquiries', destination: '/info/collection-statement', permanent: true },
+      { source: '/info/blog', destination: '/blog', permanent: true },
+    ];
+  },
   
   // Enable static page generation with ISR
   output: 'standalone',

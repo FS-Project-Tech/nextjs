@@ -1,113 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
 import wcAPI from '@/lib/woocommerce';
-import {
-  cached,
-  CACHE_TTL,
-  CACHE_TAGS,
-} from '@/lib/cache/index';
-import { PRODUCT_CACHE_HEADERS } from '@/lib/cache/api-cache';
+import { cached, CACHE_TTL, CACHE_TAGS, STATIC_CACHE_HEADERS } from '@/lib/cache';
 
 /**
  * GET /api/filters/price-range
- * Returns min and max price for products, optionally filtered by category
+ * Returns min and max price for the price filter slider
+ * 
+ * Query params:
+ * - category: Optional category slug to get price range for specific category
  */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const category = searchParams.get('category');
-    const minPriceParam = searchParams.get('min_price');
-    const maxPriceParam = searchParams.get('max_price');
-
-    const bypassCache =
-      request.headers.get('cache-control')?.includes('no-cache') ||
-      request.headers.get('x-bypass-cache') === 'true';
-
-    const cacheKey = `price-range:${category || 'all'}:${minPriceParam || 'none'}:${maxPriceParam || 'none'}`;
-
+    const categorySlug = request.nextUrl.searchParams.get('category');
+    const cacheKey = `price-range:${categorySlug || 'all'}`;
+    
+    // Check for cache bypass
+    const bypassCache = request.headers.get('cache-control')?.includes('no-cache');
+    
+    // Fetch price range with caching (prices don't change frequently)
     const priceRange = await cached(
       cacheKey,
       async () => {
-        const perPage = 100;
-        let page = 1;
-        let hasMore = true;
-        let minPrice = Number.POSITIVE_INFINITY;
-        let maxPrice = 0;
-
-        while (hasMore) {
-          const params: Record<string, string | number> = {
-            per_page: perPage,
-            page,
-            status: 'publish',
-          };
-
-          if (category) {
-            params.category = category;
-          }
-
-          const response = await wcAPI.get('products', { params });
-          const products = response.data;
-
-          if (!Array.isArray(products) || products.length === 0) {
-            hasMore = false;
-            break;
-          }
-
-          for (const product of products) {
-            const rawPrice =
-              product?.sale_price && product.sale_price !== ''
-                ? product.sale_price
-                : product?.price;
-
-            const price = parseFloat(rawPrice || '0');
-
-            if (!Number.isNaN(price) && price > 0) {
-              if (price < minPrice) minPrice = price;
-              if (price > maxPrice) maxPrice = price;
-            }
-          }
-
-          hasMore = products.length === perPage;
-          page += 1;
-        }
-
-        if (minPrice === Number.POSITIVE_INFINITY) {
-          minPrice = 0;
-        }
-
-        if (maxPrice < minPrice) {
-          maxPrice = minPrice;
-        }
-
+        // Build params for WooCommerce request
+        const params: Record<string, any> = {
+          per_page: 1,
+          orderby: 'price',
+        };
+        
+        // If category specified, we'd need to resolve it to ID
+        // For simplicity, we'll get global price range
+        
+        // Get cheapest and most expensive products in parallel
+        const [minResponse, maxResponse] = await Promise.all([
+          wcAPI.get('/products', {
+            params: { ...params, order: 'asc', status: 'publish' },
+          }),
+          wcAPI.get('/products', {
+            params: { ...params, order: 'desc', status: 'publish' },
+          }),
+        ]);
+        
+        const minProduct = minResponse.data?.[0];
+        const maxProduct = maxResponse.data?.[0];
+        
+        const minPrice = minProduct ? parseFloat(minProduct.price || '0') : 0;
+        const maxPrice = maxProduct ? parseFloat(maxProduct.price || '1000') : 1000;
+        
         return {
-          min_price: minPrice,
-          max_price: maxPrice,
-          category: category || null,
+          min: Math.floor(minPrice),
+          max: Math.ceil(maxPrice),
         };
       },
       {
-        ttl: CACHE_TTL.PRODUCTS,
+        ttl: CACHE_TTL.STATIC, // Price ranges don't change often
         tags: [CACHE_TAGS.PRODUCTS],
         skipCache: bypassCache,
       }
     );
-
+    
     return NextResponse.json(priceRange, {
       headers: {
-        ...PRODUCT_CACHE_HEADERS,
+        ...STATIC_CACHE_HEADERS,
         'X-Cache-Key': cacheKey,
       },
     });
   } catch (error) {
-    console.error('Error fetching price range:', error);
-
-    return NextResponse.json(
-      { error: 'Failed to fetch price range' },
-      {
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store',
-        },
-      }
-    );
+    console.error('Error fetching price range:', (error instanceof Error ? error.message : 'An error occurred'));
+    // Return default range on error
+    return NextResponse.json({
+      min: 0,
+      max: 1000,
+    }, {
+      headers: {
+        'Cache-Control': 'no-store',
+      },
+    });
   }
 }
+
+

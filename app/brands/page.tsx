@@ -4,16 +4,14 @@ import Image from "next/image";
 import Container from "@/components/Container";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
-export const revalidate = 3600;
+export const revalidate = 3600; // 1 hour
 
 export const metadata: Metadata = {
-  title: "Shop by Brand",
-  description:
-    "Browse all brands and find products from your favorite manufacturers.",
+  title: "Brands",
+  description: "Shop by brand. Browse all brands and find products from your favorite manufacturers.",
   openGraph: {
-    title: "Shop by Brand",
-    description:
-      "Browse all brands and find products from your favorite manufacturers.",
+    title: "Brands | WooCommerce Store",
+    description: "Shop by brand. Browse all brands and find products from your favorite manufacturers.",
     type: "website",
   },
   alternates: {
@@ -31,21 +29,16 @@ type Brand = {
 
 async function getBrands(): Promise<Brand[]> {
   const base =
-    process.env.NEXT_PUBLIC_WP_URL;
-
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   try {
     const res = await fetch(`${base}/api/filters/brands`, {
       next: { revalidate: 3600 },
     });
-
     if (!res.ok) return [];
-
     const data = await res.json();
-    const brands = Array.isArray(data.brands) ? data.brands : [];
-
-    return brands.sort((a: Brand, b: Brand) => a.name.localeCompare(b.name));
-  } catch (error) {
-    console.error("Failed to fetch brands:", error);
+    return Array.isArray(data.brands) ? data.brands : [];
+  } catch {
     return [];
   }
 }
@@ -67,8 +60,7 @@ export default async function BrandsPage() {
         <div className="mt-8">
           <h1 className="text-3xl font-bold text-gray-900">Shop by Brand</h1>
           <p className="mt-2 text-gray-600">
-            Browse our brands and find products from your favorite
-            manufacturers.
+            Browse our brands and find products from your favorite manufacturers.
           </p>
           <div className="mt-4 h-1 w-20 rounded-full bg-teal-600" />
         </div>
@@ -78,7 +70,7 @@ export default async function BrandsPage() {
             <p className="text-gray-600">No brands available at the moment.</p>
             <Link
               href="/shop"
-              className="mt-4 inline-block font-medium text-teal-600 hover:underline"
+              className="mt-4 inline-block text-teal-600 font-medium hover:underline"
             >
               Browse all products
             </Link>
@@ -108,11 +100,9 @@ export default async function BrandsPage() {
                       </div>
                     )}
                   </div>
-
                   <span className="mt-3 block text-sm font-medium text-gray-900 group-hover:text-teal-700">
                     {brand.name}
                   </span>
-
                   {typeof brand.count === "number" && brand.count > 0 && (
                     <span className="mt-0.5 text-xs text-gray-500">
                       {brand.count} product{brand.count !== 1 ? "s" : ""}

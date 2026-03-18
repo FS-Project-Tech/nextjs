@@ -61,11 +61,8 @@ export default function CartProvider({
   const { user, loading: authLoading } = useUser();
   const [hasLoadedServerCart, setHasLoadedServerCart] = useState(false);
   const loadRetryCount = useRef(0);
-  const itemsRef = useRef<CartItem[]>(items);
-
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
+  const itemsRef = useRef<CartItem[]>([]);
+  itemsRef.current = items;
   const cartKey = useMemo(() => {
     if (authLoading) return undefined;
     if (!user?.id) return "cart:v1:guest";
@@ -104,14 +101,9 @@ export default function CartProvider({
  
   useEffect(() => {
     if (!isHydrated || typeof window === "undefined" || !cartKey) return;
-  
-    const timeout = setTimeout(() => {
-      try {
-        localStorage.setItem(cartKey, JSON.stringify(items));
-      } catch {}
-    }, 150);
-  
-    return () => clearTimeout(timeout);
+    try {
+      localStorage.setItem(cartKey, JSON.stringify(items));
+    } catch {}
   }, [items, isHydrated, cartKey]);
 
   // Persist cart to server when user leaves the page (so other browsers get the latest)
@@ -225,7 +217,7 @@ const addItem = useCallback(
     });
  
     setSyncError(null);
-    setIsOpen((prev) => (prev ? prev : true));
+    setIsOpen(true);
   },
   []
 );
@@ -355,10 +347,10 @@ const addItem = useCallback(
 
   const open = useCallback(() => {
     if (items.length > 0) {
-      setIsOpen((prev) => (prev ? prev : true));
+      setIsOpen(true);
       syncWithWooCommerce().catch(() => {});
     } else {
-      setIsOpen((prev) => (prev ? prev : true));
+      setIsOpen(true);
       if (user?.id) refreshCartFromServer();
     }
   }, [items.length, syncWithWooCommerce, user?.id, refreshCartFromServer]);
@@ -392,9 +384,9 @@ const addItem = useCallback(
     }
   }, [items]);
  
-  const subtotal = useMemo(() => calculateSubtotal(items), [items]);
-
-  const total = useMemo(() => subtotal.toFixed(2), [subtotal]);
+  const total = useMemo(() => {
+    return calculateSubtotal(items).toFixed(2);
+  }, [items]);
  
   const value: CartState = useMemo(
     () => ({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { searchClient } from "@/lib/algolia";
+import { searchClient } from "@/lib/algolia"; 
 import Image from "next/image";
 import Link from "next/link";
 

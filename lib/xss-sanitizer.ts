@@ -48,9 +48,15 @@ export function sanitizeHTML(
       ...(allowLinks
         ? { a: ['href', 'title', 'target', 'rel'] }
         : {}),
-      ...(allowImages
-        ? { img: ['src', 'alt', 'width', 'height', 'loading'] }
-        : {}),
+        ...(allowImages
+          ? {
+              img: ['src', 'alt', 'width', 'height', 'loading', 'class', 'style'],
+              figure: ['class', 'style'],
+              figcaption: ['class'],
+            }
+          : {}),
+        details: ['open'],
+        summary: [],
     },
     stripIgnoreTag: true,
     stripIgnoreTagBody: ['script', 'style'],
