@@ -366,6 +366,8 @@ try {
         success: true,
         order: {
           id: order.id,
+          number: order.number,
+          order_number: order.order_number,
           order_key: order.order_key,
           status: order.status,
           total: order.total,
@@ -376,7 +378,7 @@ try {
           line_items: order.line_items,
         },
         idempotency_key: idempotencyKey,
-        redirect_url: `/checkout/order-review?orderId=${order.id}`,
+        redirect_url: `/checkout/order-review?orderId=${order.number ?? order.order_number ?? order.id}`,
       };
 
       return NextResponse.json(successResponse, {
@@ -462,5 +464,3 @@ function getPaymentMethodTitle(method: string): string {
   };
   return titles[method] || method;
 }
-
-

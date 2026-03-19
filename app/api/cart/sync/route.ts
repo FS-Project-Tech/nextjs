@@ -3,7 +3,7 @@ import { syncCartToWooCommerce, validateCartItems } from "@/lib/cart-sync";
 import type { CartItem } from "@/lib/types/cart";
 import { secureResponse } from "@/lib/security-headers";
 import { applyCorsHeaders } from "@/lib/cors";
-
+ 
 /**
  * POST /api/cart/sync
  * Sync cart with WooCommerce and get validated prices/totals
@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { items, couponCode } = body;
-
+ 
     if (!Array.isArray(items)) {
       return secureResponse(
         { error: "Invalid items array" },
         { status: 400 }
       );
     }
-
+ 
     // Validate cart items first
     const validation = await validateCartItems(items as CartItem[]);
     if (!validation.valid) {
@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
       );
       return applyCorsHeaders(req, response);
     }
-
+ 
     // Sync with WooCommerce
     const cartData = await syncCartToWooCommerce(items as CartItem[], couponCode);
-
+ 
     if (!cartData) {
       const response = secureResponse(
         { error: "Failed to sync cart" },
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       );
       return applyCorsHeaders(req, response);
     }
-
+ 
     const response = secureResponse({
       success: true,
       cart: cartData,
@@ -68,5 +68,3 @@ export async function POST(req: NextRequest) {
     return applyCorsHeaders(req, errorResponse);
   }
 }
-
-

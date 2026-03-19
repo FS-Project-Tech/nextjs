@@ -1,10 +1,10 @@
 "use client";
-
+ 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-
+ 
 interface OrderItem {
   id: number;
   name: string;
@@ -13,7 +13,7 @@ interface OrderItem {
   sku?: string;
   image?: { src: string; alt: string };
 }
-
+ 
 interface Order {
   id: number;
   order_number?: string;
@@ -50,7 +50,7 @@ interface Order {
     total: string;
   }>;
 }
-
+ 
 export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -58,25 +58,25 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+ 
   useEffect(() => {
     if (!orderId) {
       setError('Order ID is required');
       setLoading(false);
       return;
     }
-
+ 
     const fetchOrder = async () => {
       try {
         const response = await fetch(`/api/orders/${orderId}`, {
           credentials: 'include',
           cache: 'no-store',
         });
-
+ 
         if (!response.ok) {
           throw new Error('Failed to fetch order');
         }
-
+ 
         const data = await response.json();
         setOrder(data.order);
       } catch (err: any) {
@@ -85,10 +85,10 @@ export default function OrderDetailPage() {
         setLoading(false);
       }
     };
-
+ 
     fetchOrder();
   }, [orderId]);
-
+ 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -99,7 +99,7 @@ export default function OrderDetailPage() {
       </div>
     );
   }
-
+ 
   if (error || !order) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -113,7 +113,7 @@ export default function OrderDetailPage() {
       </div>
     );
   }
-
+ 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -145,7 +145,7 @@ export default function OrderDetailPage() {
           {order.status}
         </span>
       </div>
-
+ 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Order Items */}
         <div className="lg:col-span-2 space-y-6">
@@ -189,7 +189,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </div>
-
+ 
         {/* Order Summary */}
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
@@ -229,7 +229,7 @@ export default function OrderDetailPage() {
               </div>
             </dl>
           </div>
-
+ 
           {/* Billing Address */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Billing Address</h2>
@@ -247,7 +247,7 @@ export default function OrderDetailPage() {
               {order.billing.email && <p>Email: {order.billing.email}</p>}
             </div>
           </div>
-
+ 
           {/* Shipping Address */}
           {order.shipping && (
             <div className="bg-white rounded-lg shadow p-6">
@@ -270,4 +270,3 @@ export default function OrderDetailPage() {
     </div>
   );
 }
-

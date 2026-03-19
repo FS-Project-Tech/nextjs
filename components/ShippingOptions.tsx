@@ -1,8 +1,8 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
+ 
+import { useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeString } from "@/lib/sanitize";
-
+ 
 interface ShippingRate {
   id: string;
   label: string;
@@ -12,12 +12,13 @@ interface ShippingRate {
   maximum_amount?: number;
   requires?: string;
 }
-
+ 
 interface ShippingOptionsProps {
   country?: string;
   zone?: string;
   postcode?: string;
   state?: string;
+  city?: string;
   selectedRateId?: string;
   onRateChange?: (rateId: string, rate: ShippingRate) => void;
   className?: string;
@@ -25,12 +26,13 @@ interface ShippingOptionsProps {
   subtotal?: number; // Cart subtotal for rule-based filtering
   items?: Array<{ id: string; productId: number; price: string; qty: number; [key: string]: any }>; // Cart items for filtering
 }
-
+ 
 export default function ShippingOptions({
   country = "AU",
   zone,
   postcode,
   state,
+  city,
   selectedRateId,
   onRateChange,
   className = "",
@@ -42,13 +44,15 @@ export default function ShippingOptions({
   const [loadingRates, setLoadingRates] = useState(false);
   const [internalSelectedId, setInternalSelectedId] = useState<string>("");
   const serializedItems = useMemo(() => JSON.stringify(items ?? []), [items]);
-
+  const onRateChangeRef = useRef(onRateChange);
+  onRateChangeRef.current = onRateChange;
+ 
   // Use controlled or internal state
   const currentSelectedId = selectedRateId !== undefined ? selectedRateId : internalSelectedId;
-
+ 
   useEffect(() => {
     if (!country) return;
-
+ 
     let cancelled = false;
     (async () => {
       try {
@@ -58,19 +62,16 @@ export default function ShippingOptions({
         if (zone) params.set("zone", zone);
         if (postcode) params.set("postcode", postcode);
         if (state) params.set("state", state);
-        
-        // Add cart data for rule-based filtering
-        if (subtotal > 0) {
-          params.set("subtotal", subtotal.toString());
-        }
+        if (city) params.set("city", city);
+        params.set("subtotal", String(subtotal ?? 0));
         if (items.length > 0) {
           params.set("items", serializedItems);
         }
-
+ 
         const res = await fetch(`/api/shipping/rates?${params.toString()}`, { cache: "no-store" });
         const json = await res.json();
         const fetched: ShippingRate[] = Array.isArray(json.rates) ? json.rates : [];
-
+ 
         if (!cancelled) {
           setRates(fetched);
           if (fetched.length > 0) {
@@ -78,8 +79,9 @@ export default function ShippingOptions({
             if (selectedRateId === undefined) {
               setInternalSelectedId(firstId);
             }
-            if (onRateChange && fetched[0]) {
-              onRateChange(firstId, fetched[0]);
+            const cb = onRateChangeRef.current;
+            if (cb && fetched[0]) {
+              cb(firstId, fetched[0]);
             }
           }
         }
@@ -93,12 +95,12 @@ export default function ShippingOptions({
         }
       }
     })();
-
+ 
     return () => {
       cancelled = true;
     };
-  }, [country, zone, postcode, state, subtotal, serializedItems]);
-
+  }, [country, zone, postcode, state, city, subtotal, serializedItems]);
+ 
   const handleRateChange = (rate: ShippingRate) => {
     if (selectedRateId === undefined) {
       setInternalSelectedId(rate.id);
@@ -107,7 +109,7 @@ export default function ShippingOptions({
       onRateChange(rate.id, rate);
     }
   };
-
+ 
   return (
     <div className={className}>
       {showLabel && (
@@ -185,4 +187,3 @@ export default function ShippingOptions({
     </div>
   );
 }
-

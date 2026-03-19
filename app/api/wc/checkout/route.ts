@@ -4,7 +4,7 @@ import { getAuthToken } from '@/lib/auth-server';
 import { getWCSessionHeaders } from '@/lib/woocommerce-session';
 import { secureResponse } from '@/lib/security-headers';
 import { applyCorsHeaders } from '@/lib/cors';
-
+ 
 /**
  * POST /api/wc/checkout
  * @deprecated This endpoint is deprecated. Use /api/checkout instead.
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const response = new NextResponse(null, { status: 204 });
     return applyCorsHeaders(req, response);
   }
-
+ 
   // Return 410 Gone - resource permanently removed
   return secureResponse(
     {
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     { status: 410 }
   );
 }
-
+ 
 /**
  * GET /api/wc/checkout
  * Get checkout data (shipping methods, payment methods, etc.)
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       const response = new NextResponse(null, { status: 204 });
       return applyCorsHeaders(req, response);
     }
-
+ 
     const wpBase = getWpBaseUrl();
     if (!wpBase) {
       return secureResponse(
@@ -47,10 +47,10 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-
+ 
     // Get WooCommerce session headers
     const sessionHeaders = await getWCSessionHeaders();
-    
+   
     try {
       // Try to get checkout data from Store API
       const response = await fetch(`${wpBase}/wp-json/wc/store/v1/checkout`, {
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         },
         cache: 'no-store',
       });
-
+ 
       if (response.ok) {
         const checkout = await response.json();
         return secureResponse({ success: true, checkout });
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
     } catch (error) {
       // Store API not available
     }
-
+ 
     // Fallback: Return basic checkout structure
     return secureResponse({
       success: true,
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.error('WC checkout GET error:', error);
     }
-    
+   
     const errorResponse = secureResponse(
       { error: 'Failed to get checkout data' },
       { status: 500 }
@@ -94,3 +94,4 @@ export async function GET(req: NextRequest) {
     return applyCorsHeaders(req, errorResponse);
   }
 }
+ 
