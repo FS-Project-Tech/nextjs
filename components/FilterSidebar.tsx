@@ -1,29 +1,23 @@
-"use client";
+type FilterSidebarProps = {
+  isMobileDrawer?: boolean;
+  onClose?: () => void;
+};
 
-import { RefinementList } from "react-instantsearch";
-
-export default function FilterSidebar() {
+export default function FilterSidebar({
+  isMobileDrawer = false,
+  onClose,
+}: FilterSidebarProps) {
   return (
-    <div className="space-y-6">
-      
-      {/* Brand Filter */}
-      <div>
-        <h3 className="font-bold mb-2">Brand</h3>
-        <RefinementList attribute="product_brand" />
-      </div>
+    <div>
+      {/* Example usage */}
+      {isMobileDrawer && (
+        <button onClick={onClose} className="mb-4">
+          Close
+        </button>
+      )}
 
-      {/* Category Filter */}
-      <div>
-        <h3 className="font-bold mb-2">Category</h3>
-        <RefinementList attribute="product_cat" />
-      </div>
-
-      {/* Attribute Filter */}
-      <div>
-        <h3 className="font-bold mb-2">Packaging</h3>
-        <RefinementList attribute="pa_each-box" />
-      </div>
-
+      {/* Your filters here */}
+      <div>Filters...</div>
     </div>
   );
 }
