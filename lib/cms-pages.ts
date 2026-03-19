@@ -1,9 +1,9 @@
 /**
  * Fetch WordPress pages by slug for info/theory pages (privacy, terms, faq, shipping, etc.)
  */
-
+ 
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL || '';
-
+ 
 export interface WpPage {
   id: number;
   slug: string;
@@ -13,7 +13,7 @@ export interface WpPage {
   date: string;
   modified: string;
 }
-
+ 
 export async function fetchPageBySlug(slug: string): Promise<WpPage | null> {
   if (!WP_URL) return null;
   try {

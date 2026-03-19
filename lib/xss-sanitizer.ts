@@ -3,9 +3,9 @@
  * NO jsdom
  * NO DOMPurify
  */
-
+ 
 import xss from 'xss';
-
+ 
 /**
  * Product content sanitizer (allows limited HTML)
  */
@@ -18,13 +18,13 @@ export function sanitizeHTML(
   } = {}
 ): string {
   if (!html || typeof html !== 'string') return '';
-
+ 
   const { allowLinks = true, allowImages = true, strict = false } = options;
-
+ 
   if (strict) {
     return stripHTML(html);
   }
-
+ 
   return xss(html, {
     whiteList: {
       p: [],
@@ -62,13 +62,13 @@ export function sanitizeHTML(
     stripIgnoreTagBody: ['script', 'style'],
   });
 }
-
+ 
 /**
  * Review sanitizer (very strict)
  */
 export function sanitizeReview(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') return '';
-
+ 
   return xss(html, {
     whiteList: {
       p: [],
@@ -84,22 +84,22 @@ export function sanitizeReview(html: string | null | undefined): string {
     stripIgnoreTag: true,
   });
 }
-
+ 
 /**
  * Strip ALL HTML
  */
 export function stripHTML(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') return '';
-
+ 
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
 }
-
+ 
 /**
  * Escape HTML entities
  */
 export function escapeHTML(text: string | null | undefined): string {
   if (!text || typeof text !== 'string') return '';
-
+ 
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -107,7 +107,7 @@ export function escapeHTML(text: string | null | undefined): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
-
+ 
 /**
  * Safe HTML type
  */
@@ -115,7 +115,7 @@ export interface SafeHTML {
   __html: string;
   __sanitized: true;
 }
-
+ 
 /**
  * Create safe HTML for dangerouslySetInnerHTML
  */

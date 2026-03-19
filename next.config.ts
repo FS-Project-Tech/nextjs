@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import bundleAnalyzer from '@next/bundle-analyzer';
-
+ 
 // Optionally include a domain from the WooCommerce API URL if provided
 const wcApiUrl = process.env.NEXT_PUBLIC_WP_URL;
 let wcHost: string | undefined;
@@ -10,20 +10,20 @@ try {
     wcHost = u.hostname;
   }
 } catch {}
-
+ 
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
-
+ 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-
+ 
   compress: true,
-  
+ 
   // Use webpack instead of Turbopack (for compatibility with existing webpack config)
   // Add empty turbopack config to silence the warning
   turbopack: {},
-  
+ 
   // Enable experimental features for better performance
   experimental: {
     // Optimize package imports - reduces bundle size and compile time
@@ -40,17 +40,17 @@ const nextConfig: NextConfig = {
     // Turbopack persistent caching (available in Next.js 15.1+)
     // turbopackPersistentCaching: true, // Uncomment if using Next.js 15.1+
   },
-  
+ 
   // Route-based prefetching configuration
   // Next.js automatically prefetches links when they enter the viewport
   // This configuration optimizes prefetch behavior
   // Note: Prefetch distance is controlled by Next.js internally (default: ~200px)
   // We can optimize by using prefetch={true} on critical paths
-  
+ 
   // ISR (Incremental Static Regeneration) for SEO-friendly product/category pages
   // Pages will be statically generated and revalidated every 5 minutes
   // This ensures fast page loads while keeping content fresh
-  
+ 
   // Optimize loading performance - reduces memory usage in dev
   // Prevents re-compiling on every click by keeping pages in memory longer
   onDemandEntries: {
@@ -59,14 +59,14 @@ const nextConfig: NextConfig = {
     // Number of pages that should be kept simultaneously without being disposed
     pagesBufferLength: 10, // Increased to 10 for faster navigation and less re-compilation
   },
-  
+ 
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
       exclude: ['error', 'warn'],
     } : false,
   },
-  
+ 
   // Webpack optimizations for faster builds (only when not using Turbopack)
   webpack: (config, { dev, isServer }) => {
     if (dev) {
@@ -93,7 +93,7 @@ const nextConfig: NextConfig = {
         ],
         followSymlinks: false, // Don't follow symlinks (faster)
       };
-      
+     
       // Reduce memory usage by limiting chunk size
       if (!isServer) {
         config.optimization = {
@@ -116,7 +116,7 @@ const nextConfig: NextConfig = {
         };
       }
     }
-    
+   
     // Optimize module resolution
     config.resolve = {
       ...config.resolve,
@@ -125,7 +125,7 @@ const nextConfig: NextConfig = {
       // Cache module resolution
       cache: dev,
     };
-    
+   
     return config;
   },
   images: {
@@ -190,10 +190,10 @@ const nextConfig: NextConfig = {
     // Note: This requires Next.js 14.1+ for full support
     unoptimized: false,
   },
-  
+ 
   // Increase timeout for static page generation (for slow APIs)
   staticPageGenerationTimeout: 120,
-  
+ 
   // Redirect legacy URLs to info pages (privacy, terms, faq, shipping from WordPress)
   async redirects() {
     return [
@@ -206,9 +206,9 @@ const nextConfig: NextConfig = {
       { source: '/info/blog', destination: '/blog', permanent: true },
     ];
   },
-  
+ 
   // Enable static page generation with ISR
   output: 'standalone',
 };
-
+ 
 export default withBundleAnalyzer(nextConfig);

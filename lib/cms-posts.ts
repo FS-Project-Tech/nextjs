@@ -1,9 +1,9 @@
 /**
  * Fetch WordPress blog posts for the headless blog page
  */
-
+ 
 const WP_URL = process.env.NEXT_PUBLIC_WP_URL || "";
-
+ 
 export interface WpPost {
   id: number;
   slug: string;
@@ -19,7 +19,7 @@ export interface WpPost {
     "wp:term"?: Array<Array<{ id: number; name: string; slug: string }>>;
   };
 }
-
+ 
 export async function fetchPosts(params?: {
   per?: number;
   page?: number;
@@ -45,7 +45,7 @@ export async function fetchPosts(params?: {
     return { posts: [], totalPages: 0 };
   }
 }
-
+ 
 export async function fetchPostBySlug(slug: string): Promise<WpPost | null> {
   if (!WP_URL) return null;
   try {
@@ -60,7 +60,7 @@ export async function fetchPostBySlug(slug: string): Promise<WpPost | null> {
     return null;
   }
 }
-
+ 
 export async function fetchCategories(): Promise<{ id: number; name: string; slug: string }[]> {
   if (!WP_URL) return [];
   try {
