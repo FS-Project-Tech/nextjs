@@ -1,10 +1,11 @@
 "use client";
-
+ 
 import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import type { Address } from "@/hooks/useAddresses";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-
+import { isValidName, isValidEmail, isValidAuPhone, nameCharsOnly, digitsOnly } from "@/lib/form-validation";
+ 
 export type AddressFormValues = {
   type: "billing" | "shipping";
   label: string;
@@ -30,14 +31,14 @@ export type AddressFormValues = {
   hcp_provider_email: string;
   hcp_approval: boolean;
 };
-
+ 
 const ROW2: { key: keyof AddressFormValues; label: string; required?: boolean }[] = [
   { key: "first_name", label: "First name", required: true },
   { key: "last_name", label: "Last name", required: true },
 ];
 const ROW3 = [{ key: "company" as const, label: "Company (optional)" }];
 const ROW4 = [{ key: "address_1" as const, label: "Address line 1", required: true }];
-const ROW5 = [{ key: "address_2" as const, label: "Address line 2" }];
+const ROW5 = [{ key: "address_2" as const, label: "Address line 2 (optional)" }];
 const ROW6: { key: keyof AddressFormValues; label: string; required?: boolean }[] = [
   { key: "city", label: "City", required: true },
   { key: "state", label: "State", required: true },
@@ -48,7 +49,7 @@ const ROW8: { key: keyof AddressFormValues; label: string; type?: string }[] = [
   { key: "email", label: "Email", type: "email" },
   { key: "phone", label: "Phone", type: "tel" },
 ];
-
+ 
 function defaultValues(type: "billing" | "shipping"): AddressFormValues {
   return {
     type,
@@ -76,7 +77,7 @@ function defaultValues(type: "billing" | "shipping"): AddressFormValues {
     hcp_approval: false,
   };
 }
-
+ 
 function toPayload(values: AddressFormValues, includeNdisHcp: boolean): Omit<Address, "id"> {
   const trim = (s: string) => (s ?? "").trim();
   const payload: Omit<Address, "id"> = {
@@ -108,7 +109,7 @@ function toPayload(values: AddressFormValues, includeNdisHcp: boolean): Omit<Add
   }
   return payload;
 }
-
+ 
 export interface AddressFormProps {
   address?: Address | null;
   defaultType?: "billing" | "shipping";
@@ -119,7 +120,7 @@ export interface AddressFormProps {
   /** When true, show NDIS and Home Care Package sections (for NDIS Approved / Support Co-ordinator roles) */
   showNdisHcp?: boolean;
 }
-
+ 
 export default function AddressForm({
   address,
   defaultType = "billing",
@@ -165,7 +166,7 @@ export default function AddressForm({
         }
       : defaultValues(defaultType),
   });
-
+ 
   useEffect(() => {
     const addressId = address?.id != null ? String(address.id) : null;
     if (!addressId) {
@@ -201,14 +202,22 @@ export default function AddressForm({
       hcp_approval: Boolean(address.hcp_approval),
     });
   }, [address, reset]);
-
+ 
   const handleFormSubmit = (values: AddressFormValues) => {
     if (!values.first_name?.trim()) {
       setError("first_name", { message: "Required" });
       return;
     }
+    if (!isValidName(values.first_name)) {
+      setError("first_name", { message: "Letters, spaces, hyphens and apostrophes only" });
+      return;
+    }
     if (!values.last_name?.trim()) {
       setError("last_name", { message: "Required" });
+      return;
+    }
+    if (!isValidName(values.last_name)) {
+      setError("last_name", { message: "Letters, spaces, hyphens and apostrophes only" });
       return;
     }
     if (!values.address_1?.trim()) {
@@ -231,10 +240,18 @@ export default function AddressForm({
       setError("country", { message: "Required" });
       return;
     }
+    if (values.email?.trim() && !isValidEmail(values.email)) {
+      setError("email", { message: "Invalid email format" });
+      return;
+    }
+    if (values.phone?.trim() && !isValidAuPhone(values.phone)) {
+      setError("phone", { message: "Phone must be 8–10 digits" });
+      return;
+    }
     const payload = toPayload(values, showNdisHcp);
     onSubmit(payload);
   };
-
+ 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4" id={`${fieldIdPrefix}form`} aria-label="Address form">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -263,12 +280,12 @@ export default function AddressForm({
           />
         </div>
       </div>
-
+ 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {ROW2.map(({ key, label, required }) => (
           <div key={key} id={`${fieldIdPrefix}${key}_field`}>
             <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}{required && <span className="text-red-500"> *</span>}</label>
-            <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete={key === "first_name" ? "given-name" : key === "last_name" ? "family-name" : undefined} />
+            <input id={`${fieldIdPrefix}${key}`} type="text" disabled={isLoading} {...register(key, { setValueAs: (v) => nameCharsOnly(v || "") })} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" aria-required={required} autoComplete={key === "first_name" ? "given-name" : key === "last_name" ? "family-name" : undefined} />
             {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
           </div>
         ))}
@@ -293,11 +310,11 @@ export default function AddressForm({
                 onPlaceSelect={(addr) => {
                   setValue("address_1", addr.address_1);
                   if (addr.address_2) setValue("address_2", addr.address_2);
-                
+               
                   if (addr.city) setValue("city", addr.city);
                   if (addr.state) setValue("state", addr.state);
                   if (addr.postcode) setValue("postcode", addr.postcode);
-                
+               
                   setValue("country", "AU");
                 }}
                 disabled={isLoading}
@@ -329,10 +346,10 @@ export default function AddressForm({
   <label className="mb-1 block text-sm font-medium text-gray-700">
     Country <span className="text-red-500">*</span>
   </label>
-
+ 
   {/* Hidden value sent to backend */}
   <input type="hidden" value="AU" {...register("country")} />
-
+ 
   {/* Visible field */}
   <input
     type="text"
@@ -340,7 +357,7 @@ export default function AddressForm({
     disabled
     className="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm"
   />
-
+ 
   {errors.country?.message && (
     <p className="mt-1 text-xs text-red-600">{errors.country.message}</p>
   )}
@@ -349,11 +366,12 @@ export default function AddressForm({
         {ROW8.map(({ key, label, type = "text" }) => (
           <div key={key} id={`${fieldIdPrefix}${key}_field`}>
             <label htmlFor={`${fieldIdPrefix}${key}`} className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
-            <input id={`${fieldIdPrefix}${key}`} type={type} disabled={isLoading} {...register(key)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" autoComplete={key === "email" ? "email" : key === "phone" ? "tel" : undefined} />
+            <input id={`${fieldIdPrefix}${key}`} type={type} disabled={isLoading} maxLength={key === "phone" ? 10 : undefined} {...register(key, key === "phone" ? { setValueAs: (v) => digitsOnly(v || "").slice(0, 10) } : undefined)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 disabled:opacity-60" autoComplete={key === "email" ? "email" : key === "phone" ? "tel" : undefined} />
+            {errors[key]?.message && <p className="mt-1 text-xs text-red-600">{String(errors[key]?.message)}</p>}
           </div>
         ))}
       </div>
-
+ 
       {showNdisHcp && (
         <div className="mt-6 space-y-4 border-t border-gray-200 pt-6">
           <div className="rounded-lg border border-gray-200 bg-gray-50/50">
@@ -453,7 +471,7 @@ export default function AddressForm({
           </div>
         </div>
       )}
-
+ 
       <div className="flex flex-wrap gap-3 pt-2">
         <button
           type="submit"
