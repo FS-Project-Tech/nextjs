@@ -1,7 +1,7 @@
 "use client";
- 
+
 import { useEffect, useRef, useState } from "react";
- 
+
 export interface AddressParts {
   address_1: string;
   address_2?: string;
@@ -10,14 +10,14 @@ export interface AddressParts {
   postcode: string;
   country: string;
 }
- 
+
 declare global {
   interface Window {
     google?: typeof google;
     initAddressAutocomplete?: () => void;
   }
 }
- 
+
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
@@ -29,9 +29,9 @@ interface AddressAutocompleteProps {
   className?: string;
   "aria-label"?: string;
 }
- 
+
 const GOOGLE_MAPS_SCRIPT_ID = "google-maps-places-script";
- 
+
 function loadGoogleMapsScript(apiKey: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (typeof window === "undefined") {
@@ -62,14 +62,14 @@ function loadGoogleMapsScript(apiKey: string): Promise<void> {
     document.head.appendChild(script);
   });
 }
- 
+
 function parseAddressComponents(place: google.maps.places.PlaceResult): AddressParts {
   const components = place.address_components || [];
   const get = (type: string) =>
     components.find((c) => c.types.includes(type))?.long_name || "";
   const getShort = (type: string) =>
     components.find((c) => c.types.includes(type))?.short_name || "";
- 
+
   const streetNumber = get("street_number");
   const route = get("route");
   const subpremise = get("subpremise");
@@ -85,13 +85,13 @@ function parseAddressComponents(place: google.maps.places.PlaceResult): AddressP
   get("sublocality") ||
   get("postal_town") ||
   get("administrative_area_level_2");
- 
+
 const state =
   getShort("administrative_area_level_1") ||
   get("administrative_area_level_1");
- 
+
 const postcode = get("postal_code");
- 
+
 const country = getShort("country") || "AU";
   return {
     address_1: address1.trim(),
@@ -102,7 +102,7 @@ const country = getShort("country") || "AU";
     country: country.trim() || "AU",
   };
 }
- 
+
 export default function AddressAutocomplete({
   value,
   onChange,
@@ -122,29 +122,29 @@ export default function AddressAutocomplete({
   const onPlaceSelectRef = useRef(onPlaceSelect);
   onChangeRef.current = onChange;
   onPlaceSelectRef.current = onPlaceSelect;
- 
+
   useEffect(() => {
     if (!apiKey || disabled) return;
     loadGoogleMapsScript(apiKey)
       .then(() => setScriptLoaded(true))
       .catch((err) => console.warn("[AddressAutocomplete] Google Maps load failed:", err));
   }, [apiKey, disabled]);
- 
+
   useEffect(() => {
     if (!scriptLoaded || !inputRef.current || !window.google?.maps?.places) return;
- 
+
     const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
       types: ["address"],
       fields: ["address_components", "formatted_address", "place_id"],
       componentRestrictions: { country: "au" },
     });
- 
+
     autocompleteRef.current = autocomplete;
- 
+
     const listener = autocomplete.addListener("place_changed", () => {
       setTimeout(() => {
         const place = autocomplete.getPlace();
- 
+
         const applyParsed = (p: google.maps.places.PlaceResult) => {
           if (p.address_components && p.address_components.length > 0) {
             const parsed = parseAddressComponents(p);
@@ -152,12 +152,12 @@ export default function AddressAutocomplete({
             onPlaceSelectRef.current?.(parsed);
           }
         };
- 
+
         if (place.address_components && place.address_components.length > 0) {
           applyParsed(place);
           return;
         }
- 
+
         if (place.place_id) {
           const service = new google.maps.places.PlacesService(
             document.createElement("div")
@@ -185,13 +185,13 @@ export default function AddressAutocomplete({
         }
       }, 10);
     });
- 
+
     return () => {
       if (listener) google.maps.event.removeListener(listener);
       autocompleteRef.current = null;
     };
   }, [scriptLoaded]);
- 
+
   if (!apiKey) {
     return (
       <input
@@ -207,7 +207,7 @@ export default function AddressAutocomplete({
       />
     );
   }
- 
+
   return (
     <input
       ref={inputRef}
