@@ -1,19 +1,20 @@
 "use client";
-
+ 
 import { useEffect, useState, Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-
+ 
 interface OrderItem {
   id: number;
   name: string;
   quantity: number;
   price: string;
+  total?: string;
   sku?: string;
   image?: { src: string; alt: string };
 }
-
+ 
 interface Order {
   id: number;
   number?: string;
@@ -22,6 +23,7 @@ interface Order {
   status: string;
   total: string;
   subtotal?: string;
+  total_shipping?: string;
   shipping_total?: string;
   tax_total?: string;
   discount_total?: string;
@@ -53,7 +55,7 @@ interface Order {
   line_items: OrderItem[];
   meta_data?: Array<{ key: string; value: any }>;
 }
-
+ 
 function OrderReviewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,7 +64,7 @@ function OrderReviewContent() {
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
   const orderId = searchParams.get("orderId");
-
+ 
   useEffect(() => {
     // Suppress "lab" color function parsing errors from html2canvas/css parsing
     const originalError = console.error;
@@ -74,20 +76,20 @@ function OrderReviewContent() {
       }
       originalError.apply(console, args);
     };
-
+ 
     return () => {
       // Restore original console.error on unmount
       console.error = originalError;
     };
   }, []);
-
+ 
   useEffect(() => {
     if (!orderId) {
       setError("Order ID is required");
       setLoading(false);
       return;
     }
-
+ 
     const fetchOrder = async () => {
       try {
         const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
@@ -102,42 +104,42 @@ function OrderReviewContent() {
         setLoading(false);
       }
     };
-
+ 
     fetchOrder();
   }, [orderId]);
-
+ 
   const handleDownloadPDF = useCallback(async () => {
     if (!order || typeof window === "undefined") return;
-
+ 
     setDownloadingPDF(true);
     try {
       // Suppress console errors for unsupported color functions
       const originalError = console.error;
       console.error = (...args: any[]) => {
         // Filter out "lab" color function errors from html2canvas
-        if (args[0]?.toString().includes('lab') || 
+        if (args[0]?.toString().includes('lab') ||
             args[0]?.toString().includes('color function')) {
           return; // Suppress this specific error
         }
         originalError.apply(console, args);
       };
-
+ 
       // Dynamically import html2pdf.js
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
-
+ 
       const element = document.getElementById("invoice-content");
       if (!element) {
         throw new Error("Invoice content not found");
       }
-
+ 
       const opt = {
         margin: [15, 15, 15, 15] as [number, number, number, number],
         filename: `Invoice-${order.number ?? order.order_number ?? orderId ?? order.id}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
           logging: false,
           letterRendering: true,
           ignoreElements: (element: Element) => {
@@ -155,15 +157,15 @@ function OrderReviewContent() {
             clonedDoc.head.appendChild(style);
           },
         },
-        jsPDF: { 
-          unit: "mm", 
-          format: "a4", 
-          orientation: "portrait" as const 
+        jsPDF: {
+          unit: "mm",
+          format: "a4",
+          orientation: "portrait" as const
         },
       };
-
+ 
       await (html2pdf as any)().set(opt).from(element).save();
-      
+     
       // Restore original console.error
       console.error = originalError;
     } catch (error) {
@@ -174,7 +176,7 @@ function OrderReviewContent() {
       setDownloadingPDF(false);
     }
   }, [order, orderId]);
-
+ 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
@@ -185,7 +187,7 @@ function OrderReviewContent() {
       </div>
     );
   }
-
+ 
   if (error || !order) {
     return (
       <div className="min-h-screen bg-gray-50 py-10">
@@ -204,69 +206,81 @@ function OrderReviewContent() {
       </div>
     );
   }
-
+ 
   const getNDISNumber = () => {
     const ndisMeta = order.meta_data?.find((m) => m.key === "NDIS Number");
     return ndisMeta?.value || null;
   };
-
+ 
   const getHCPNumber = () => {
     const hcpMeta = order.meta_data?.find((m) => m.key === "HCP Number");
     return hcpMeta?.value || null;
   };
-
+ 
   const getMetaValue = (key: string) => {
     const meta = order.meta_data?.find((m) => m.key === key);
     return meta?.value ?? null;
   };
-  
+ 
   const getDeliveryAuthority = () => {
     const value = getMetaValue("Signature Required");
     return value === "yes" ? "With Signature" : null;
   };
-  
+ 
   const getDeliveryInstructions = () => {
     return getMetaValue("Delivery Instructions");
   };
-  
+ 
   const getDoNotSendPaperwork = () => {
     const value = getMetaValue("Do not Send Paperwork With Delivery");
     return value === "yes";
   };
-  
+ 
   const getDiscreetPackaging = () => {
     const value = getMetaValue("Discreet Packaging");
     return value === "yes";
   };
-  
+ 
   const getNewsletterSubscription = () => {
     const value = getMetaValue("Newsletter Subscription");
     return value === "yes";
   };
-
+ 
   const isPaid = order.status === "processing" || order.status === "completed";
   const offlinePaymentMethods = ["cod", "bacs", "bank_transfer", "cheque"];
-  
+ 
   // Calculate totals
-  const subtotal = order.subtotal ? parseFloat(order.subtotal) : parseFloat(order.total);
-  const shipping = order.shipping_total ? parseFloat(order.shipping_total) : 0;
+  // Subtotal: use order.subtotal if present, otherwise sum line items (WooCommerce may omit subtotal)
+  const subtotalFromLineItems = order.line_items?.reduce((sum, item) => {
+    const itemTotal = item.total != null && item.total !== ''
+      ? parseFloat(String(item.total))
+      : Number(item.price) * (item.quantity || 0);
+    return sum + itemTotal;
+  }, 0) ?? 0;
+  const subtotal = (order.subtotal != null && order.subtotal !== '')
+    ? parseFloat(order.subtotal)
+    : subtotalFromLineItems;
+ 
+  const shipping = (order.shipping_total ?? order.total_shipping)
+    ? parseFloat(String(order.shipping_total ?? order.total_shipping))
+    : 0;
   const tax = order.tax_total ? parseFloat(order.tax_total) : 0;
   const discount = order.discount_total ? parseFloat(order.discount_total) : 0;
   const total = parseFloat(order.total);
-  
-  // Format date
-  const orderDate = order.date_created 
-    ? new Date(order.date_created).toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+ 
+  // Format subtotalFromLineItems
+  const orderDate = order.date_created
+    ? new Date(order.date_created).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       })
-    : new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+    : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
-
+ 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
@@ -282,7 +296,7 @@ function OrderReviewContent() {
             Thank you for your order. We've sent a confirmation email to <strong>{order.billing.email}</strong>
           </p>
         </div>
-
+ 
         {/* Invoice Container */}
         <div id="invoice-content" className="bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Invoice Header */}
@@ -298,7 +312,7 @@ function OrderReviewContent() {
               </div>
             </div>
           </div>
-
+ 
           {/* Invoice Body */}
           <div className="p-8">
             {/* Company & Customer Info */}
@@ -314,7 +328,7 @@ function OrderReviewContent() {
                   <p className="text-gray-600 mt-2">Australia</p>
                 </div>
               </div>
-
+ 
               {/* Customer Info */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Bill To</h3>
@@ -333,10 +347,10 @@ function OrderReviewContent() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Shipping Address (if different) */}
-            {order.shipping && 
-             (order.shipping.address_1 !== order.billing.address_1 || 
+            {order.shipping &&
+             (order.shipping.address_1 !== order.billing.address_1 ||
               order.shipping.city !== order.billing.city) && (
               <div className="mb-8 pb-8 border-b">
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Ship To</h3>
@@ -353,7 +367,7 @@ function OrderReviewContent() {
                 </div>
               </div>
             )}
-
+ 
             {/* Order Items Table */}
             <div className="mb-8">
               <table className="w-full border-collapse">
@@ -408,7 +422,7 @@ function OrderReviewContent() {
                 </tbody>
               </table>
             </div>
-
+ 
             {/* Totals Section */}
             <div className="flex justify-end mb-8">
               <div className="w-full md:w-80">
@@ -444,7 +458,7 @@ function OrderReviewContent() {
                 </div>
               </div>
             </div>
-
+ 
             {/* Payment & Status Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-8 border-b">
               <div>
@@ -465,7 +479,7 @@ function OrderReviewContent() {
                 </p>
               </div>
             </div>
-
+ 
             {/* Additional Information */}
             {(getNDISNumber() || getHCPNumber() || getDeliveryAuthority() || getDeliveryInstructions() || getDoNotSendPaperwork() || getDiscreetPackaging() || getNewsletterSubscription()) && (
               <div className="mb-8 pb-8 border-b">
@@ -516,7 +530,7 @@ function OrderReviewContent() {
                 </div>
               </div>
             )}
-
+ 
             {/* Footer Note */}
             <div className="text-center text-xs text-gray-500 pt-4 border-t">
               <p>Thank you for your business!</p>
@@ -524,7 +538,7 @@ function OrderReviewContent() {
             </div>
           </div>
         </div>
-
+ 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <button
@@ -563,7 +577,7 @@ function OrderReviewContent() {
     </div>
   );
 }
-
+ 
 export default function OrderReviewPage() {
   return (
     <Suspense
