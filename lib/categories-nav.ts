@@ -27,9 +27,28 @@ export async function getCategoriesForNav() {
 
   const parentIds = parentCategories.map((cat) => cat.id);
 
-  const childCategories = allCategories.filter((cat) =>
-    parentIds.includes(cat.parent)
-  );
+  function getAllDescendants(categories, parentIds) {
+    const result: any[] = [];
+  
+    function findChildren(ids) {
+      const children = categories.filter((cat) =>
+        ids.includes(cat.parent)
+      );
+  
+      if (!children.length) return;
+  
+      result.push(...children);
+  
+      const childIds = children.map((c) => c.id);
+      findChildren(childIds);
+    }
+  
+    findChildren(parentIds);
+  
+    return result;
+  }
+
+  const childCategories = getAllDescendants(allCategories, parentIds);
 
   return {
     parentCategories,

@@ -1075,24 +1075,45 @@ export interface WooCommerceCategory {
   description?: string;
 }
 
-export const fetchCategories = async (params?: { per_page?: number; parent?: number; hide_empty?: boolean }): Promise<WooCommerceCategory[]> => {
+// Header Navbar Categories and subcategories
+export const fetchCategories = async (
+  params?: { per_page?: number; parent?: number; hide_empty?: boolean }
+): Promise<WooCommerceCategory[]> => {
   try {
-    const response = await wcAPI.get('/products/categories', { params });
-    return response.data || [];
+    let page = 1;
+    let all: WooCommerceCategory[] = [];
+
+    while (true) {
+      const response = await wcAPI.get('/products/categories', {
+        params: {
+          ...params,
+          per_page: 100,
+          page,
+        },
+      });
+
+      const data = response.data || [];
+
+      if (!data.length) break;
+
+      all = [...all, ...data];
+
+      // Stop if last page
+      if (data.length < 100) break;
+
+      page++;
+    }
+
+    return all;
   } catch (error: unknown) {
-    // Log error details for debugging (only in development)
-    // Network errors are already logged by the interceptor
     if (process.env.NODE_ENV === 'development' && hasAxiosResponse(error)) {
       const details = getAxiosErrorDetails(error);
       console.warn('Error fetching categories:', {
         status: details.status,
-        statusText: details.statusText,
         url: details.url,
-        message: details.message,
       });
     }
-    // Return empty array instead of throwing to prevent breaking the UI
-    // Components handle empty arrays gracefully
+
     return [];
   }
 };
