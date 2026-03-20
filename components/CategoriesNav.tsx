@@ -90,7 +90,7 @@ async function CategoriesNavContent() {
 
                 {/* Mega Menu */}
                 {subCategories.length > 0 && (
-                  <div className="absolute left-0 top-full z-50 hidden group-hover:flex w-[350px] rounded-lg border bg-white shadow-xl p-4 gap-6">
+                  <div className="absolute left-0 top-full z-50 hidden group-hover:flex rounded-lg border bg-white shadow-xl p-4 gap-6">
 
                     {columns.map((col, i) => (
                       <ul key={i} className="space-y-2 min-w-[200px]">
@@ -98,7 +98,7 @@ async function CategoriesNavContent() {
                           <li key={sub.id}>
                             <PrefetchLink
                               href={`/product-category/${sub.slug}`}
-                              className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                              className="block rounded-md px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                             >
                               {sub.name}
                             </PrefetchLink>
