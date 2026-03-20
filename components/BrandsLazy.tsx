@@ -15,7 +15,7 @@ type Brand = {
 const ALPHABETS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default function BrandsLazy({ brands }: { brands: Brand[] }) {
-  const ITEMS_PER_LOAD = 12;
+  const ITEMS_PER_LOAD = 24;
 
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_LOAD);
