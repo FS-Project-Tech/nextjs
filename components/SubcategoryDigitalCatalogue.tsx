@@ -31,6 +31,7 @@ type SubcategoryDigitalCatalogueProps = {
   subcategorySlug: string;
   subcategoryName: string;
   parentName: string;
+  shouldLoad?: boolean;
 };
 
 type TableRow = {
@@ -46,46 +47,77 @@ export default function SubcategoryDigitalCatalogue({
   subcategorySlug,
   subcategoryName,
   parentName,
+  shouldLoad = true,
 }: SubcategoryDigitalCatalogueProps) {
   const router = useRouter();
   const [rows, setRows] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const rowsCache = (globalThis as typeof globalThis & {
+    __subcategoryRowsCache?: Map<string, TableRow[]>;
+    __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
+  }).__subcategoryRowsCache ??= new Map<string, TableRow[]>();
+
+  const inFlightCache = (globalThis as typeof globalThis & {
+    __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
+  }).__subcategoryRowsInFlight ??= new Map<string, Promise<TableRow[]>>();
+
   useEffect(() => {
+    if (!shouldLoad) return;
+
     let cancelled = false;
+
     async function load() {
+      const cacheKey = subcategorySlug;
+      const cachedRows = rowsCache.get(cacheKey);
+      if (cachedRows) {
+        setRows(cachedRows);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const params = new URLSearchParams({
-          categorySlug: subcategorySlug,
-          per_page: "200",
-          page: "1",
-        });
-        const res = await fetch(`/api/products?${params.toString()}`);
-        const json = await res.json();
-        const products: WooCommerceProduct[] = Array.isArray(json.products)
-          ? json.products
-          : [];
+        let request = inFlightCache.get(cacheKey);
+        if (!request) {
+          request = (async () => {
+            const params = new URLSearchParams({
+              categorySlug: subcategorySlug,
+              per_page: "200",
+              page: "1",
+            });
+            const res = await fetch(`/api/products?${params.toString()}`);
+            const json = await res.json();
+            const products: WooCommerceProduct[] = Array.isArray(json.products)
+              ? json.products
+              : [];
+
+            return products.map((p) => {
+              const brandInfo = extractProductBrands(p)[0];
+              const attrs = (p.attributes || []) as Array<{ name?: string; options?: string[] }>;
+              const attributeLabel = formatAttributeColumn(attrs);
+              return {
+                sku: p.sku || "",
+                name: p.name,
+                attribute: attributeLabel,
+                price: p.price || "",
+                brand: brandInfo?.name || "",
+                slug: p.slug || "",
+              };
+            });
+          })();
+          inFlightCache.set(cacheKey, request);
+        }
+
+        const mapped = await request;
+        inFlightCache.delete(cacheKey);
 
         if (cancelled) return;
-
-        const mapped: TableRow[] = products.map((p) => {
-          const brandInfo = extractProductBrands(p)[0];
-          const attrs = (p.attributes || []) as Array<{ name?: string; options?: string[] }>;
-          const attributeLabel = formatAttributeColumn(attrs);
-          return {
-            sku: p.sku || "",
-            name: p.name,
-            attribute: attributeLabel,
-            price: p.price || "",
-            brand: brandInfo?.name || "",
-            slug: p.slug || "",
-          };
-        });
-
+        rowsCache.set(cacheKey, mapped);
         setRows(mapped);
       } catch {
         if (!cancelled) setRows([]);
+        inFlightCache.delete(subcategorySlug);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -94,7 +126,7 @@ export default function SubcategoryDigitalCatalogue({
     return () => {
       cancelled = true;
     };
-  }, [subcategorySlug]);
+  }, [subcategorySlug, shouldLoad, inFlightCache, rowsCache]);
 
   const rowsByBrand = useMemo(() => {
     const map = new Map<string, TableRow[]>();

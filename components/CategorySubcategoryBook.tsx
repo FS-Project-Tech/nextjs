@@ -104,6 +104,7 @@ export default function CategorySubcategoryBook({
 
   const canGoNext = currentPage < totalPages - 1;
   const canGoPrev = true;
+  const activeTableSubcategoryIndex = Math.floor((currentPage - 1) / 2);
 
   // First view: only the main category cover; open via arrow (no click on cover so product clicks work later)
   if (!bookOpen) {
@@ -234,6 +235,7 @@ export default function CategorySubcategoryBook({
                       subcategorySlug={sub.slug}
                       subcategoryName={sub.name}
                       parentName={parentName}
+                      shouldLoad={index === activeTableSubcategoryIndex}
                     />
                   </div>
                 </div>

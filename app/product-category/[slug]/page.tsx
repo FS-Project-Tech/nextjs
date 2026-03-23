@@ -93,6 +93,7 @@ export default async function CategoryPage(
     <CategoryPageClient
       initialSlug={decodedSlug}
       initialCategoryName={category?.name}
+      initialCategoryDescription={category?.description}
     />
   );
 }

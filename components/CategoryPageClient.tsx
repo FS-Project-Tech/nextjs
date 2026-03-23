@@ -25,25 +25,29 @@ function extractSlugFromPath(pathname: string | null): string | null {
 
 interface CategoryResponse {
   category?: { name: string };
+  categoryDescription?: string;
 }
 
 export default function CategoryPageClient({ 
   initialSlug,
-  initialCategoryName 
+  initialCategoryName, 
+  initialCategoryDescription
 }: { 
   initialSlug: string;
   initialCategoryName?: string;
+  initialCategoryDescription?: string;
 }) {
   const pathname = usePathname();
   const [categoryName, setCategoryName] = useState(initialCategoryName || "Category");
-  
+  const [categoryDescription, setCategoryDescription] = useState(initialCategoryDescription || "");
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   // Derive slug from pathname or use initial - no state needed
   const slugFromPath = extractSlugFromPath(pathname);
   const categorySlug = slugFromPath || initialSlug;
 
   // Fetch category name when slug changes
   const fetchCategoryName = useCallback(async (slug: string) => {
-    if (slug === initialSlug && initialCategoryName) return;
+    if (slug === initialSlug && initialCategoryName && initialCategoryDescription) return;
     
     try {
       const res = await fetch(`/api/category-by-slug?slug=${encodeURIComponent(slug)}`);
@@ -52,11 +56,12 @@ export default function CategoryPageClient({
       const json: CategoryResponse = await res.json();
       if (json.category?.name) {
         setCategoryName(json.category.name);
+        setCategoryDescription(json.categoryDescription || "");
       }
     } catch {
       // Keep existing name on error
     }
-  }, [initialSlug, initialCategoryName]);
+  }, [initialSlug, initialCategoryName, initialCategoryDescription]);
 
   // Effect to fetch category name when slug changes
   useEffect(() => {
@@ -65,14 +70,16 @@ export default function CategoryPageClient({
     }
   }, [categorySlug, initialSlug, initialCategoryName, fetchCategoryName]);
 
+  useEffect(() => {
+    setIsDescriptionExpanded(false);
+  }, [categorySlug]);
+
   return (
-    <div className="min-h-screen py-12" suppressHydrationWarning>
+    <div className="min-h-screen py-4" suppressHydrationWarning>
       <Container suppressHydrationWarning>
         <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Shop', href: '/shop' }, { label: categoryName }]} />
         
-        <div className="mb-6" suppressHydrationWarning>
-          <h1 className="text-2xl font-semibold text-gray-900">{categoryName}</h1>
-        </div>
+       
         
         <div className="flex flex-col lg:flex-row gap-6" suppressHydrationWarning>
           {/* Filter Sidebar */}
@@ -82,6 +89,28 @@ export default function CategoryPageClient({
           
           {/* Product Grid - Wrapped in Suspense for useSearchParams */}
           <div className="flex-1" suppressHydrationWarning>
+              <div className="mb-6" suppressHydrationWarning>
+                <h1 className="text-2xl font-semibold text-gray-900">{categoryName}</h1>
+                {categoryDescription && (
+                  <div className="mt-3">
+                    <p
+                      className={`w-full text-sm leading-relaxed text-gray-600 ${
+                        isDescriptionExpanded ? "" : "line-clamp-4"
+                      }`}
+                    >
+                      {categoryDescription}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+                      className="mt-2 text-sm font-medium text-teal-700 hover:text-teal-800"
+                      aria-expanded={isDescriptionExpanded}
+                    >
+                      {isDescriptionExpanded ? "Read less" : "Read more"}
+                    </button>
+                  </div>
+                )}
+              </div>
             <Suspense fallback={<ProductGridSkeleton />}>
               <ProductGrid categorySlug={categorySlug || undefined} />
             </Suspense>
