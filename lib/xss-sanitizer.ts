@@ -46,7 +46,7 @@ export function sanitizeHTML(
       code: [],
       pre: [],
       ...(allowLinks
-        ? { a: ['href', 'title', 'target', 'rel'] }
+        ? { a: ['href', 'title', 'target', 'rel', 'class'] }
         : {}),
         ...(allowImages
           ? {
@@ -92,6 +92,24 @@ export function stripHTML(html: string | null | undefined): string {
   if (!html || typeof html !== 'string') return '';
  
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+ 
+/**
+ * Decode HTML entities (e.g. &amp;, &hellip;, &#39;)
+ */
+export function decodeHTMLEntities(str: string): string {
+  return str
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&hellip;/g, "…")
+    .replace(/&ndash;/g, "–")
+    .replace(/&mdash;/g, "—");
 }
  
 /**

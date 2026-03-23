@@ -53,7 +53,7 @@ function CartPageContent() {
     setIsAuthorized(true);
    
     // Remove token from URL after validation (clean URL)
-
+ 
     if (searchParams.has("token")) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("token");
@@ -191,7 +191,7 @@ function CartPageContent() {
                 </ul>
               )}
             </div>
-
+ 
             <div className="rounded-xl bg-white p-6">
               <h2 className="mb-2 text-sm font-medium text-gray-700">Have any discount code?</h2>
               <div className="flex gap-2">
@@ -286,6 +286,3 @@ export default function CartPage() {
     </Suspense>
   );
 }
- 
- 
- 

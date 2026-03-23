@@ -20,15 +20,21 @@ export interface WpPost {
   };
 }
  
+/** Slugs to exclude from blog (funding scheme posts live at /funding-scheme) */
+export const BLOG_EXCLUDE_SLUGS = ["funding-schemes", "caps", "my-aged-care", "ndis"];
+ 
 export async function fetchPosts(params?: {
   per?: number;
   page?: number;
   categories?: number[];
+  excludeSlugs?: string[];
 }): Promise<{ posts: WpPost[]; totalPages: number }> {
   if (!WP_URL) return { posts: [], totalPages: 0 };
   try {
+    const per = params?.per ?? 10;
+    const excludeSlugs = params?.excludeSlugs ?? BLOG_EXCLUDE_SLUGS;
     const search = new URLSearchParams();
-    search.set("per_page", String(params?.per ?? 10));
+    search.set("per_page", String(excludeSlugs.length > 0 ? per + 10 : per));
     search.set("page", String(params?.page ?? 1));
     search.set("_embed", "1");
     if (params?.categories?.length) {
@@ -38,7 +44,10 @@ export async function fetchPosts(params?: {
       next: { revalidate: 60 },
     });
     if (!res.ok) return { posts: [], totalPages: 0 };
-    const posts = await res.json();
+    let posts: WpPost[] = await res.json();
+    if (excludeSlugs.length > 0) {
+      posts = posts.filter((p) => !excludeSlugs.includes(p.slug)).slice(0, per);
+    }
     const totalPages = parseInt(res.headers.get("X-WP-TotalPages") || "1", 10) || 1;
     return { posts, totalPages };
   } catch {

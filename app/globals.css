@@ -418,3 +418,133 @@ main{background-color: #fff;}
      padding: 1rem 1.25rem;
      margin: 0;
    }
+
+   /* ============================================
+   Funding Scheme page – cards from WP content
+   ============================================ */
+.funding-scheme-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #f9fafb;
+}
+ 
+.funding-scheme-content h2:first-of-type {
+  margin-top: 0;
+}
+ 
+.funding-scheme-content p {
+  margin: 0.5rem 0 1rem;
+  color: #374151;
+}
+ 
+.funding-scheme-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+ 
+.funding-scheme-content a:hover {
+  color: var(--primary-dark);
+}
+ 
+/* Read More button style - links that look like buttons */
+.funding-scheme-content p a[href*="funding-scheme"],
+.funding-scheme-content p a[href*="/caps"],
+.funding-scheme-content p a[href*="/my-aged-care"],
+.funding-scheme-content p a[href*="/ndis"] {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: white !important;
+  border-radius: 0.375rem;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+ 
+.funding-scheme-content p a[href*="funding-scheme"]:hover,
+.funding-scheme-content p a[href*="/caps"]:hover,
+.funding-scheme-content p a[href*="/my-aged-care"]:hover,
+.funding-scheme-content p a[href*="/ndis"]:hover {
+  background: var(--primary-dark);
+}
+ 
+/* Detail page - simpler styling */
+.funding-scheme-detail h2,
+.funding-scheme-detail h3 {
+  font-weight: 700;
+  color: #111827;
+  margin: 1.5rem 0 0.75rem;
+}
+ 
+.funding-scheme-detail h2:first-child,
+.funding-scheme-detail h3:first-child {
+  margin-top: 0;
+}
+/* Funding Scheme Intro */
+.funding-scheme-intro p {
+  margin: 0.5rem 0 1rem;
+  color: #374151;
+}
+ 
+.funding-scheme-intro img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+/* Funding scheme detail - lists (bullets) */
+.funding-scheme-content ul,
+.funding-scheme-detail ul,
+.funding-scheme-content ol,
+.funding-scheme-detail ol {
+  margin: 1rem 0;
+  padding-left: 1.75rem;
+  list-style-position: outside;
+}
+ 
+.funding-scheme-content ul,
+.funding-scheme-detail ul {
+  list-style-type: disc;
+}
+ 
+.funding-scheme-content ol,
+.funding-scheme-detail ol {
+  list-style-type: decimal;
+}
+ 
+.funding-scheme-content li,
+.funding-scheme-detail li {
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+  line-height: 1.6;
+}
+ 
+.funding-scheme-content ul ul,
+.funding-scheme-content ol ul,
+.funding-scheme-detail ul ul,
+.funding-scheme-detail ol ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+/* WordPress Button block - pill style */
+.funding-scheme-detail .wp-block-button__link,
+.funding-scheme-content .wp-block-button__link {
+  display: inline-block;
+  margin: 0.75rem 0;
+  padding: 0.625rem 1.5rem;
+  background: var(--primary);
+  color: white !important;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+ 
+.funding-scheme-detail .wp-block-button__link:hover,
+.funding-scheme-content .wp-block-button__link:hover {
+  background: var(--primary-dark);
+}

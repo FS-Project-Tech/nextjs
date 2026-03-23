@@ -1,5 +1,5 @@
 "use client";
-
+ 
 import Image from "next/image";
 import Link from "next/link";
 import { memo, useState, useCallback, useMemo, type MouseEvent } from "react";
@@ -7,11 +7,21 @@ import { useCart } from "@/components/CartProvider";
 import { useToast } from "@/components/ToastProvider";
 import { WishlistButton } from "@/components/WishlistButton";
 import { formatPriceWithLabel } from "@/lib/format-utils";
-
+ 
+const TAG_COLORS: Record<string, string> = {
+  empower: '#FF8000',
+  new: '#069494',
+};
+ 
+function getTagColor(tag: { name?: string; slug?: string }): string {
+  const key = (tag.slug ?? tag.name ?? '').toLowerCase().trim();
+  return TAG_COLORS[key] ?? '#0d9488';
+}
+ 
 // ============================================================================
 // Types
 // ============================================================================
-
+ 
 export interface ProductCardProps {
   id: number;
   slug: string;
@@ -33,8 +43,9 @@ export interface ProductCardProps {
   compact?: boolean;
   /** Sale/discount % from backend; shown in corner badge when on sale */
   sale_percentage?: number | null;
+  tags?: Array<{ id: number; name: string; slug: string }>;
 }
-
+ 
 interface PriceData {
   regular: number;
   current: number;
@@ -48,27 +59,27 @@ interface PriceData {
   exclPrice: string | null;
   isGstFree: boolean;
 }
-
+ 
 interface RatingData {
   avg: number;
   count: number;
 }
-
+ 
 // ============================================================================
 // Constants
 // ============================================================================
-
+ 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect fill='%23f3f4f6' width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='system-ui' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
-
+ 
 // SVG paths as constants to avoid recreation
 const CART_ICON_PATH = "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 6h12.2M7 13L5 5m2 14a1 1 0 110-2 1 1 0 010 2zm9 0a1 1 0 110-2 1 1 0 010 2z";
 const STAR_ICON_PATH = "M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.564-.954L10 0l2.946 5.956 6.564.954-4.755 4.635 1.123 6.545z";
-
+ 
 // ============================================================================
 // Helper Functions (outside component to avoid recreation)
 // ============================================================================
-
-
+ 
+ 
 function calculatePriceData(
   price: string,
   salePrice?: string,
@@ -79,26 +90,26 @@ function calculatePriceData(
 ): PriceData {
   const regular = regularPrice ? parseFloat(regularPrice) : 0;
   const sale = salePrice ? parseFloat(salePrice) : 0;
-
+ 
   const current = sale > 0 ? sale : parseFloat(price || "0");
-
+ 
   const isOnSale =
     regular > 0 &&
     sale > 0 &&
     sale < regular;
-
+ 
   const discount = isOnSale
     ? Math.round(((regular - sale) / regular) * 100)
     : 0;
-
+ 
   const savingsAmount = isOnSale ? regular - sale : 0;
   const savings = savingsAmount > 0 ? `$${savingsAmount.toFixed(2)}` : "";
-
+ 
   let formattedPrice = `$${current.toFixed(2)}`;
   let label = "Price";
   let exclPrice: string | null = null;
   let isGstFree = false;
-
+ 
   let formattedRegularWithLabel = `$${regular.toFixed(2)}`;
   try {
     const priceInfo = formatPriceWithLabel(current, taxClass, taxStatus);
@@ -110,7 +121,7 @@ function calculatePriceData(
     formattedRegularWithLabel =
       regularInfo.label ? `${regularInfo.label}: ${regularInfo.price}` : regularInfo.price;
   } catch {}
-
+ 
   return {
     regular,
     current,
@@ -125,22 +136,22 @@ function calculatePriceData(
     isGstFree,
   };
 }
-
-
+ 
+ 
 function calculateRatingData(ratingCount?: number, averageRating?: string): RatingData | null {
   const count = Number(ratingCount || 0);
   if (count <= 0) return null;
-  
+ 
   const avg = parseFloat(averageRating || "0") || 0;
   const clampedAvg = Math.max(0, Math.min(5, avg));
-  
+ 
   return isNaN(clampedAvg) ? null : { avg: Math.round(clampedAvg), count };
 }
-
+ 
 // ============================================================================
 // Sub-components (memoized for performance)
 // ============================================================================
-
+ 
 const StarRating = memo(function StarRating({ rating }: { rating: RatingData }) {
   return (
     <div className="mt-2 flex items-center gap-1" role="img" aria-label={`Rated ${rating.avg} out of 5 stars`}>
@@ -160,7 +171,7 @@ const StarRating = memo(function StarRating({ rating }: { rating: RatingData }) 
     </div>
   );
 });
-
+ 
 const DiscountBadge = memo(function DiscountBadge({
   discount,
   saleOnly,
@@ -180,8 +191,8 @@ const DiscountBadge = memo(function DiscountBadge({
     </span>
   );
 });
-
-
+ 
+ 
 const LoadingSpinner = memo(function LoadingSpinner() {
   return (
     <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -190,11 +201,11 @@ const LoadingSpinner = memo(function LoadingSpinner() {
     </svg>
   );
 });
-
+ 
 // ============================================================================
 // Main Component
 // ============================================================================
-
+ 
 function ProductCardComponent({
   id,
   slug,
@@ -213,43 +224,44 @@ function ProductCardComponent({
   priority = false,
   compact = false,
   sale_percentage: salePercentageFromBackend,
+  tags,
 }: ProductCardProps) {
-
+ 
   // Hooks
   const { addItem, open: openCart } = useCart();
   const { success, error: showError } = useToast();
-
+ 
   // Local state
   const [addingToCart, setAddingToCart] = useState(false);
   const [imageError, setImageError] = useState(false);
-
+ 
   // Memoized calculations
   const priceData = useMemo(
     () => calculatePriceData(price, sale_price, regular_price, on_sale, tax_class, tax_status),
     [price, sale_price, regular_price, on_sale, tax_class, tax_status]
   );
-
+ 
   const ratingData = useMemo(
     () => calculateRatingData(rating_count, average_rating),
     [rating_count, average_rating]
   );
-
+ 
   const productUrl = useMemo(() => `/products/${slug}`, [slug]);
-
+ 
   // Stable image source
   const imageSrc = useMemo(() => {
     if (imageError || !imageUrl) return PLACEHOLDER_IMAGE;
     return imageUrl;
   }, [imageUrl, imageError]);
-
+ 
   // Event handlers (useCallback for stable references)
   const handleImageError = useCallback(() => {
     setImageError(true);
   }, []);
-
+ 
   const handleAddToCart = useCallback(async () => {
     if (addingToCart) return;
-
+ 
     setAddingToCart(true);
     try {
       addItem({
@@ -263,7 +275,7 @@ function ProductCardComponent({
         tax_class: tax_class || undefined,
         tax_status: tax_status || undefined,
       });
-
+ 
       openCart();
       success("Added to cart");
     } catch (err) {
@@ -273,133 +285,8 @@ function ProductCardComponent({
       setAddingToCart(false);
     }
   }, [id, name, slug, imageUrl, price, sale_price, sku, tax_class, tax_status, addingToCart, addItem, openCart, success, showError]);
-
-  // Render
-  // return (
-  //   <article
-  //     className="group relative flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md"
-  //     style={{ contain: "layout style paint" }}
-  //   >
-  //     {/* Image Section */}
-  //     <Link
-  //       href={productUrl}
-  //       className="block rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
-  //       aria-label={`View ${name}`}
-  //       prefetch={false}
-  //     >
-  //       <div className={`relative bg-gray-100 ${compact ? "aspect-[4/3]" : "aspect-square"}`}>
-  //         <Image
-  //           src={imageSrc}
-  //           alt={imageAlt || name}
-  //           width={400}
-  //           height={400}
-  //           className="object-contain transition-transform duration-300 will-change-transform p-5 bg-white"
-  //           loading={priority ? "eager" : "lazy"}
-  //           priority={priority}
-  //           onError={handleImageError}
-  //         />
-  //         {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
-  //         priceData.isOnSale ||
-  //         on_sale ? (
-  //           <DiscountBadge
-  //             discount={
-  //               salePercentageFromBackend != null && salePercentageFromBackend > 0
-  //                 ? salePercentageFromBackend
-  //                 : priceData.discount
-  //             }
-  //             saleOnly={
-  //               on_sale &&
-  //               !priceData.isOnSale &&
-  //               (salePercentageFromBackend == null || salePercentageFromBackend <= 0)
-  //             }
-  //           />
-  //         ) : null}
-  //       </div>
-  //     </Link>
-
-  //     {/* Content Section */}
-  //     <div className={`flex flex-1 flex-col gap-2 ${compact ? "p-3" : "p-3 sm:p-4"}`}>
-  //       {/* Product Info */}
-  //       <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
-  //         <Link
-  //           href={productUrl}
-  //           className={'block font-medium text-[14px] line-clamp-2 min-h-[3.75rem] transition-colors hover:text-teal-700 focus-visible:outline-none focus-visible:underline'}
-  //           prefetch={false}
-  //         >
-  //           {name}
-  //         </Link>
-
-  //         <p className="mt-1 min-h-[1rem] text-[11px] text-gray-500 truncate sm:text-xs text-dark">
-  //           {sku ? `SKU: ${sku}` : "\u00A0"}
-  //         </p>
-
-
-  //         <div className="hidden min-h-[1.25rem] sm:block">
-  //           {ratingData && <StarRating rating={ratingData} />}
-  //         </div>
-
-  //       </div>
-
-  //       {/* Pricing */}
-  //       <div className="space-y-1 min-h-[2.75rem] sm:min-h-[3.5rem]">
-  //         {priceData.isOnSale && (
-  //           <div className="flex flex-wrap items-center gap-2">
-  //             <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularWithLabel}</p>
-  //             <span className="text-xs font-semibold text-green-600">
-  //               Save {priceData.savings}
-  //             </span>
-  //           </div>
-  //         )}
-
-  //         <div className={priceData.isGstFree ? "text-emerald-700" : undefined}>
-  //           <p className={`font-bold text-[16px]`}>
-  //             {priceData.label}: {priceData.formattedCurrent}
-  //           </p>
-
-  //           {priceData.exclPrice && (
-  //             <p className="hidden text-xs text-gray-600 sm:block">
-  //               Excl. GST: {priceData.exclPrice}
-  //             </p>
-  //           )}
-  //         </div>
-
-  //         {priceData.isOnSale && (
-  //           <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-  //             Sale
-  //           </span>
-  //         )}
-  //       </div>
-
-  //       {/* Actions */}
-  //       <div className="mt-auto flex items-center gap-2 pt-2">
-  //         <button
-  //           type="button"
-  //           onClick={handleAddToCart}
-  //           disabled={addingToCart}
-  //           className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-  //           aria-label={`Add ${name} to cart`}
-  //           aria-busy={addingToCart}
-  //         >
-  //           {addingToCart ? (
-  //             <>
-  //               <LoadingSpinner />
-  //               <span className="sr-only sm:not-sr-only">Adding…</span>
-  //             </>
-  //           ) : (
-  //             <>
-  //               <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-  //                 <path strokeLinecap="round" strokeLinejoin="round" d={CART_ICON_PATH} />
-  //               </svg>
-  //               <span className="sr-only sm:not-sr-only">Add to cart</span>
-  //             </>
-  //           )}
-  //         </button>
-          
-  //         <WishlistButton productId={id} size="md" variant="icon" />
-  //       </div>
-  //     </div>
-  //   </article>
-  // );
+ 
+ 
   return (
     <article
       className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-md"
@@ -421,12 +308,26 @@ function ProductCardComponent({
             className="object-contain p-4"
             onError={handleImageError}
           />
-
+ 
           {/* Wishlist Button */}
           <div className="absolute top-2 left-2 z-10">
             <WishlistButton productId={id} size="sm" variant="icon" className="bg-white rounded-full shadow-sm hover:scale-110 transition" />
           </div>
-
+          {/* Product Tags - top right */}
+          {tags && tags.length > 0 && (
+            <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+              {tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+                  style={{ backgroundColor: getTagColor(tag) }}
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+ 
           {/* Discount Badge */}
           {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
           priceData.isOnSale ||
@@ -446,7 +347,7 @@ function ProductCardComponent({
           ) : null}
         </div>
       </Link>
-
+ 
       {/* Content Section */}
       <div className="flex flex-1 flex-col pt-3">
         {/* Product Info */}
@@ -457,18 +358,18 @@ function ProductCardComponent({
           >
             {name}
           </Link>
-
+ 
           <p className="mt-1 text-xs text-gray-500 min-h-[18px]">
             {sku ? `SKU: ${sku}` : "\u00A0"}
           </p>
-
-
+ 
+ 
           <div className="hidden min-h-[1.25rem] sm:block">
             {ratingData && <StarRating rating={ratingData} />}
           </div>
-
+ 
         </div>
-
+ 
         {/* Pricing */}
         <div className="space-y-1 min-h-[2.75rem] sm:min-h-[3.5rem]">
           {priceData.isOnSale && (
@@ -479,12 +380,12 @@ function ProductCardComponent({
               </span>
             </div>
           )}
-
+ 
           <div className={priceData.isGstFree ? "text-emerald-700" : undefined}>
             <p className={`font-bold text-[16px]`}>
               {priceData.label}: {priceData.formattedCurrent}
             </p>
-
+ 
             {priceData.exclPrice && (
               <p className="hidden text-xs text-gray-600 sm:block">
                 Excl. GST: {priceData.exclPrice}
@@ -492,7 +393,7 @@ function ProductCardComponent({
             )}
           </div>
         </div>
-
+ 
         {/* Actions */}
         <div className="mt-auto flex items-center gap-2 pt-2">
           <button
@@ -517,21 +418,21 @@ function ProductCardComponent({
               </>
             )}
           </button>
-          
+         
          
         </div>
       </div>
     </article>
   );
 }
-
-
-
-
+ 
+ 
+ 
+ 
 // ============================================================================
 // Export with memo + custom comparison
 // ============================================================================
-
+ 
 function propsAreEqual(prev: ProductCardProps, next: ProductCardProps): boolean {
   // Compare only props that affect rendering
   return (
@@ -550,10 +451,11 @@ function propsAreEqual(prev: ProductCardProps, next: ProductCardProps): boolean 
     prev.rating_count === next.rating_count &&
     prev.priority === next.priority &&
     prev.compact === next.compact &&
-    prev.sale_percentage === next.sale_percentage
+    prev.sale_percentage === next.sale_percentage &&
+    JSON.stringify(prev.tags ?? []) === JSON.stringify(next.tags ?? [])
   );
 }
-
+ 
 const ProductCard = memo(ProductCardComponent, propsAreEqual);
-
+ 
 export default ProductCard;

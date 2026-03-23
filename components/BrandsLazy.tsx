@@ -76,15 +76,15 @@ export default function BrandsLazy({ brands }: { brands: Brand[] }) {
               href={`/brands/${brand.slug}`}
               className="group flex flex-col rounded-xl border border-gray-200 bg-white p-4 text-center shadow-sm transition-all hover:border-teal-300 hover:shadow-md"
             >
-              <div className="flex min-h-[100px] items-center justify-center rounded-lg bg-gray-50 p-3">
+              <div className="flex min-h-[150px] items-center justify-center rounded-lg bg-gray-50 p-3">
                 {brand.image ? (
-                  <div className="relative h-24 w-24">
+                  <div className="relative h-32 w-32">
                     <Image
                       src={brand.image}
                       alt={brand.name}
                       fill
                       className="object-contain"
-                      sizes="120px"
+                      sizes="150px"
                     />
                   </div>
                 ) : (

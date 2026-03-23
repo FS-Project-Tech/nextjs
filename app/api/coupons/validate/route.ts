@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import wcAPI from "@/lib/woocommerce";
 import { createPublicApiHandler, API_TIMEOUT } from "@/lib/api-middleware";
 import { sanitizeResponse } from "@/lib/sanitize";
-
+ 
 /**
  * Validate coupon code via WooCommerce API
  * Returns discount amount and details if valid
@@ -11,23 +11,37 @@ import { sanitizeResponse } from "@/lib/sanitize";
 async function validateCoupon(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, items } = body;
-
+    const { code, items = [], subtotal } = body;
+ 
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
         { error: "Coupon code is required" },
         { status: 400 }
       );
     }
-
-    // Fetch coupon from WooCommerce
+ 
+    const trimmedCode = code.trim();
+ 
+    // Fetch coupon from WooCommerce (try exact match first, then search - case-insensitive)
     let coupon;
     try {
-      const response = await wcAPI.get('/coupons', {
-        params: { code: code.trim().toUpperCase(), per_page: 1 },
+      let response = await wcAPI.get('/coupons', {
+        params: { code: trimmedCode, per_page: 1 },
       });
-      const coupons = response.data;
-      coupon = coupons && coupons.length > 0 ? coupons[0] : null;
+      let coupons = response.data;
+      if (!coupons || coupons.length === 0) {
+        response = await wcAPI.get('/coupons', {
+          params: { search: trimmedCode, per_page: 10 },
+        });
+        coupons = response.data || [];
+        coupon = Array.isArray(coupons)
+          ? coupons.find((c: { code?: string }) =>
+              (c.code || '').toLowerCase() === trimmedCode.toLowerCase()
+            ) ?? coupons[0]
+          : null;
+      } else {
+        coupon = coupons[0];
+      }
     } catch (error) {
       console.error('Coupon fetch error:', error);
       return NextResponse.json(
@@ -35,17 +49,17 @@ async function validateCoupon(req: NextRequest) {
         { status: 500 }
       );
     }
-
+ 
     if (!coupon) {
       return NextResponse.json(
-        { 
+        {
           valid: false,
-          error: "Invalid coupon code" 
+          error: "Invalid coupon code"
         },
         { status: 200 } // Return 200 with valid: false for frontend handling
       );
     }
-
+ 
     // Check if coupon is active
     if (coupon.status !== 'publish') {
       return NextResponse.json({
@@ -53,7 +67,7 @@ async function validateCoupon(req: NextRequest) {
         error: "This coupon is not active",
       });
     }
-
+ 
     // Check expiry dates
     const now = new Date();
     if (coupon.date_expires && new Date(coupon.date_expires) < now) {
@@ -62,7 +76,7 @@ async function validateCoupon(req: NextRequest) {
         error: "This coupon has expired",
       });
     }
-
+ 
     // Check usage limits
     if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
       return NextResponse.json({
@@ -70,17 +84,95 @@ async function validateCoupon(req: NextRequest) {
         error: "This coupon has reached its usage limit",
       });
     }
-
-    // Calculate discount amount (we'll need cart total for percentage/fixed cart discounts)
-    // For now, return coupon details and let frontend calculate
-    // In production, you'd validate against actual cart items
-
+ 
+    const discountTypeRaw = (coupon.discount_type || 'fixed_cart').toLowerCase();
+    const normalizedType = discountTypeRaw === 'percentage' ? 'percent' : discountTypeRaw;
+    const isPercent = normalizedType === 'percent' || discountTypeRaw.includes('percent');
+ 
+    // Calculate discount when subtotal is provided
+    let discount = 0;
+    const subtotalNum = typeof subtotal === 'number' ? subtotal : parseFloat(String(subtotal || 0)) || 0;
+    if (subtotalNum > 0 && Array.isArray(items)) {
+      let applicableSubtotal = subtotalNum;
+      let applicableItems = items;
+ 
+      if (coupon.minimum_amount && parseFloat(coupon.minimum_amount) > subtotalNum) {
+        return NextResponse.json({
+          valid: false,
+          error: `Minimum order amount of $${coupon.minimum_amount} required`,
+        });
+      }
+      if (coupon.exclude_sale_items) {
+        applicableItems = items.filter((item: any) => !item.on_sale);
+        applicableSubtotal = applicableItems.reduce(
+          (sum: number, item: any) => sum + parseFloat(item.price || 0) * item.qty,
+          0
+        );
+      }
+      if (coupon.product_ids && coupon.product_ids.length > 0) {
+        applicableItems = items.filter((item: any) => coupon.product_ids.some((id: any) => Number(id) === Number(item.productId)));
+        applicableSubtotal = applicableItems.reduce(
+          (sum: number, item: any) => sum + parseFloat(item.price || 0) * item.qty,
+          0
+        );
+        if (applicableItems.length === 0) {
+          return NextResponse.json({
+            valid: false,
+            error: "This coupon is not valid for the products in your cart.",
+          });
+        }
+      }
+      if (coupon.excluded_product_ids && coupon.excluded_product_ids.length > 0) {
+        applicableItems = items.filter(
+          (item: any) => !coupon.excluded_product_ids.some((id: any) => Number(id) === Number(item.productId))
+        );
+        applicableSubtotal = applicableItems.reduce(
+          (sum: number, item: any) => sum + parseFloat(item.price || 0) * item.qty,
+          0
+        );
+      }
+ 
+      if (applicableItems.length === 0) {
+        return NextResponse.json({
+          valid: false,
+          error: "This coupon is not valid for the products in your cart.",
+        });
+      }
+ 
+      if (isPercent || discountTypeRaw === 'percent' || discountTypeRaw === 'percentage') {
+        discount = (applicableSubtotal * parseFloat(coupon.amount || '0')) / 100;
+        if (coupon.maximum_amount) {
+          discount = Math.min(discount, parseFloat(coupon.maximum_amount));
+        }
+      } else if (discountTypeRaw === 'fixed_cart') {
+        discount = parseFloat(coupon.amount || '0');
+      } else if (discountTypeRaw === 'fixed_product') {
+        discount = applicableItems.reduce((sum: number, item: any) => {
+          return sum + Math.min(
+            parseFloat(coupon.amount || '0') * item.qty,
+            parseFloat(item.price || '0') * item.qty
+          );
+        }, 0);
+      }
+      discount = Math.min(discount, applicableSubtotal);
+    }
+ 
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Coupon API]', {
+        code: trimmedCode,
+        subtotalNum,
+        discountType: coupon.discount_type,
+        amount: coupon.amount,
+        discount,
+      });
+    }
+ 
     return NextResponse.json({
       valid: true,
       coupon: {
         id: coupon.id,
         code: coupon.code,
-        type: coupon.discount_type, // 'percent', 'fixed_cart', 'fixed_product'
+        type: normalizedType,
         amount: coupon.amount,
         minimum_amount: coupon.minimum_amount,
         maximum_amount: coupon.maximum_amount,
@@ -94,19 +186,20 @@ async function validateCoupon(req: NextRequest) {
         usage_count: coupon.usage_count,
         expiry_date: coupon.date_expires,
       },
+      discount: parseFloat(discount.toFixed(2)),
     });
   } catch (error) {
     console.error("Coupon validation error:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Coupon validation failed",
-        details: (error instanceof Error ? error.message : 'An error occurred') 
+        details: (error instanceof Error ? error.message : 'An error occurred')
       },
       { status: 500 }
     );
   }
 }
-
+ 
 /**
  * Calculate discount amount for cart items
  * Protected with rate limiting and response sanitization
@@ -115,21 +208,35 @@ async function calculateDiscount(req: NextRequest) {
   try {
     const body = await req.json();
     const { code, items, subtotal } = body;
-
+ 
     if (!code || !items || !Array.isArray(items)) {
       return NextResponse.json(
         { error: "Coupon code, items, and subtotal are required" },
         { status: 400 }
       );
     }
-
-    // Fetch coupon
-    const response = await wcAPI.get('/coupons', {
-      params: { code: code.trim().toUpperCase(), per_page: 1 },
+ 
+    // Fetch coupon (same lookup as validateCoupon - case-insensitive)
+    const trimmedCode = typeof code === 'string' ? code.trim() : '';
+    let coupon;
+    let response = await wcAPI.get('/coupons', {
+      params: { code: trimmedCode, per_page: 1 },
     });
-    const coupons = response.data;
-    const coupon = coupons && coupons.length > 0 ? coupons[0] : null;
-
+    let coupons = response.data;
+    if (!coupons || coupons.length === 0) {
+      response = await wcAPI.get('/coupons', {
+        params: { search: trimmedCode, per_page: 10 },
+      });
+      coupons = response.data || [];
+      coupon = Array.isArray(coupons)
+        ? coupons.find((c: { code?: string }) =>
+            (c.code || '').toLowerCase() === trimmedCode.toLowerCase()
+          ) ?? coupons[0]
+        : null;
+    } else {
+      coupon = coupons[0];
+    }
+ 
     if (!coupon || coupon.status !== 'publish') {
       return NextResponse.json({
         valid: false,
@@ -137,20 +244,21 @@ async function calculateDiscount(req: NextRequest) {
         error: "Invalid coupon",
       });
     }
-
+ 
     // Calculate discount based on coupon type
     let discount = 0;
-    let applicableSubtotal = subtotal;
-
+    const subtotalNum = typeof subtotal === 'number' ? subtotal : parseFloat(String(subtotal || 0)) || 0;
+    let applicableSubtotal = subtotalNum;
+ 
     // Check minimum amount
-    if (coupon.minimum_amount && parseFloat(coupon.minimum_amount) > subtotal) {
+    if (coupon.minimum_amount && parseFloat(coupon.minimum_amount) > subtotalNum) {
       return NextResponse.json({
         valid: false,
         discount: 0,
         error: `Minimum order amount of $${coupon.minimum_amount} required`,
       });
     }
-
+ 
     // Filter items based on coupon restrictions
     let applicableItems = items;
     if (coupon.exclude_sale_items) {
@@ -161,32 +269,49 @@ async function calculateDiscount(req: NextRequest) {
         0
       );
     }
-
+ 
     if (coupon.product_ids && coupon.product_ids.length > 0) {
       // Only apply to specific products
       applicableItems = items.filter((item: any) =>
-        coupon.product_ids.includes(item.productId)
+        coupon.product_ids.some((id: any) => Number(id) === Number(item.productId))
       );
       applicableSubtotal = applicableItems.reduce(
         (sum: number, item: any) => sum + parseFloat(item.price || 0) * item.qty,
         0
       );
+      if (applicableItems.length === 0) {
+        return NextResponse.json({
+          valid: false,
+          discount: 0,
+          error: "This coupon is not valid for the products in your cart.",
+        });
+      }
     }
-
+ 
     if (coupon.excluded_product_ids && coupon.excluded_product_ids.length > 0) {
       // Exclude specific products
       applicableItems = items.filter(
-        (item: any) => !coupon.excluded_product_ids.includes(item.productId)
+        (item: any) => !coupon.excluded_product_ids.some((id: any) => Number(id) === Number(item.productId))
       );
       applicableSubtotal = applicableItems.reduce(
         (sum: number, item: any) => sum + parseFloat(item.price || 0) * item.qty,
         0
       );
     }
-
-    // Calculate discount
-    switch (coupon.discount_type) {
+ 
+    if (applicableItems.length === 0) {
+      return NextResponse.json({
+        valid: false,
+        discount: 0,
+        error: "This coupon is not valid for the products in your cart.",
+      });
+    }
+ 
+    // Calculate discount (WooCommerce may return 'percent' or 'percentage')
+    const discountType = (coupon.discount_type || '').toLowerCase();
+    switch (discountType) {
       case 'percent':
+      case 'percentage':
         discount = (applicableSubtotal * parseFloat(coupon.amount || '0')) / 100;
         if (coupon.maximum_amount) {
           discount = Math.min(discount, parseFloat(coupon.maximum_amount));
@@ -207,10 +332,10 @@ async function calculateDiscount(req: NextRequest) {
       default:
         discount = 0;
     }
-
+ 
     // Ensure discount doesn't exceed subtotal
     discount = Math.min(discount, applicableSubtotal);
-
+ 
     return NextResponse.json({
       valid: true,
       discount: parseFloat(discount.toFixed(2)),
@@ -224,15 +349,15 @@ async function calculateDiscount(req: NextRequest) {
     console.error("Discount calculation error:", error);
     const message = error instanceof Error ? error.message : 'Discount calculation failed';
     return NextResponse.json(
-      { 
+      {
         error: "Discount calculation failed",
-        details: message 
+        details: message
       },
       { status: 500 }
     );
   }
 }
-
+ 
 // Export with security middleware
 export const POST = createPublicApiHandler(validateCoupon, {
   rateLimit: {
@@ -243,7 +368,7 @@ export const POST = createPublicApiHandler(validateCoupon, {
   sanitize: true,
   allowedMethods: ['POST'],
 });
-
+ 
 // Export PUT handler with security middleware
 export const PUT = createPublicApiHandler(calculateDiscount, {
   rateLimit: {
@@ -254,5 +379,3 @@ export const PUT = createPublicApiHandler(calculateDiscount, {
   sanitize: true,
   allowedMethods: ['PUT'],
 });
-
-

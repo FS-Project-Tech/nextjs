@@ -8,9 +8,9 @@ import {
   CACHE_TAGS,
   PRODUCT_CACHE_HEADERS,
 } from '@/lib/cache';
-
+ 
 const isDev = process.env.NODE_ENV === 'development';
-
+ 
 /**
  * Sanitize string input - remove dangerous characters
  */
@@ -22,7 +22,7 @@ function sanitizeInput(input: string | null): string {
     .trim()
     .slice(0, 200);
 }
-
+ 
 /**
  * Validate and clamp numeric input
  */
@@ -37,53 +37,54 @@ function sanitizeNumber(
   if (isNaN(num)) return defaultVal;
   return Math.min(Math.max(num, min), max);
 }
-
+ 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-
-    // Cache bypass (admin / debug safe)
+ 
+    // Cache bypass (admin / debug safe) – use ?nocache=1 to see fresh data (e.g. after adding tags)
     const bypassCache =
+      searchParams.get('nocache') === '1' ||
       request.headers.get('cache-control')?.includes('no-cache') ||
       request.headers.get('x-bypass-cache') === 'true';
-
+ 
     const params: Record<string, any> = {};
-
+ 
     // Pagination (hard limits)
     params.per_page = sanitizeNumber(searchParams.get('per_page'), 1, 100, 24);
     params.page = sanitizeNumber(searchParams.get('page'), 1, 1000, 1);
-
+ 
     // Prevent deep OFFSET abuse (Woo safety)
     if (params.page > 100 && !searchParams.get('search')) {
       params.page = 100;
     }
-
+ 
     // Category
     const categoryParam =
       searchParams.get('category') || searchParams.get('categorySlug');
     if (categoryParam) params.categorySlug = sanitizeInput(categoryParam);
-
+ 
     const categories = searchParams.get('categories');
     if (categories) params.categories = sanitizeInput(categories);
-
+ 
     // Filters
     const brands = searchParams.get('brands');
     if (brands) params.brands = sanitizeInput(brands);
-
+ 
     const tags = searchParams.get('tags') || searchParams.get('tag');
     if (tags) params.tags = sanitizeInput(tags);
-
+ 
     // Price filters (numeric only)
     const minPrice = searchParams.get('minPrice');
     if (minPrice && /^\d+(\.\d+)?$/.test(minPrice)) {
       params.minPrice = minPrice;
     }
-
+ 
     const maxPrice = searchParams.get('maxPrice');
     if (maxPrice && /^\d+(\.\d+)?$/.test(maxPrice)) {
       params.maxPrice = maxPrice;
     }
-
+ 
     // Sorting (whitelist) – must match UI + fetchProducts sortBy mapping
     const sortBy = searchParams.get('sortBy');
     const allowedSorts = [
@@ -96,7 +97,7 @@ export async function GET(request: NextRequest) {
     if (sortBy && allowedSorts.includes(sortBy)) {
       params.sortBy = sortBy;
     }
-
+ 
     // Search
     const search =
       searchParams.get('search') ||
@@ -105,19 +106,19 @@ export async function GET(request: NextRequest) {
     if (search && search.trim()) {
       params.search = sanitizeInput(search).slice(0, 100);
     }
-
+ 
     // Featured
     const featured = searchParams.get('featured');
     if (featured === 'true' || featured === '1') {
       params.featured = true;
     }
-
+ 
     // On sale (clearance)
     const onSale = searchParams.get('on_sale');
     if (onSale === 'true' || onSale === '1') {
       params.on_sale = true;
     }
-
+ 
     // Include product IDs
     const include = searchParams.get('include');
     if (include) {
@@ -125,12 +126,12 @@ export async function GET(request: NextRequest) {
         .split(',')
         .filter((id) => /^\d+$/.test(id.trim()))
         .map((id) => parseInt(id.trim(), 10));
-
+ 
       if (ids.length > 0) {
         params.include = ids;
       }
     }
-
+ 
     /**
      * WooCommerce performance guard:
      * Avoid expensive combinations
@@ -139,7 +140,7 @@ export async function GET(request: NextRequest) {
       delete params.tags;
       delete params.brands;
     }
-
+ 
     /**
      * Ensure stable cache key (sorted params)
      */
@@ -149,20 +150,36 @@ export async function GET(request: NextRequest) {
         acc[key] = params[key];
         return acc;
       }, {} as Record<string, any>);
-
+ 
     const cacheKey = productsKey(stableParams);
-
+ 
     if (isDev) {
       console.log('📥 /api/products params:', stableParams);
       console.log('🧠 Cache key:', cacheKey);
     }
-
+ 
     const result = await cached(
       cacheKey,
       async () => {
         const raw = await fetchProducts(stableParams);
+        const normalizeTags = (products: WooCommerceProduct[]) =>
+          products.map((p: WooCommerceProduct & Record<string, unknown>) => {
+            const tags = p.tags;
+            if (!tags || !Array.isArray(tags)) return p;
+            const normalized = tags
+              .map((t: unknown) => {
+                if (t && typeof t === 'object' && 'id' in t) {
+                  const obj = t as { id?: number; name?: string; slug?: string };
+                  return { id: obj.id ?? 0, name: obj.name ?? '', slug: obj.slug ?? '' };
+                }
+                return null;
+              })
+              .filter(Boolean) as Array<{ id: number; name: string; slug: string }>;
+            return { ...p, tags: normalized };
+          });
+ 
         if (!stableParams.on_sale || !raw?.products?.length) {
-          return raw;
+          return { ...raw, products: normalizeTags(raw?.products ?? []) };
         }
         const enrichedProducts = await Promise.all(
           raw.products.map(async (p: WooCommerceProduct) => {
@@ -185,7 +202,7 @@ export async function GET(request: NextRequest) {
                   : p.sale_price;
               const displayPrice =
                 full.price != null && full.price !== '' ? String(full.price) : p.price;
-
+ 
               if (
                 (!regular || !sale) &&
                 fullAny.type === 'variable' &&
@@ -207,7 +224,7 @@ export async function GET(request: NextRequest) {
                   // keep existing
                 }
               }
-
+ 
               return {
                 ...p,
                 regular_price: regular ?? p.regular_price,
@@ -219,9 +236,16 @@ export async function GET(request: NextRequest) {
             }
           })
         );
+        const productsWithTags = normalizeTags(enrichedProducts);
+ 
+        if (isDev && productsWithTags.length > 0) {
+          const first = productsWithTags[0] as WooCommerceProduct & Record<string, unknown>;
+          console.log('📦 First product tags:', first?.tags ?? 'none');
+        }
+ 
         return {
           ...raw,
-          products: enrichedProducts,
+          products: productsWithTags,
         };
       },
       {
@@ -230,7 +254,7 @@ export async function GET(request: NextRequest) {
         skipCache: bypassCache,
       }
     );
-
+ 
     if (isDev) {
       console.log('📤 /api/products response:', {
         products: result.products.length,
@@ -239,7 +263,7 @@ export async function GET(request: NextRequest) {
         cached: !bypassCache,
       });
     }
-
+ 
     return NextResponse.json(result, {
       headers: {
         ...PRODUCT_CACHE_HEADERS,
@@ -252,7 +276,7 @@ export async function GET(request: NextRequest) {
     if (isDev) {
       console.error('❌ /api/products error:', error);
     }
-
+ 
     return NextResponse.json(
       {
         error: 'Unable to load products',

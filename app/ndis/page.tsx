@@ -9,7 +9,7 @@ import {
   RotateCcw,
   Phone,
 } from "lucide-react";
-
+ 
 export const metadata: Metadata = {
   title: "NDIS | Medical Supplies for NDIS Participants",
   description:
@@ -21,12 +21,12 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: "/ndis" },
 };
-
+ 
 /* Brand colors – also in globals.css as --ndis-primary, --ndis-secondary (hex here for gradient/alpha) */
 const NDIS_PRIMARY = "#5B1D65";
 const NDIS_SECONDARY = "#1F605F";
 const CONTENT_MAX_W = "max-w-7xl"; // use more page width – less empty space on sides
-
+ 
 const WHY_JOYA = [
   { icon: ShoppingBag, text: "Store Pickup Option" },
   { icon: Headphones, text: "24/7 Customer Support Via Email" },
@@ -35,7 +35,7 @@ const WHY_JOYA = [
   { icon: Gift, text: "Free Sampling" },
   { icon: RotateCcw, text: "Easy Return Policy" },
 ];
-
+ 
 export default function NDISPage() {
   return (
     <div className="min-h-screen bg-white">
@@ -59,7 +59,7 @@ export default function NDISPage() {
               #WE SUPPORT NDIS
             </span>
           </div>
-
+ 
           {/* Left-aligned main content */}
           <div className="text-left">
             <div
@@ -110,7 +110,7 @@ export default function NDISPage() {
           </div>
         </div>
       </section>
-
+ 
       {/* NDIS Participants – theory content */}
       <section className="py-14 md:py-20 bg-white">
         <div className={`container mx-auto ${CONTENT_MAX_W} px-4 sm:px-6`}>
@@ -128,7 +128,7 @@ export default function NDISPage() {
           </div>
         </div>
       </section>
-
+ 
       {/* Why Choose Joya – same width; cards equal height */}
       <section className="py-14 md:py-20 bg-gray-100">
         <div className={`container mx-auto ${CONTENT_MAX_W} px-4 sm:px-6 text-center`}>
@@ -153,7 +153,7 @@ export default function NDISPage() {
           </div>
         </div>
       </section>
-
+ 
       {/* NDIS info block – theory content; less bottom padding to reduce gap to How to Register */}
       <section className="pt-14 md:pt-20 pb-6 md:pb-8 bg-white">
         <div className={`container mx-auto ${CONTENT_MAX_W} px-4 sm:px-6 space-y-4 text-gray-700 leading-relaxed`}>
@@ -168,7 +168,7 @@ export default function NDISPage() {
           </p>
         </div>
       </section>
-
+ 
       {/* How to Register – less top padding so theory and this section sit closer */}
       <section id="register" className="pt-6 md:pt-8 pb-14 md:pb-20 bg-white">
         <div className="mx-auto max-w-[96rem] px-4 sm:px-6 lg:px-8">
@@ -181,7 +181,7 @@ export default function NDISPage() {
           <p className="text-center text-sm text-gray-500 mb-6">
             For Direct NDIS Inquiry
           </p>
-
+ 
           <div className="flex justify-center mb-10">
             <a
               href="tel:0451852124"
@@ -192,11 +192,11 @@ export default function NDISPage() {
               045 1852 124
             </a>
           </div>
-
+ 
           <NDISWizard />
         </div>
       </section>
-
+ 
       {/* Footer strip – full width (NDIS route skips layout container) */}
       <section
         className="w-full text-white py-10 md:py-12"

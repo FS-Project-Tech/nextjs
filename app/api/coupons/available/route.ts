@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import wcAPI from "@/lib/woocommerce";
 import { createPublicApiHandler, API_TIMEOUT } from "@/lib/api-middleware";
 import { sanitizeResponse } from "@/lib/sanitize";
-
+ 
 /**
  * GET /api/coupons/available
  * Fetch available coupons based on cart subtotal
@@ -12,7 +12,7 @@ async function getAvailableCoupons(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const subtotal = parseFloat(searchParams.get('subtotal') || '0');
-
+ 
     // Fetch all published coupons
     const response = await wcAPI.get('/coupons', {
       params: {
@@ -22,10 +22,10 @@ async function getAvailableCoupons(req: NextRequest) {
         order: 'desc',
       },
     });
-
+ 
     const coupons = response.data || [];
     const now = new Date();
-
+ 
     // Filter and format available coupons
     const availableCoupons = coupons
       .filter((coupon: any) => {
@@ -33,12 +33,12 @@ async function getAvailableCoupons(req: NextRequest) {
         if (coupon.date_expires && new Date(coupon.date_expires) < now) {
           return false;
         }
-
+ 
         // Check usage limits
         if (coupon.usage_limit && coupon.usage_count >= coupon.usage_limit) {
           return false;
         }
-
+ 
         // Check minimum amount requirement
         if (coupon.minimum_amount) {
           const minAmount = parseFloat(coupon.minimum_amount);
@@ -46,14 +46,14 @@ async function getAvailableCoupons(req: NextRequest) {
             return false; // Don't show if cart doesn't meet minimum
           }
         }
-
+ 
         return true;
       })
       .map((coupon: any) => {
         // Calculate potential discount
         let discountAmount = 0;
         const minAmount = coupon.minimum_amount ? parseFloat(coupon.minimum_amount) : 0;
-
+ 
         switch (coupon.discount_type) {
           case 'percent':
             discountAmount = (subtotal * parseFloat(coupon.amount || '0')) / 100;
@@ -70,7 +70,7 @@ async function getAvailableCoupons(req: NextRequest) {
             discountAmount = parseFloat(coupon.amount || '0');
             break;
         }
-
+ 
         return {
           id: coupon.id,
           code: coupon.code,
@@ -94,7 +94,7 @@ async function getAvailableCoupons(req: NextRequest) {
         }
         return (a.min_spend || 0) - (b.min_spend || 0);
       });
-
+ 
     return NextResponse.json({
       coupons: availableCoupons,
       count: availableCoupons.length,
@@ -112,7 +112,7 @@ async function getAvailableCoupons(req: NextRequest) {
     );
   }
 }
-
+ 
 // Export with security middleware
 export const GET = createPublicApiHandler(getAvailableCoupons, {
   rateLimit: {
@@ -123,5 +123,3 @@ export const GET = createPublicApiHandler(getAvailableCoupons, {
   sanitize: true,
   allowedMethods: ['GET'],
 });
-
-

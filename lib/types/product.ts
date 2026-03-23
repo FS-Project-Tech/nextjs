@@ -1,5 +1,5 @@
 import type { ImageData, Timestamps, MetaData } from './common';
-
+ 
 /**
  * Unified product type for ProductCard and related components
  * This type is used across ProductsSlider, RecommendedSection, RecentlyViewedSection, etc.
@@ -15,13 +15,15 @@ export interface ProductCardProduct {
   on_sale?: boolean;
   /** Sale/discount percentage from backend (meta or description). Shown on card when set. */
   sale_percentage?: number | null;
+  /** Product tags from WooCommerce (e.g. Empower, New product) */
+  tags?: Array<{ id: number; name: string; slug: string }>;
   tax_class?: string;
   tax_status?: string;
   average_rating?: string;
   rating_count?: number;
   images?: ImageData[];
 }
-
+ 
 /**
  * Full WooCommerce product type
  */
@@ -43,7 +45,7 @@ export interface WooCommerceProduct extends ProductCardProduct, Timestamps {
   variations?: number[];
   meta_data?: MetaData[];
 }
-
+ 
 /**
  * Product attribute
  */
@@ -56,7 +58,7 @@ export interface ProductAttribute {
   variation: boolean;
   options: string[];
 }
-
+ 
 /**
  * Product variation
  */
@@ -73,10 +75,9 @@ export interface ProductVariation {
   attributes: Array<{ id: number; name: string; option: string }>;
   image?: ImageData;
 }
-
+ 
 /**
  * Alias for backward compatibility
  */
 export type UnifiedProduct = ProductCardProduct;
 export type Product = ProductCardProduct;
-

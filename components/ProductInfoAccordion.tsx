@@ -1,26 +1,26 @@
 "use client";
-
+ 
 import { useState } from "react";
 import type { WooCommerceProduct, WooCommerceVariation } from "@/lib/woocommerce";
 import { sanitizeHTML } from "@/lib/xss-sanitizer";
-
+ 
 interface ProductInfoAccordionProps {
   product: WooCommerceProduct;
   variations: WooCommerceVariation[];
 }
-
+ 
 interface AccordionItem {
   id: string;
   title: string;
   content: React.ReactNode;
 }
-
+ 
 export default function ProductInfoAccordion({
   product,
   variations,
 }: ProductInfoAccordionProps) {
   const [openItems, setOpenItems] = useState<Set<string>>(new Set(["description"]));
-
+ 
   const toggleItem = (id: string) => {
     setOpenItems((prev) => {
       if (prev.has(id)) {
@@ -29,21 +29,21 @@ export default function ProductInfoAccordion({
       return new Set([id]);
     });
   };
-
+ 
   const specRow = (label: string, value: React.ReactNode) => (
     <div className="flex flex-wrap justify-between items-baseline gap-x-4 gap-y-1 py-3.5 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0">
       <span className="text-sm font-semibold text-gray-600 uppercase tracking-wide shrink-0">{label}</span>
       <span className="text-[15px] text-gray-900 text-right font-medium">{value}</span>
     </div>
   );
-
+ 
   const hasDimensions =
     product.dimensions &&
     (product.dimensions.length || product.dimensions.width || product.dimensions.height);
   const dimensionsDisplay = hasDimensions
     ? `${product.dimensions?.length || "—"} × ${product.dimensions?.width || "—"} × ${product.dimensions?.height || "—"}`
     : null;
-
+ 
   const accordionItems: AccordionItem[] = [
     {
       id: "description",
@@ -96,47 +96,8 @@ export default function ProductInfoAccordion({
         </div>
       ),
     },
-    {
-      id: "shipping",
-      title: "Shipping & Returns",
-      content: (
-        <div className="space-y-5 text-[15px]">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2.5">Shipping</h4>
-            <p className="text-gray-700 leading-relaxed">
-              {product.shipping_required !== false
-                ? "This item requires shipping."
-                : "This is a digital/virtual product."}
-            </p>
-            {product.shipping_class && (
-              <p className="mt-2 text-gray-700">
-                <span className="font-medium text-gray-600">Shipping Class:</span>{" "}
-                <span className="text-gray-900">{product.shipping_class}</span>
-              </p>
-            )}
-          </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h4 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2.5">Returns</h4>
-            <p className="text-gray-700 leading-relaxed">
-              Please contact us for return information.
-            </p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "additional",
-      title: "Additional Information",
-      content: (
-        <div className="divide-y divide-gray-100">
-          {product.categories && product.categories.length > 0 && specRow("Categories", product.categories.map((cat) => cat.name).join(", "))}
-          {product.tags && product.tags.length > 0 && specRow("Tags", product.tags.map((tag) => tag.name).join(", "))}
-          {product.average_rating != null && Number(product.average_rating) > 0 && specRow("Average Rating", `${product.average_rating} / 5 (${product.rating_count || 0} reviews)`)}
-        </div>
-      ),
-    },
   ];
-
+ 
   return (
     <div className="space-y-3" suppressHydrationWarning>
       {accordionItems.map((item) => (
@@ -175,4 +136,3 @@ export default function ProductInfoAccordion({
     </div>
   );
 }
-
