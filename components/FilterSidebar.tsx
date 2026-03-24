@@ -30,6 +30,8 @@ interface Brand {
 
 interface Props {
   categorySlug?: string;
+  isMobileDrawer?: boolean;
+  onClose?: () => void;
 }
 
 /* ================= CACHE ================= */
