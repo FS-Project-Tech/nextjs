@@ -129,6 +129,7 @@ export default function RootLayout({
         />
 
         <NavigationProgress />
+        <SpeedInsights/>
         <ErrorBoundary>
           <CoreProviders>
             <CommerceProviders>
@@ -152,6 +153,7 @@ export default function RootLayout({
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>
+        <SpeedInsights/>
       </body>
     </html>
   );
