@@ -155,7 +155,7 @@ async function CategoriesNavContent() {
           {/* Funding */}
           <li>
             <PrefetchLink
-              href="/funcing-scheme/"
+              href="/funding-scheme/"
               className="px-3 py-2 text-white hover:bg-nav-hover"
             >
               Funding Scheme
