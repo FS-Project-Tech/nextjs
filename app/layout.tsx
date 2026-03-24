@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import PWARegister from "@/components/PWARegister";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NavigationProgress from "@/components/NavigationProgress";
@@ -151,6 +152,7 @@ export default function RootLayout({
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>
+        <SpeedInsights />
       </body>
     </html>
   );
