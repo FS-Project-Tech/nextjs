@@ -1,22 +1,9 @@
-// lib/algolia.ts
-import { algoliasearch } from "algoliasearch";
+import { liteClient as algoliasearch } from "algoliasearch/lite";
 
+const appId = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID;
+const apiKey = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY;
 
-const client = algoliasearch(
-  process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,  
-  process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY!
-);
-
-export const searchClient = client;
-
-const defaultIndexName = process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME || "woo_products";
-
-// Backward-compatible helper so existing scripts can keep calling:
-// index.saveObjects(objects)
-export const index = {
-  saveObjects: (objects: Record<string, unknown>[]) =>
-    client.saveObjects({
-      indexName: defaultIndexName,
-      objects,
-    }),
-};
+export const searchClient =
+  appId && apiKey
+    ? algoliasearch(appId, apiKey)
+    : ({search: async () => ({ results: [] })}) as unknown as ReturnType<typeof algoliasearch>;
