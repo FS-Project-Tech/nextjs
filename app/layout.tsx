@@ -14,6 +14,7 @@ const poppins = Poppins({
 })
 import "./globals.css";
 import TawkToWidget from "@/components/TawkToWidget";
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 // Validate environment variables at startup (server-side only)
 if (typeof window === 'undefined') {
@@ -148,6 +149,7 @@ export default function RootLayout({
               <BottomNav />
               <PWARegister />
               <TawkToWidget />
+              <SpeedInsights />
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>
