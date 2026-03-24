@@ -10,6 +10,7 @@ import { useSession, signOut } from "next-auth/react";
 import HeaderSearch from "@/components/HeaderSearch";
 import { apiFetchJson } from "@/lib/api";
 import { safeLogoUrl } from "@/lib/api-fallbacks";
+import HeaderUser from "@/components/HeaderUser";
 
 
 export default function Header() {
@@ -128,7 +129,7 @@ export default function Header() {
 
 					</PrefetchLink>
 				</div>
-
+				
 				{/* Mobile Menu Button */}
 				<div className="flex lg:hidden justify-end">
 					<button
@@ -254,12 +255,7 @@ export default function Header() {
 							)}
 						</div>
 					) : (
-						<PrefetchLink
-							href="/login"
-							className="px-3 py-2 rounded hover:bg-gray-100"
-						>
-							Login
-						</PrefetchLink>
+						<HeaderUser />
 					)}
 
 				</div>
