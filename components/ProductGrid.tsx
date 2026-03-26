@@ -228,13 +228,22 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {state.products.map((product) => (
           <ProductCard
-            key={product.id}
-            id={product.id}
-            slug={product.slug}
-            name={product.name}
-            price={product.price}
-            imageUrl={product.images?.[0]?.src || product.image || ""}
-            imageAlt={product.images?.[0]?.alt || product.name}
+          key={product.id}
+          id={product.id}
+          slug={product.slug}
+          name={product.name}
+          sku={product.sku}
+          price={product.price}
+          sale_price={product.sale_price}
+          regular_price={product.regular_price}
+          on_sale={product.on_sale}
+          sale_percentage={product.sale_percentage ?? getSalePercentageFromProduct(product) ?? undefined}
+          tax_class={product.tax_class}
+          tax_status={product.tax_status}
+          average_rating={product.average_rating}
+          rating_count={product.rating_count}
+          imageUrl={product.images?.[0]?.src}
+          imageAlt={product.images?.[0]?.alt || product.name}
           />
         ))}
       </div>
