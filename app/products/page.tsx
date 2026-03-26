@@ -31,11 +31,11 @@ export default function ProductsPage({ searchParams }: any) {
 
   const isSearchPage = !!searchQuery;
 
-  const isFiltering =
-  searchParams.get("search") ||
-  searchParams.get("brands") ||
-  searchParams.get("categories") ||
-  searchParams.get("minPrice");
+  // const isFiltering =
+  // searchParams.get("search") ||
+  // searchParams.get("brands") ||
+  // searchParams.get("categories") ||
+  // searchParams.get("minPrice");
 
   return (
     <div className="min-h-screen py-6 lg:py-12">
@@ -72,11 +72,11 @@ export default function ProductsPage({ searchParams }: any) {
           {/* Product Grid */}
           <div className="flex-1 min-w-0">
             <Suspense fallback={<ProductGridSkeleton count={8} />}>
-            {isFiltering ? (
+            {/* {isFiltering ? (
                 <ProductGridAlgolia />
-              ) : (
+              ) : ( */}
                 <ProductGrid /> // your existing SSR grid
-              )}
+              {/* )} */}
             </Suspense>
           </div>
         </div>
