@@ -10,7 +10,7 @@ export default function SearchWithDropdown() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <InstantSearch searchClient={algoliaClient} indexName="wp_posts_product">
+    <InstantSearch searchClient={algoliaClient} indexName="wp_searchable_posts">
       <div className="relative w-full max-w-xl">
         
         {/* Input */}
