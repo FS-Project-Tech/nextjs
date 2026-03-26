@@ -1,7 +1,7 @@
 "use client";
 
 import { InstantSearch } from "react-instantsearch";
-import { algoliaClient } from "@/lib/algolia";
+import { searchClient } from "@/lib/algolia";
 import { useSearchParams } from "next/navigation";
 import FiltersSidebar from "@/components/search/Filters";
 import ProductHits from "@/components/search/ProductHits";
@@ -12,7 +12,7 @@ export default function SearchPage() {
 
   return (
     <InstantSearch
-      searchClient={algoliaClient}
+      searchClient={searchClient}
       indexName="wp_searchable_posts"
       initialUiState={{
         products: {

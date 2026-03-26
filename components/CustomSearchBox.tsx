@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { InstantSearch } from "react-instantsearch";
-import { algoliaClient } from "@/lib/algolia";
+import { searchClient } from "@/lib/algolia";
 import CustomSearchBox from "./CustomSearchBox";
 import ProductHits from "@/components/search/ProductHits";
 
@@ -10,7 +10,7 @@ export default function SearchWithDropdown() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <InstantSearch searchClient={algoliaClient} indexName="wp_searchable_posts">
+    <InstantSearch searchClient={searchClient} indexName="wp_searchable_posts">
       <div className="relative w-full max-w-xl">
         
         {/* Input */}
