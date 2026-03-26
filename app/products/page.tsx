@@ -8,11 +8,8 @@ import Container from "@/components/Container";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchProductSEO } from "@/lib/wordpress";
 import ProductGridAlgolia from "@/components/ProductGridAlgolia";
+import FilterSidebar from "@/components/FilterSidebar";
 
-// Keep sidebar client-only
-const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
-  ssr: false,
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   // Optional: you can remove this if not needed for listing page
