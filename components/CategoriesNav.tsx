@@ -17,6 +17,11 @@ const NDIS_SUBMENU = [
   { name: "Eligibility", slug: "eligibility" },
 ];
 
+const NURSING_SUBMENU = [
+  { name: "About Nursing", href: "/nursing" },
+  { name: "Our Nursing Services", href: "/our-nursing-services" },
+];
+
 function splitIntoColumns(items: Category[], perColumn = 10) {
   const columns: Category[][] = [];
   for (let i = 0; i < items.length; i += perColumn) {
@@ -163,13 +168,32 @@ async function CategoriesNavContent() {
           </li>
 
           {/* Nursing */}
-          <li>
+          <li className="relative group">
             <PrefetchLink
               href="/nursing/"
-              className="px-3 py-2 text-white hover:bg-nav-hover"
+              className="inline-flex items-center px-3 py-2 text-white hover:bg-nav-hover"
             >
               Nursing
+              <ChevronDown
+                size={16}
+                className="ml-1 transition-transform duration-200 group-hover:rotate-180"
+              />
             </PrefetchLink>
+
+            <div className="absolute left-0 top-full z-50 hidden group-hover:block w-[250px] rounded-lg border bg-white shadow-xl">
+              <ul className="p-3 space-y-1">
+                {NURSING_SUBMENU.map((item) => (
+                  <li key={item.href}>
+                    <PrefetchLink
+                      href={item.href}
+                      className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                    >
+                      {item.name}
+                    </PrefetchLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </li>
 
         </ul>
