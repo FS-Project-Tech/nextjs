@@ -170,30 +170,32 @@ async function CategoriesNavContent() {
           {/* Nursing */}
           <li className="relative group">
             <PrefetchLink
-              href="/nursing/"
+              href="/nursing"
               className="inline-flex items-center px-3 py-2 text-white hover:bg-nav-hover"
+              aria-haspopup={NURSING_SUBMENU.length > 0}
             >
               Nursing
               <ChevronDown
-                size={16}
-                className="ml-1 transition-transform duration-200 group-hover:rotate-180"
+                size={18}
+                className="transition-transform duration-200 group-hover:rotate-180"
               />
             </PrefetchLink>
-
-            <div className="absolute left-0 top-full z-50 hidden group-hover:block w-[250px] rounded-lg border bg-white shadow-xl">
-              <ul className="p-3 space-y-1">
-                {NURSING_SUBMENU.map((item) => (
-                  <li key={item.href}>
-                    <PrefetchLink
-                      href={item.href}
-                      className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                    >
-                      {item.name}
-                    </PrefetchLink>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {NURSING_SUBMENU.length > 0 && (
+              <div className="absolute left-0 top-full z-50 hidden w-[260px] rounded-lg border bg-white shadow-xl group-hover:block">
+                <ul className="p-3 space-y-1">
+                  {NURSING_SUBMENU.map((item) => (
+                    <li key={item.href}>
+                      <PrefetchLink
+                        href={item.href}
+                        className="block rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        {item.name}
+                      </PrefetchLink>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </li>
 
         </ul>
