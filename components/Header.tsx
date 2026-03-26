@@ -14,6 +14,7 @@ import SearchBox from "@/components/search/SearchBox";
 import { InstantSearch } from "react-instantsearch";
 import ProductHits from "@/components/search/ProductHits";
 import { searchClient } from "@/lib/algolia";
+import SearchBar from "@/components/SearchBar";
 
 export default function Header() {
 	const [open, setOpen] = useState(false);
@@ -131,14 +132,7 @@ export default function Header() {
 				{/* Center Search */}
 				<div className="hidden lg:flex lg:col-span-7 justify-center">
 					
-					<InstantSearch searchClient={searchClient} indexName="wp_searchable_posts">
-						<div className="relative w-full max-w-xl">
-						<SearchBox />
-							<div className="absolute left-0 top-full w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[400px] overflow-y-auto z-50">
-								<ProductHits />
-							</div>
-						</div>
-					</InstantSearch>
+				<SearchBar />
 					
 				</div>
 
