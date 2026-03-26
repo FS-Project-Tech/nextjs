@@ -33,6 +33,8 @@ export interface ProductCardProps {
   compact?: boolean;
   /** Sale/discount % from backend; shown in corner badge when on sale */
   sale_percentage?: number | null;
+  tags?: { id: number; name: string; slug: string }[];
+  brands?: { id: number; name: string; slug: string }[];
 }
 
 interface PriceData {
