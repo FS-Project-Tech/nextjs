@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import SearchBar from "@/components/SearchBar";
 
 const floatingChips = [
   { label: "Gloves", emoji: "🧤", href: "/shop?category=gloves" },
@@ -56,12 +55,12 @@ export default function HeroEnhancement() {
         </p>
       </motion.div>
 
-      <motion.div className="max-w-2xl mx-auto mb-8" variants={itemVariants}>
+      {/* <motion.div className="max-w-2xl mx-auto mb-8" variants={itemVariants}>
         <SearchBar className="w-full" />
         <p className="text-xs text-gray-500 text-center mt-2">
           Search among 9,000+ trusted medical products
         </p>
-      </motion.div>
+      </motion.div> */}
 
       <motion.div
         className="flex flex-wrap justify-center gap-3 px-4"
