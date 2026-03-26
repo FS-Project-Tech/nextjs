@@ -1,54 +1,33 @@
 "use client";
 
-import { useRefinementList, useRange } from "react-instantsearch";
-import { RefinementList } from "react-instantsearch";
+import {
+  RefinementList,
+  RangeInput,
+  ToggleRefinement,
+} from "react-instantsearch";
 
-<RefinementList attribute="taxonomies.product_brand" />
-
-
-export default function Filters() {
-  const { items, refine } = useRefinementList({
-    attribute: "taxonomies.product_cat",
-  });
-
-  const { range, refine: refinePrice } = useRange({
-    attribute: "price",
-  });
-
+export default function FiltersSidebar() {
   return (
     <div className="space-y-6">
-      {/* Category Filter */}
-      {/* <div>
-        <h3 className="font-bold mb-2">Categories</h3>
-        {items.map((item) => (
-          <label key={item.value} className="block">
-            <input
-              type="checkbox"
-              checked={item.isRefined}
-              onChange={() => refine(item.value)}
-            />
-            {item.label}
-          </label>
-        ))}
-      </div> */}
-      <RefinementList attribute="taxonomies.product_cat" />
 
-      {/* Price Filter */}
+      {/* BRAND */}
       <div>
-        <h3 className="font-bold mb-2">Price</h3>
-        <button
-          onClick={() => refinePrice([0, 1000])}
-          className="block text-sm"
-        >
-          ₹0 - ₹1000
-        </button>
-        <button
-          onClick={() => refinePrice([1000, 5000])}
-          className="block text-sm"
-        >
-          ₹1000 - ₹5000
-        </button>
+        <h3 className="font-semibold mb-2">Brand</h3>
+        <RefinementList attribute="brand" />
       </div>
+
+      {/* CATEGORY (subcategories if exist) */}
+      <div>
+        <h3 className="font-semibold mb-2">Category</h3>
+        <RefinementList attribute="category" />
+      </div>
+
+      {/* PRICE */}
+      <div>
+        <h3 className="font-semibold mb-2">Price</h3>
+        <RangeInput attribute="price" />
+      </div>
+
     </div>
   );
 }

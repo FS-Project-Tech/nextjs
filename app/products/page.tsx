@@ -1,62 +1,86 @@
 import type { Metadata } from "next";
-import ProductsPageClient from "@/components/ProductsPageClient";
-import { BreadcrumbStructuredData } from "@/components/StructuredData";
+import { Suspense } from "react";
+import dynamic from "next/dynamic";
+
+import ProductGrid from "@/components/ProductGrid";
+import ProductGridSkeleton from "@/components/skeletons/ProductGridSkeleton";
+import Container from "@/components/Container";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchProductSEO } from "@/lib/wordpress";
+import ProductGridAlgolia from "@/components/ProductGridAlgolia";
 
-export async function generateMetadata(
-  { params }: { params: { slug: string } }
-): Promise<Metadata> {
+// Keep sidebar client-only
+const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
+  ssr: false,
+});
 
-  const wpProduct = await fetchProductSEO(params.slug);
-
-  if (!wpProduct?.yoast_head_json) {
-    return {
-      title: wpProduct?.title?.rendered || "Product",
-    };
-  }
-
-  const yoast = wpProduct.yoast_head_json;
-
+export async function generateMetadata(): Promise<Metadata> {
+  // Optional: you can remove this if not needed for listing page
   return {
-    title: yoast.title,
-    description: yoast.description,
-
-    openGraph: {
-      title: yoast.og_title,
-      description: yoast.og_description,
-      url: yoast.canonical,
-      images: yoast.og_image?.map((img: any) => ({
-        url: img.url,
-        width: img.width,
-        height: img.height,
-        alt: img.alt || yoast.title,
-      })),
-    },
-
-    twitter: {
-      card: "summary_large_image",
-      title: yoast.twitter_title || yoast.title,
-      description: yoast.twitter_description || yoast.description,
-      images: yoast.twitter_image ? [yoast.twitter_image] : [],
-    },
-
-    alternates: {
-      canonical: yoast.canonical,
-    },
+    title: "Products",
+    description: "Browse our products",
   };
 }
 
+export default function ProductsPage({ searchParams }: any) {
+  const searchQuery =
+    searchParams?.query ||
+    searchParams?.Search ||
+    searchParams?.search ||
+    null;
 
-export default function ProductsPage() {
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: 'Products' },
-  ];
+  const isSearchPage = !!searchQuery;
+
+  const isFiltering =
+  searchParams.get("search") ||
+  searchParams.get("brands") ||
+  searchParams.get("categories") ||
+  searchParams.get("minPrice");
 
   return (
-    <>
-      {/* <BreadcrumbStructuredData items={breadcrumbItems} /> */}
-      <ProductsPageClient />
-    </>
+    <div className="min-h-screen py-6 lg:py-12">
+      <Container>
+        <Breadcrumbs
+          items={[
+            { label: "Home", href: "/" },
+            isSearchPage
+              ? {
+                  label: `Search: ${searchQuery}`,
+                  href: `/?Search=${encodeURIComponent(searchQuery || "")}`,
+                }
+              : { label: "Products" },
+          ]}
+        />
+
+        {/* Title */}
+        <div className="mb-4 lg:mb-6">
+          <h1 className="text-xl lg:text-2xl font-semibold text-gray-900">
+            {isSearchPage
+              ? `Search Results for "${searchQuery}"`
+              : "Our Products"}
+          </h1>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar */}
+          <aside className="hidden lg:block lg:w-64 flex-shrink-0">
+            <div className="sticky top-24">
+              <FilterSidebar />
+            </div>
+          </aside>
+
+          {/* Product Grid */}
+          <div className="flex-1 min-w-0">
+            <Suspense fallback={<ProductGridSkeleton count={8} />}>
+            {isFiltering ? (
+                <ProductGridAlgolia />
+              ) : (
+                <ProductGrid /> // your existing SSR grid
+              )}
+            </Suspense>
+          </div>
+        </div>
+      </Container>
+    </div>
   );
 }

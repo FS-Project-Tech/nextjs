@@ -8,6 +8,7 @@ import ProductGrid from "@/components/ProductGrid";
 import ProductGridSkeleton from "@/components/skeletons/ProductGridSkeleton";
 import FilterSidebarSkeleton from "@/components/skeletons/FilterSidebarSkeleton";
 import Container from "@/components/Container";
+import { createSafeHTML } from "@/lib/xss-sanitizer";
 
 // Dynamically import FilterSidebar - heavy component with filters and sliders
 const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
@@ -98,7 +99,7 @@ export default function CategoryPageClient({
                         isDescriptionExpanded ? "" : "line-clamp-4"
                       }`}
                     >
-                      {categoryDescription}
+                      <div dangerouslySetInnerHTML={createSafeHTML(categoryDescription)} />
                     </p>
                     <button
                       type="button"

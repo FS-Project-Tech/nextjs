@@ -30,8 +30,6 @@ interface Brand {
 
 interface Props {
   categorySlug?: string;
-  isMobileDrawer?: boolean;
-  onClose?: () => void;
 }
 
 /* ================= CACHE ================= */
@@ -58,16 +56,16 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
   const fetchingChildrenRef = useRef<Set<string>>(new Set());
   const fetchedChildrenRef = useRef<Record<string, boolean>>({});
+  const brandCacheRef = useRef<Record<string, Brand[]>>({}); // ✅ NEW
 
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [allBrands, setAllBrands] = useState<Brand[]>([]);
   const [categoryBrands, setCategoryBrands] = useState<Brand[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(false);
 
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set()
-  );
+  const [expandedCategories, setExpandedCategories] = useState<
+    Record<string, boolean>
+  >({}); // ✅ changed from Set
 
   const [childCategories, setChildCategories] = useState<
     Record<string, Category[]>
@@ -111,11 +109,9 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
     if (
       cache.categories &&
-      cache.allBrands &&
       now - cache.timestamp < CACHE_TTL
     ) {
       setCategories(cache.categories);
-      setAllBrands(cache.allBrands);
       setChildCategories(cache.childCategories);
       setLoading(false);
       return;
@@ -123,21 +119,12 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
     const fetchInitial = async () => {
       try {
-        const [catRes, brandRes] = await Promise.all([
-          fetch("/api/filters/categories"),
-          fetch("/api/filters/brands"),
-        ]);
+        const res = await fetch("/api/filters/categories");
 
-        if (catRes.ok) {
-          const data = await catRes.json();
+        if (res.ok) {
+          const data = await res.json();
           cache.categories = data.categories || [];
           setCategories(cache.categories);
-        }
-
-        if (brandRes.ok) {
-          const data = await brandRes.json();
-          cache.allBrands = data.brands || [];
-          setAllBrands(cache.allBrands);
         }
 
         cache.timestamp = now;
@@ -159,6 +146,11 @@ export default function FilterSidebar({ categorySlug }: Props) {
       return;
     }
 
+    if (brandCacheRef.current[activeCategory]) {
+      setCategoryBrands(brandCacheRef.current[activeCategory]);
+      return;
+    }
+
     if (lastFetchedCategoryRef.current === activeCategory) return;
     lastFetchedCategoryRef.current = activeCategory;
 
@@ -175,8 +167,12 @@ export default function FilterSidebar({ categorySlug }: Props) {
           `/api/filters/brands?category=${activeCategory}`,
           { signal: controller.signal }
         );
+
         const data = await res.json();
-        setCategoryBrands(data.brands || []);
+        const brands = data.brands || [];
+
+        brandCacheRef.current[activeCategory] = brands; // ✅ cache
+        setCategoryBrands(brands);
       } catch (e: any) {
         if (e.name !== "AbortError") console.error(e);
       } finally {
@@ -233,10 +229,13 @@ export default function FilterSidebar({ categorySlug }: Props) {
       fetch(`/api/filters/categories?category=${slug}`)
         .then((res) => res.json())
         .then((data) => {
-          setChildCategories((prev) => ({
-            ...prev,
-            [slug]: data.categories || [],
-          }));
+          const children = data.categories || [];
+
+          setChildCategories((prev) => {
+            const updated = { ...prev, [slug]: children };
+            cache.childCategories = updated; // ✅ persist cache
+            return updated;
+          });
         })
         .finally(() => {
           setLoadingChildren((prev) => {
@@ -251,18 +250,17 @@ export default function FilterSidebar({ categorySlug }: Props) {
   );
 
   const toggleCategory = (slug: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      next.has(slug) ? next.delete(slug) : next.add(slug);
-      return next;
-    });
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [slug]: !prev[slug],
+    }));
 
     fetchChildCategories(slug);
   };
 
   /* ================= RENDER ================= */
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading) return <div className="p-4">Loading filters...</div>;
 
   return (
     <aside className="space-y-4">
@@ -271,9 +269,9 @@ export default function FilterSidebar({ categorySlug }: Props) {
       <div>
         <h3 className="font-semibold mb-2">Department</h3>
 
-        {categories.map((c) => {
+        {(categories || []).map((c) => {
           const children = childCategories[c.slug];
-          const expanded = expandedCategories.has(c.slug);
+          const expanded = expandedCategories[c.slug];
 
           return (
             <div key={c.slug} className="mb-2">
@@ -288,7 +286,6 @@ export default function FilterSidebar({ categorySlug }: Props) {
                   {expanded ? "▼" : "▶"}
                 </button>
 
-                {/* ✅ FIXED NAVIGATION */}
                 <Link
                   href={`/product-category/${c.slug}`}
                   className={`text-sm ${
@@ -305,16 +302,20 @@ export default function FilterSidebar({ categorySlug }: Props) {
                 <div className="ml-4 mt-1">
                   {loadingChildren.has(c.slug) ? (
                     <p className="text-xs">Loading...</p>
-                  ) : (
-                    children?.map((sub) => (
+                  ) : children?.length ? (
+                    children.map((sub) => (
                       <Link
                         key={sub.slug}
                         href={`/product-category/${sub.slug}`}
-                        className="block text-sm text-gray-600"
+                        className="block text-sm text-gray-600 hover:text-teal-600"
                       >
                         - {sub.name}
                       </Link>
                     ))
+                  ) : (
+                    <p className="text-xs text-gray-400">
+                      No subcategories
+                    </p>
                   )}
                 </div>
               )}
@@ -330,6 +331,10 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
           {brandsLoading ? (
             <p>Loading...</p>
+          ) : categoryBrands.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No brands found
+            </p>
           ) : (
             categoryBrands.map((b) => (
               <label key={b.slug} className="block text-sm">
@@ -347,7 +352,7 @@ export default function FilterSidebar({ categorySlug }: Props) {
 
       {/* CLEAR */}
       <button
-        onClick={() => router.replace("/shop")}
+        onClick={() => router.replace(pathname.split("?")[0])}
         className="text-sm text-orange-600 underline"
       >
         Clear all

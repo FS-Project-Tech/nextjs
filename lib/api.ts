@@ -135,3 +135,35 @@ export async function getProductsByBrand(brandId: number) {
 
   return res.json();
 }
+
+
+
+
+// ✅ Get all brands
+export const fetchBrands = async () => {
+  const res = await fetch(`${BASE_URL}/wp-json/custom/v1/brands`, {
+    next: { revalidate: 60 },
+  });
+
+  return res.json();
+};
+
+// ✅ Get single brand + products
+export const fetchBrandWithProducts = async (slug: string) => {
+
+  console.log("Slug:", slug);
+
+  const res = await fetch(
+    `${BASE_URL}/wp-json/custom/v1/brands?slug=${encodeURIComponent(slug)}&include_products=1`,
+    {
+      next: { revalidate: 60 },
+    }
+  );
+  console.log("Response:", res);
+
+  const data = await res.json();
+  console.log("API:", data);
+
+  // your API returns array → take first item
+  return data?.[0] || null;
+};

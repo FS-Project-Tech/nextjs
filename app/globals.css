@@ -548,3 +548,311 @@ main{background-color: #fff;}
 .funding-scheme-content .wp-block-button__link:hover {
   background: var(--primary-dark);
 }
+
+/* WordPress / Gutenberg body (nursing routes, or add class cms-page-content elsewhere) */
+.nursing-page-content,
+.cms-page-content {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #1f2937;
+}
+
+.nursing-page-content h1,
+.nursing-page-content h2,
+.nursing-page-content h3,
+.nursing-page-content h4,
+.cms-page-content h1,
+.cms-page-content h2,
+.cms-page-content h3,
+.cms-page-content h4 {
+  font-weight: 700;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  line-height: 1.3;
+}
+
+.nursing-page-content h1:first-child,
+.nursing-page-content h2:first-child,
+.cms-page-content h1:first-child,
+.cms-page-content h2:first-child {
+  margin-top: 0;
+}
+
+.nursing-page-content h2,
+.cms-page-content h2 {
+  font-size: 1.5rem;
+  margin-top: 2.25rem;
+}
+
+.nursing-page-content h3,
+.cms-page-content h3 {
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.nursing-page-content h4,
+.cms-page-content h4 {
+  font-size: 1.0625rem;
+  margin-top: 1.5rem;
+}
+
+.nursing-page-content h5,
+.nursing-page-content h6,
+.cms-page-content h5,
+.cms-page-content h6 {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #111827;
+  margin: 1.25rem 0 0.5rem;
+  line-height: 1.35;
+}
+
+.nursing-page-content p,
+.cms-page-content p {
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+/* Override Tailwind preflight: restore visible bullets / numbers */
+.nursing-page-content ul,
+.nursing-page-content ol,
+.cms-page-content ul,
+.cms-page-content ol {
+  margin: 1rem 0 1.25rem;
+  padding-left: 1.75rem;
+  list-style-position: outside;
+}
+
+.nursing-page-content ul,
+.cms-page-content ul,
+.nursing-page-content ul.wp-block-list,
+.cms-page-content ul.wp-block-list {
+  list-style-type: disc;
+}
+
+.nursing-page-content ol,
+.cms-page-content ol,
+.nursing-page-content ol.wp-block-list,
+.cms-page-content ol.wp-block-list {
+  list-style-type: decimal;
+}
+
+.nursing-page-content li,
+.cms-page-content li {
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+  line-height: 1.6;
+  display: list-item;
+}
+
+.nursing-page-content ul ul,
+.nursing-page-content ol ul,
+.nursing-page-content ul ol,
+.nursing-page-content ol ol,
+.cms-page-content ul ul,
+.cms-page-content ol ul,
+.cms-page-content ul ol,
+.cms-page-content ol ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.nursing-page-content ol[type="a"],
+.cms-page-content ol[type="a"] {
+  list-style-type: lower-alpha;
+}
+
+.nursing-page-content ol[type="A"],
+.cms-page-content ol[type="A"] {
+  list-style-type: upper-alpha;
+}
+
+.nursing-page-content strong,
+.cms-page-content strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.nursing-page-content img,
+.cms-page-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+.nursing-page-content blockquote,
+.cms-page-content blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  border-left: 4px solid var(--primary-muted);
+  background: #f9fafb;
+  color: #4b5563;
+}
+
+/* Gutenberg columns — two-column hero + full-width sections */
+.nursing-page-content .wp-block-columns,
+.cms-page-content .wp-block-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2rem;
+  margin: 1.5rem 0 2rem;
+  align-items: flex-start;
+}
+
+.nursing-page-content .wp-block-column,
+.cms-page-content .wp-block-column {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.nursing-page-content .wp-block-column figure,
+.cms-page-content .wp-block-column figure {
+  margin: 0 0 1rem;
+}
+
+/* Our Nursing Services hub — WP columns as cards (match NursingServiceCard chrome; buttons unchanged) */
+.nursing-services-hub-cms .wp-block-columns {
+  align-items: stretch;
+}
+
+.nursing-services-hub-cms .wp-block-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: #fff;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border-bottom: 4px solid #cec8cb;
+  padding-bottom: 1.5rem;
+}
+
+.nursing-services-hub-cms .wp-block-column figure,
+.nursing-services-hub-cms .wp-block-column .wp-block-image {
+  margin: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
+.nursing-services-hub-cms .wp-block-column figure img,
+.nursing-services-hub-cms .wp-block-column .wp-block-image img {
+  border-radius: 1rem 1rem 0 0;
+  width: 100%;
+  display: block;
+
+}
+
+.nursing-services-hub-cms .wp-block-column h2,
+.nursing-services-hub-cms .wp-block-column h3 {
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  color: #111827;
+}
+
+.nursing-services-hub-cms .wp-block-column p {
+  margin-top: 0;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  color: #4b5563;
+}
+
+.nursing-services-hub-cms .wp-block-column .wp-block-buttons {
+  margin-top: 0.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+}
+
+.nursing-services-hub-cms .wp-block-column .wp-block-button__link {
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Plain “Read more” <a> in column (not only button block) */
+.nursing-services-hub-cms .wp-block-column a {
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.nursing-page-content .wp-block-group,
+.cms-page-content .wp-block-group {
+  margin: 1.5rem 0;
+}
+
+.nursing-page-content .wp-block-separator,
+.cms-page-content .wp-block-separator {
+  margin: 2rem 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.nursing-page-content .alignwide,
+.cms-page-content .alignwide {
+  max-width: 100%;
+}
+
+.nursing-page-content table,
+.cms-page-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.9375rem;
+}
+
+.nursing-page-content th,
+.nursing-page-content td,
+.cms-page-content th,
+.cms-page-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.nursing-page-content th,
+.cms-page-content th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.nursing-page-content a,
+.cms-page-content a {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.nursing-page-content a:hover,
+.cms-page-content a:hover {
+  color: var(--primary-dark);
+}
+
+/* WordPress Button block on nursing / hub CMS body */
+.nursing-page-content .wp-block-button__link,
+.cms-page-content .wp-block-button__link {
+  display: inline-block;
+  margin: 0.75rem 0;
+  padding: 0.625rem 1.5rem;
+  background: var(--primary);
+  color: white !important;
+  border-radius: 9999px;
+  font-weight: 600;
+  text-decoration: none !important;
+}
+
+.nursing-page-content .wp-block-button__link:hover,
+.cms-page-content .wp-block-button__link:hover {
+  background: var(--primary-dark);
+  color: white !important;
+}
+

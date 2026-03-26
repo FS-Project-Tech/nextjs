@@ -1,9 +1,9 @@
 export default function FilterSidebarSkeleton() {
   return (
-    <div className="w-full lg:w-64 space-y-4">
-      <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-      <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
-      <div className="h-32 bg-gray-200 rounded animate-pulse"></div>
+    <div className="space-y-3">
+      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+      <div className="h-4 w-32 bg-gray-200 rounded"></div>
+      <div className="h-4 w-20 bg-gray-200 rounded"></div>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { fetchCategoryBySlug, fetchCategories } from "@/lib/woocommerce";
 import CategoryPageClient from "@/components/CategoryPageClient";
 import type { Metadata } from "next";
 import { fetchCategorySEO } from "@/lib/wordpress";
+import { stripHTML } from "@/lib/xss-sanitizer";
 
 // ============================================================================
 // ISR Configuration
@@ -31,6 +32,7 @@ export async function generateStaticParams() {
 
 // ============================================================================
 // Metadata (params is ASYNC in Next.js 15)
+// Yoast/WP when present; otherwise WooCommerce category (same source as page H1)
 // ============================================================================
 export async function generateMetadata(
   props: { params: Promise<{ slug: string }> }
@@ -39,41 +41,55 @@ export async function generateMetadata(
     const { slug } = await props.params;
     const decodedSlug = decodeURIComponent(slug);
 
-    const wpCategory = await fetchCategorySEO(decodedSlug);
+    const [wpCategory, wooCategory] = await Promise.all([
+      fetchCategorySEO(decodedSlug).catch(() => null),
+      fetchCategoryBySlug(decodedSlug).catch(() => null),
+    ]);
+
     const yoast = wpCategory?.yoast_head_json;
 
-    if (!yoast) {
+    if (yoast) {
       return {
-        title: wpCategory?.name || "Category",
+        title: yoast.title,
+        description: yoast.description,
+        openGraph: {
+          title: yoast.og_title,
+          description: yoast.og_description,
+          url: yoast.canonical,
+          images: yoast.og_image?.map((img: { url: string; width?: number; height?: number; alt?: string }) => ({
+            url: img.url,
+            width: img.width,
+            height: img.height,
+            alt: img.alt || yoast.title,
+          })),
+        },
+        twitter: {
+          card: "summary_large_image",
+          title: yoast.twitter_title || yoast.title,
+          description: yoast.twitter_description || yoast.description,
+          images: yoast.twitter_image ? [yoast.twitter_image] : [],
+        },
+        alternates: {
+          canonical: yoast.canonical,
+        },
       };
     }
 
+    const title =
+      wooCategory?.name || wpCategory?.name || "Category";
+    const rawDesc = wooCategory?.description;
+    const description = rawDesc
+      ? stripHTML(rawDesc).slice(0, 160)
+      : undefined;
+
     return {
-      title: yoast.title,
-      description: yoast.description,
-      openGraph: {
-        title: yoast.og_title,
-        description: yoast.og_description,
-        url: yoast.canonical,
-        images: yoast.og_image?.map((img: any) => ({
-          url: img.url,
-          width: img.width,
-          height: img.height,
-          alt: img.alt || yoast.title,
-        })),
-      },
-      twitter: {
-        card: "summary_large_image",
-        title: yoast.twitter_title || yoast.title,
-        description: yoast.twitter_description || yoast.description,
-        images: yoast.twitter_image ? [yoast.twitter_image] : [],
-      },
+      title,
+      description,
       alternates: {
-        canonical: yoast.canonical,
+        canonical: `/product-category/${decodedSlug}`,
       },
     };
   } catch {
-    // Never crash the route because of metadata
     return { title: "Category" };
   }
 }

@@ -14,6 +14,42 @@ try {
 const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
 });
+
+/**
+ * WordPress “Read more” often uses `/{slug}` (e.g. /wound-management).
+ * Detail pages in this app live at `/our-nursing-services/{slug}`.
+ * Slugs from NEXT_PUBLIC_NURSING_DETAIL_SLUGS (comma-separated); defaults include common services.
+ */
+function nursingServiceRootRedirects(): Array<{
+  source: string;
+  destination: string;
+  permanent: boolean;
+}> {
+  const raw =
+    process.env.NEXT_PUBLIC_NURSING_DETAIL_SLUGS ||
+    "wound-management,stoma-care";
+  const slugs = raw
+    .split(/[\s,]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter((s) => /^[a-z0-9][-a-z0-9]*$/i.test(s));
+  const out: Array<{ source: string; destination: string; permanent: boolean }> =
+    [];
+  for (const slug of new Set(slugs)) {
+    out.push(
+      {
+        source: `/${slug}`,
+        destination: `/our-nursing-services/${slug}`,
+        permanent: false,
+      },
+      {
+        source: `/${slug}/`,
+        destination: `/our-nursing-services/${slug}`,
+        permanent: false,
+      }
+    );
+  }
+  return out;
+}
  
 const nextConfig: NextConfig = {
   reactCompiler: true,
@@ -138,7 +174,7 @@ const nextConfig: NextConfig = {
       // },
       {
         protocol: "https",
-        hostname: "wordpress-1513595-6089575.cloudwaysapps.com",
+        hostname: "**.wordpress-1513595-6089575.cloudwaysapps.com",
         pathname: "/wp-content/uploads/**",
       },
       // Placeholder image host used in development/demo sliders
@@ -204,6 +240,7 @@ const nextConfig: NextConfig = {
       { source: '/collection-statement', destination: '/info/collection-statement', permanent: true },
       { source: '/collection-statement-general-enquiries', destination: '/info/collection-statement', permanent: true },
       { source: '/info/blog', destination: '/blog', permanent: true },
+      ...nursingServiceRootRedirects()
     ];
   },
  

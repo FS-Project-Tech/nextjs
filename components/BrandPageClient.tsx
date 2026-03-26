@@ -8,6 +8,7 @@ import ProductGridSkeleton from "@/components/skeletons/ProductGridSkeleton";
 import FilterSidebarSkeleton from "@/components/skeletons/FilterSidebarSkeleton";
 import Container from "@/components/Container";
 import { Suspense } from "react";
+import { createSafeHTML } from "@/lib/xss-sanitizer";
 
 const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
   loading: () => <FilterSidebarSkeleton />,
@@ -24,7 +25,7 @@ export default function BrandPageClient({
   brandDescription?: string | null;
 }) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   useEffect(() => {
     if (mobileFiltersOpen) {
       document.body.style.overflow = "hidden";
@@ -37,7 +38,7 @@ export default function BrandPageClient({
   }, [mobileFiltersOpen]);
 
   return (
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-4">
       <Container>
         <Breadcrumbs
           items={[
@@ -48,15 +49,7 @@ export default function BrandPageClient({
           ]}
         />
 
-        <div className="mt-6 mb-8 w-full">
-          <h1 className="text-3xl font-bold text-gray-900">{brandName}</h1>
-          {brandDescription && (
-            <div className="mt-4 w-full text-gray-600 text-sm leading-relaxed">
-              {brandDescription}
-            </div>
-          )}
-          <div className="mt-4 h-1 w-20 rounded-full bg-teal-600" />
-        </div>
+        
 
         {/* Mobile filter button - same pattern as shop page */}
         <div className="lg:hidden sticky top-[72px] z-40 -mx-4 px-4 py-3 bg-white border-b border-gray-200 mb-4">
@@ -91,8 +84,8 @@ export default function BrandPageClient({
             >
               <div className="h-full overflow-y-auto p-4 pb-24">
                 <FilterSidebar
-                  isMobileDrawer
-                  onClose={() => setMobileFiltersOpen(false)}
+                  // isMobileDrawer={true}
+                  // onClose={() => setMobileFiltersOpen(false)}
                 />
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200">
@@ -115,6 +108,28 @@ export default function BrandPageClient({
             </div>
           </aside>
           <div className="flex-1 min-w-0">
+          <div className="mt-2 mb-8 w-full">
+              <h1 className="text-3xl font-bold text-gray-900">{brandName}</h1>
+              {brandDescription && (
+                <div className="mt-3">
+                <p
+                  className={`w-full text-sm leading-relaxed text-gray-600 ${
+                    isDescriptionExpanded ? "" : "line-clamp-4"
+                  }`}
+                >
+                  <div dangerouslySetInnerHTML={createSafeHTML(brandDescription)} />
+                  </p>
+                    <button
+                      type="button"
+                      onClick={() => setIsDescriptionExpanded((prev) => !prev)}
+                      className="mt-2 text-sm font-medium text-teal-700 hover:text-teal-800"
+                      aria-expanded={isDescriptionExpanded}
+                    >
+                      {isDescriptionExpanded ? "Read less" : "Read more"}
+                    </button>
+                  </div>
+              )}
+          </div>
             <Suspense fallback={<ProductGridSkeleton />}>
               <ProductGrid brandSlug={brandSlug} />
             </Suspense>

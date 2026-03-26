@@ -1,96 +1,89 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { fetchBrandWithProducts } from "@/lib/api";
 import BrandPageClient from "@/components/BrandPageClient";
+import type { Metadata } from "next";
 
-export const revalidate = 3600;
+// ============================================================================
+// ISR Configuration
+// ============================================================================
+export const revalidate = 600; // 10 minutes
 export const dynamicParams = true;
 
-type Brand = {
-  id: number;
-  name: string;
-  slug: string;
-  count?: number;
-  image?: string | null;
-  description?: string | null;
-};
-
-// ✅ Fetch ALL brands (for static params + metadata)
-async function getBrands(): Promise<Brand[]> {
+// ============================================================================
+// Static params (optional - if you want pre-render brands)
+// ============================================================================
+export async function generateStaticParams() {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/custom/v1/brands`,
-      { next: { revalidate: 3600 } }
+      `${process.env.NEXT_PUBLIC_WORDPRESS_URL}/wp-json/custom/v1/brands`,
+      { next: { revalidate: 600 } }
     );
 
-    if (!res.ok) return [];
+    const brands = await res.json();
 
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
+    return brands.map((brand: { slug: string }) => ({
+      slug: brand.slug,
+    }));
+  } catch (error) {
+    console.error("Error generating brand static params:", error);
     return [];
   }
 }
 
-// ✅ Static paths
-export async function generateStaticParams() {
-  const brands = await getBrands();
-  return brands.map((b) => ({ slug: b.slug }));
+// ============================================================================
+// Metadata (SEO)
+// ============================================================================
+export async function generateMetadata(
+  props: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  try {
+    const { slug } = await props.params;
+    const decodedSlug = decodeURIComponent(slug);
+
+    const brand = await fetchBrandWithProducts(decodedSlug).catch(() => null);
+
+    if (!brand) {
+      return { title: "Brand" };
+    }
+
+    return {
+      title: brand.name,
+      description: brand.description
+        ? brand.description.replace(/<[^>]+>/g, "").slice(0, 160)
+        : `Shop ${brand.name} products`,
+      alternates: {
+        canonical: `/brand/${decodedSlug}`,
+      },
+      openGraph: {
+        title: brand.name,
+        description: brand.description,
+        images: brand.image ? [{ url: brand.image }] : [],
+      },
+    };
+  } catch {
+    return { title: "Brand" };
+  }
 }
 
-// ✅ SEO metadata
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
+// ============================================================================
+// Page (SERVER)
+// ============================================================================
+export default async function BrandPage(
+  props: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await props.params;
   const decodedSlug = decodeURIComponent(slug);
 
-  const brands = await getBrands();
-  const brand = brands.find(
-    (b) => b.slug.toLowerCase() === decodedSlug.toLowerCase()
-  );
+  const brand = await fetchBrandWithProducts(decodedSlug).catch(() => null);
 
-  if (!brand) return { title: "Brand" };
-
-  return {
-    title: `${brand.name} | Brands`,
-    description: `Buy ${brand.name} products at best prices. Explore full range of ${brand.name}.`,
-    openGraph: {
-      title: `${brand.name} | Brands`,
-      description: `Shop ${brand.name} products.`,
-      type: "website",
-    },
-    alternates: {
-      canonical: `/brands/${decodedSlug}`,
-    },
-  };
-}
-
-// ✅ Page
-export default async function BrandSlugPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-  const decodedSlug = decodeURIComponent(slug);
-
-  const brands = await getBrands();
-
-  const brand = brands.find(
-    (b) => b.slug.toLowerCase() === decodedSlug.toLowerCase()
-  );
-
-  if (!brand) notFound();
+  if (!brand) {
+    return <div>Brand not found (slug: {decodedSlug})</div>;
+  }
 
   return (
-    <main id="main-content">
-      <BrandPageClient
-        brandSlug={brand.slug}
-        brandName={brand.name}
-        brandDescription={brand.description ?? null}
-      />
-    </main>
+    <BrandPageClient
+      brandSlug={decodedSlug}
+      brandName={brand.name}
+      brandDescription={brand.description}
+    />
   );
 }

@@ -13,15 +13,11 @@ import {
   import Breadcrumbs from "@/components/Breadcrumbs";
   import RelatedProductsSection from "@/components/RelatedProductsSection";
   import Container from "@/components/Container";
-  
   import Image from "next/image";
   import { notFound } from "next/navigation";
-  import type { Metadata } from "next";
-  
   import { getActivePromotions } from "@/lib/getActivePromotions";
   import { fetchGlobalPromotions } from "@/lib/promotions";
-   import { fetchProductSEO } from "@/lib/wordpress";
-   import Script from "next/script";
+  import Script from "next/script";
   import { ProductCardProduct } from "@/lib/types/product";
   
   // ============================================================================
@@ -50,82 +46,18 @@ import {
 	}
   }
 
-
-
-  
-  // ============================================================================
-  // Metadata seo
-  // ============================================================================
-//   export async function generateMetadata(
-// 	props: { params: Promise<{ slug: string }> }
-//   ): Promise<Metadata> {
-// 	try {
-// 	  const { slug } = await props.params;
-// 	  const decodedSlug = decodeURIComponent(slug);
-  
-// 	  const wpProduct = await fetchProductSEO(decodedSlug);
-// 	  const yoast = wpProduct?.yoast_head_json;
-  
-// 	  if (!yoast) {
-// 		return { title: wpProduct?.title?.rendered || "Product" };
-// 	  }
-  
-// 	  return {
-// 		title: yoast.title,
-// 		description: yoast.description,
-// 		alternates: { canonical: yoast.canonical },
-// 	  };
-// 	} catch {
-// 	  return { title: "Product" };
-// 	}
-//   }
   
 export async function generateMetadata(
 	props: { params: Promise<{ slug: string }> }
-  ): Promise<Metadata> {
-  
+  ) {
 	const { slug } = await props.params;
+  
 	const decodedSlug = decodeURIComponent(slug);
   
 	const product = await fetchProductBySlug(decodedSlug);
   
-	if (!product) {
-	  return { title: "Product not found" };
-	}
-  
-	const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  
 	return {
-	  title: product.name,
-	  description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
-  
-	  alternates: {
-		canonical: `${siteUrl}/products/${product.slug}`,
-	  },
-  
-	  openGraph: {
-		title: product.name,
-		description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
-		type: "website",
-		url: `${siteUrl}/products/${product.slug}`,
-		images: product.images?.length
-		  ? [
-			  {
-				url: product.images[0].src,
-				width: 1200,
-				height: 630,
-				alt: product.name,
-			  },
-			]
-		  : [],
-	  },
-  
-	  twitter: {
-		card: "summary_large_image",
-		title: product.name,
-		description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
-		images: product.images?.length ? [product.images[0].src] : [],
-	  },
+	  title: product?.name || "Product",
 	};
   }
 
@@ -135,7 +67,7 @@ export async function generateMetadata(
   // Page
   // ============================================================================
   export default async function ProductPage(
-	props: { params: Promise<{ slug: string }> }
+	props: { params: { slug: string } }
   ) {
 	const { slug } = await props.params;
 	const decodedSlug = decodeURIComponent(slug);
@@ -366,7 +298,7 @@ export async function generateMetadata(
 		</Container>
   
 		{/* Product info */}
-		<Container className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+		<Container className="mt-10 grid grid-cols-1 lg:grid-cols-1 gap-8">
 		  <ProductInfoAccordion product={product} variations={variations} />
 		  <ProductReviews
 			productId={product.id}

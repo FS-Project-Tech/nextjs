@@ -14,7 +14,7 @@ export default function ProductsSliderSkeleton({ count = 5, gridCols = 5 }: Prod
   return (
     <div className={gridClass}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="h-[420px] animate-pulse rounded-xl border border-gray-200 bg-white" />
+        <div key={i} className="aspect-[3/4] animate-pulse rounded-xl border border-gray-200 bg-white" />
       ))}
     </div>
   );

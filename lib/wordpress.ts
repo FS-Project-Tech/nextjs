@@ -29,30 +29,29 @@ export async function fetchCategorySEO(slug: string) {
 }
 
 /** Fetch brand by slug from WordPress (e.g. /brand/3m/ – plugin may register product_brand or similar). */
-export async function fetchBrandBySlug(slug: string): Promise<{ name?: string; description?: string } | null> {
+export async function fetchBrandBySlug(slug: string) {
   const base = process.env.NEXT_PUBLIC_WP_URL;
+
   if (!base) return null;
-  const slugEnc = encodeURIComponent(slug);
-  const endpoints = [
-    `/wp-json/wp/v2/product_brand?slug=${slugEnc}`,
-    `/wp-json/wp/v2/pa_brand?slug=${slugEnc}`,
-    `/wp-json/wp/v2/brand?slug=${slugEnc}`,
-  ];
-  for (const path of endpoints) {
-    try {
-      const res = await fetch(`${base}${path}`, { next: { revalidate: 3600 } });
-      if (!res.ok) continue;
-      const data = await res.json();
-      const term = Array.isArray(data) ? data[0] : data;
-      if (term && (term.name || term.slug)) {
-        return {
-          name: term.name,
-          description: term.description ? String(term.description).replace(/<[^>]+>/g, "").trim() : undefined,
-        };
-      }
-    } catch {
-      continue;
-    }
+
+  try {
+    const res = await fetch(
+      `${base}/wp-json/custom/v1/brands?slug=${slug}`,
+      { next: { revalidate: 3600 } }
+    );
+
+    const data = await res.json();
+
+    const brand = Array.isArray(data) ? data[0] : null;
+
+    if (!brand) return null;
+
+    return {
+      name: brand.name,
+      description: brand.description || "",
+      image: brand.image || null,
+    };
+  } catch {
+    return null;
   }
-  return null;
 }

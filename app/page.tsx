@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 // Import ProductsPageClientWrapper - client component wrapper that handles dynamic import
-import ProductsPageClientWrapper from "@/components/ProductsPageClientWrapper";
+// import ProductsPageClientWrapper from "@/components/ProductsPageClientWrapper";
 //  import { bgGradient } from "tailwindcss/defaultTheme";
 import ProductSection from "@/components/ProductSection";
 import CategoriesSection from "@/components/CategoriesSection";
@@ -42,22 +42,17 @@ export default async function Home({
 }: {
   searchParams: Promise<{ Search?: string; search?: string }>;
 }) {
-  const continenceSlug = process.env.NEXT_PUBLIC_CONTINENCE_CATEGORY_SLUG || "continence-care";
-  
+  const continenceSlug =
+    process.env.NEXT_PUBLIC_CONTINENCE_CATEGORY_SLUG || "continence-care";
+
   const params = await searchParams;
   const searchQuery = params?.Search || params?.search;
 
-  // If search query exists, show search results page
-  if (searchQuery) {
-    return <ProductsPageClientWrapper />;
-  }
-
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
   return (
     <>
-      {/* Structured Data for SEO */}
-      <WebsiteStructuredData 
+      <WebsiteStructuredData
         siteUrl={siteUrl}
         potentialAction={{
           "@type": "SearchAction",
@@ -65,75 +60,72 @@ export default async function Home({
           "query-input": "required name=search_term_string",
         }}
       />
+
       <OrganizationStructuredData siteUrl={siteUrl} />
-      
-      <HomePageClient continenceSlug={continenceSlug}>
-      <div className="min-h-screen relative" suppressHydrationWarning>
-      
-      {/* Header dual sliders */}
-      <AnimatedSection>
-        <div className="py-4">
-          <HeroDualSliderServer />
-        </div>
-      </AnimatedSection>
 
+      <div className="min-h-screen relative">
+        
+        {/* Hero */}
+        <AnimatedSection>
+          <div className="py-4">
+            <HeroDualSliderServer />
+          </div>
+        </AnimatedSection>
 
-      {/* Categories Section */}
-      <AnimatedSection>
-        <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded mb-10" />}>
-          <CategoriesSection />
+        {/* Categories */}
+    
+          <Suspense fallback={<div className="h-64 bg-gray-100 rounded mb-10 animate-pulse" />}>
+            <CategoriesSection />
+          </Suspense>
+      
+
+        {/* Marketing */}
+    
+          <MarketingUpdatesSection />
+       
+
+        {/* Product Section */}
+        <Suspense fallback={<div className="h-64 bg-gray-100 rounded animate-pulse" />}>
+          <ProductSection
+            title="Continence care products"
+            subtitle="Trusted protection for daily confidence."
+            viewAllHref={`/product-category/${encodeURIComponent(continenceSlug)}`}
+            query={{ categorySlug: continenceSlug }}
+          />
         </Suspense>
-      </AnimatedSection>
 
-      {/* Marketing & Updates Section */}
-      <AnimatedSection>
-        <MarketingUpdatesSection />
-      </AnimatedSection>
+        {/* CTA */}
+      
+          <NDISCTASection />
+       
 
-      {/* Sections */}
-      <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-        <ProductSection
-          title="Continence care products"
-          subtitle="Trusted protection for daily confidence. Explore our bestsellers."
-          viewAllHref={`/product-category/${encodeURIComponent(continenceSlug)}`}
-          query={{ categorySlug: continenceSlug }}
-        />
-      </Suspense>
+        {/* Trending */}
+      
+          <Suspense fallback={<div className="h-64 bg-gray-100 rounded animate-pulse" />}>
+            <TrendingSection />
+          </Suspense>
+    
 
-      {/* NDIS CTA Section */}
-      <AnimatedSection>
-        <NDISCTASection />
-      </AnimatedSection>
-
-      {/* Clearance products (on sale) */}
-      <AnimatedSection>
-        <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-          <TrendingSection />
+        {/* Latest */}
+        <Suspense fallback={<div className="h-64 bg-gray-100 rounded animate-pulse" />}>
+          <ProductSection
+            title="Latest Published"
+            subtitle="Fresh arrivals from our catalog."
+            viewAllHref="/shop?orderby=date&order=desc"
+            query={{ orderby: "date", order: "desc" }}
+          />
         </Suspense>
-      </AnimatedSection>
 
-      <Suspense fallback={<div className="h-64 animate-pulse bg-gray-100 rounded" />}>
-        <ProductSection
-          title="Latest Published"
-          subtitle="Fresh arrivals straight from our catalog. Updated regularly."
-          viewAllHref="/shop?orderby=date&order=desc"
-          query={{ orderby: "date", order: "desc" }}
-        />
-      </Suspense>
+        {/* Newsletter */}
+  
+          <NewsletterSection />
+  
 
-      
-      {/* Newsletter */}
-      <AnimatedSection>
-        <NewsletterSection />
-      </AnimatedSection>
+        {/* Features */}    {/* <AnimatedSection> */}
+          <FeatureStrip />
+       
 
-      {/* Featured Section */}
-      <AnimatedSection>
-        <FeatureStrip />
-      </AnimatedSection>
-      
-    </div>
-    </HomePageClient>
+      </div>
     </>
   );
 }

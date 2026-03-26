@@ -1,25 +1,28 @@
 "use client";
 
 import { InstantSearch } from "react-instantsearch";
-import { searchClient } from "@/lib/algolia";
-import SearchBox from "@/components/search/SearchBox";
+import { algoliaClient } from "@/lib/algolia";
+import { useSearchParams } from "next/navigation";
+import FiltersSidebar from "@/components/search/Filters";
 import ProductHits from "@/components/search/ProductHits";
-import Filters from "@/components/search/Filters";  
 
 export default function SearchPage() {
+  const params = useSearchParams();
+  const query = params.get("q") || "";
+
   return (
     <InstantSearch
-      searchClient={searchClient}
-      indexName={process.env.NEXT_PUBLIC_ALGOLIA_INDEX!}
+      searchClient={algoliaClient}
+      indexName="wp_searchable_posts"
+      initialUiState={{
+        products: {
+          query,
+        },
+      }}
     >
-      <div className="grid grid-cols-4 gap-6 p-6">
-        <Filters />
-        
-        <div className="col-span-3">
-          <SearchBox />
-          <ProductHits />
-        </div>
-      </div>
+      {/* Filters + Results */}
+      <FiltersSidebar />
+      <ProductHits />
     </InstantSearch>
   );
 }

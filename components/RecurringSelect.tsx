@@ -13,7 +13,6 @@ export default function RecurringSelect({
 }: RecurringSelectProps) {
   const plans: Array<{ value: RecurringPlan; label: string; description: string }> = [
     { value: "none", label: "One-time delivery", description: "Single purchase" },
-    { value: "7", label: "Every 7 days", description: "Weekly subscription" },
     { value: "14", label: "Every 14 days", description: "Bi-weekly subscription" },
     { value: "30", label: "Every month", description: "Monthly subscription" },
   ];

@@ -23,10 +23,13 @@ export default function ProductInfoAccordion({
  
   const toggleItem = (id: string) => {
     setOpenItems((prev) => {
-      if (prev.has(id)) {
-        return new Set<string>();
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
       }
-      return new Set([id]);
+      return newSet;
     });
   };
  
@@ -38,8 +41,10 @@ export default function ProductInfoAccordion({
   );
  
   const hasDimensions =
-    product.dimensions &&
-    (product.dimensions.length || product.dimensions.width || product.dimensions.height);
+  product.dimensions &&
+  (product.dimensions.length !== "" ||
+   product.dimensions.width !== "" ||
+   product.dimensions.height !== "");
   const dimensionsDisplay = hasDimensions
     ? `${product.dimensions?.length || "—"} × ${product.dimensions?.width || "—"} × ${product.dimensions?.height || "—"}`
     : null;
@@ -81,8 +86,7 @@ export default function ProductInfoAccordion({
               <ul className="list-disc list-inside space-y-2.5 pl-1 text-[15px] text-gray-700 marker:text-teal-500">
                 {variations.slice(0, 5).map((variation) => (
                   <li key={variation.id} className="pl-0.5">
-                    {variation.attributes
-                      .map((attr) => `${attr.name}: ${attr.option}`)
+                    {variation.attributes?.map((attr) => `${attr.name}: ${attr.option}`)
                       .join(" · ")}
                     {variation.sku && <span className="text-gray-500"> (SKU: {variation.sku})</span>}
                   </li>
@@ -103,11 +107,13 @@ export default function ProductInfoAccordion({
       {accordionItems.map((item) => (
         <div
           key={item.id}
-          className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+          className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" id={`accordion-${item.id}`}
         >
           <button
             onClick={() => toggleItem(item.id)}
             className="flex w-full items-center justify-between px-5 py-4 text-left font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-inset"
+            aria-expanded={openItems.has(item.id)}
+            aria-controls={`accordion-${item.id}`}
           >
             <span>{item.title}</span>
             <svg
