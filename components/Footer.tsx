@@ -6,8 +6,8 @@ const currentYear = new Date().getFullYear();
 async function fetchHeaderData() {
   try {
     const baseUrl =
-      process.env.NEXT_PUBLIC_WORDPRESS_URL ||
-      process.env.WORDPRESS_URL;
+      process.env.NEXT_PUBLIC_WP_URL ||
+      process.env.WP_URL;
 
     if (!baseUrl) return null;
 

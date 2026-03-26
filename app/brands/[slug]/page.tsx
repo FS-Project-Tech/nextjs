@@ -14,7 +14,7 @@ export const dynamicParams = true;
 export async function generateStaticParams() {
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_WORDPRESS_URL}/wp-json/custom/v1/brands`,
+      `${process.env.NEXT_PUBLIC_WP_URL}/wp-json/custom/v1/brands`,
       { next: { revalidate: 600 } }
     );
 
