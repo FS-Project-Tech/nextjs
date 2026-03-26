@@ -8,8 +8,11 @@ import Container from "@/components/Container";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { fetchProductSEO } from "@/lib/wordpress";
 import ProductGridAlgolia from "@/components/ProductGridAlgolia";
-import ProductPageClient from "@/components/ProductPageClient";
 
+// Keep sidebar client-only
+const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
+  ssr: false,
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   // Optional: you can remove this if not needed for listing page
@@ -62,7 +65,7 @@ export default function ProductsPage({ searchParams }: any) {
           {/* Sidebar */}
           <aside className="hidden lg:block lg:w-64 flex-shrink-0">
             <div className="sticky top-24">
-              <ProductPageClient />
+              <FilterSidebar />
             </div>
           </aside>
 
