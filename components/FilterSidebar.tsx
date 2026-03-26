@@ -30,6 +30,11 @@ interface Brand {
 
 interface Props {
   categorySlug?: string;
+  brandSlug?: string;
+
+  // 🔥 ADD THESE
+  isMobileDrawer?: boolean;
+  onClose?: () => void;
 }
 
 /* ================= CACHE ================= */
@@ -45,7 +50,7 @@ const cache = {
 
 /* ================= COMPONENT ================= */
 
-export default function FilterSidebar({ categorySlug }: Props) {
+export default function FilterSidebar({ categorySlug, brandSlug, isMobileDrawer, onClose }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
