@@ -10,10 +10,6 @@ import { useSession, signOut } from "next-auth/react";
 import { apiFetchJson } from "@/lib/api";
 import { safeLogoUrl } from "@/lib/api-fallbacks";
 import HeaderUser from "@/components/HeaderUser";
-import SearchBox from "@/components/search/SearchBox";
-import { InstantSearch } from "react-instantsearch";
-import ProductHits from "@/components/search/ProductHits";
-import { searchClient } from "@/lib/algolia";
 import SearchBar from "@/components/SearchBar";
 
 export default function Header() {

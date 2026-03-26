@@ -233,7 +233,8 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
             slug={product.slug}
             name={product.name}
             price={product.price}
-            imageUrl={product.images?.[0]?.src}
+            imageUrl={product.images?.[0]?.src || product.image || ""}
+            imageAlt={product.images?.[0]?.alt || product.name}
           />
         ))}
       </div>

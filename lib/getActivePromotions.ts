@@ -8,10 +8,10 @@ export function getActivePromotions(
       productCategoryIds.includes(cat.term_id)
     )
   );
-
+ 
   // Category-specific promos first
   if (matched.length > 0) return matched;
-
+ 
   // Fallback to GENERAL (no category assigned)
   return promotions.filter(
     (promo) => !promo.categories || promo.categories.length === 0
