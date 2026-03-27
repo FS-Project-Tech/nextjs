@@ -1,4 +1,4 @@
-import { liteClient as algoliasearch } from "algoliasearch/lite";
+import { algoliasearch } from "algoliasearch";
 
 export const getSearchClient = () => {
   if (
