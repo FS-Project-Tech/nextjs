@@ -126,7 +126,7 @@ export default function Header() {
 				</div>
 
 				{/* Center Search */}
-				<div className="hidden md:flex lg:col-span-7 justify-center">
+				<div className="flex w-full justify-center">
 					
 				<SearchBar />
 					
