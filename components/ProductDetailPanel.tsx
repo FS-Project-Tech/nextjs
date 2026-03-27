@@ -256,7 +256,7 @@ const attributes = useMemo(() => {
                             }
                         }}
                         disabled={(attributes.length > 0 && !isAllSelected(selected, attributes)) || addingToCart}
-                        className="btn-brand flex-1 rounded-lg px-5 py-3.5 text-base font-semibold text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                        className="btn-brand flex-1 rounded-lg px-5 py-3.5 text-base font-semibold text-white shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 cursor-pointer"
                     >
                         {addingToCart ? (
                             <>

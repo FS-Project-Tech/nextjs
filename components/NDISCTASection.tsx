@@ -49,10 +49,10 @@ export default function NDISCTASection() {
 
               <div className="mt-6">
                 <Link
-                  href="/shop"
+                  href="/ndis"
                   className="inline-flex items-center justify-center rounded-lg bg-ndis px-8 py-4 text-base font-semibold text-white hover:bg-teal-700 transition-colors shadow-lg hover:shadow-xl"
                 >
-                  Shop Now
+                  Read More
                   <svg
                     className="ml-2 w-5 h-5"
                     fill="none"

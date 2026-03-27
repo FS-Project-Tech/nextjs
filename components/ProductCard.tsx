@@ -375,10 +375,12 @@ function ProductCardComponent({
             type="button"
             onClick={handleAddToCart}
             disabled={addingToCart}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             aria-label={`Add ${name} to cart`}
             aria-busy={addingToCart}
-          >
+   
+>
+          
             {addingToCart ? (
               <>
                 <LoadingSpinner />
