@@ -1,6 +1,15 @@
-import { algoliasearch } from "algoliasearch";
+import { liteClient as algoliasearch } from "algoliasearch/lite";
 
-const appId = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID;
-const apiKey = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY;
+export const getSearchClient = () => {
+  if (
+    !process.env.NEXT_PUBLIC_ALGOLIA_APP_ID ||
+    !process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+  ) {
+    throw new Error("Algolia env variables are missing");
+  }
 
-export const searchClient = algoliasearch(appId, apiKey);
+  return algoliasearch(
+    process.env.NEXT_PUBLIC_ALGOLIA_APP_ID,
+    process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+  );
+};
