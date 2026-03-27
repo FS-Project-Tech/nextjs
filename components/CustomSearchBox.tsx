@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { InstantSearch } from "react-instantsearch";
-import { searchClient } from "@/lib/algolia";
+import { algoliasearch } from "algoliasearch";
 import CustomSearchBox from "./CustomSearchBox";
 import ProductHits from "@/components/search/ProductHits";
 
 export default function SearchWithDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+
+  const searchClient = useMemo(() => {
+    return algoliasearch(
+      process.env.NEXT_PUBLIC_ALGOLIA_APP_ID!,
+      process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY!
+    );
+  }, []);
 
   return (
     <InstantSearch searchClient={searchClient} indexName="wp_searchable_posts">
