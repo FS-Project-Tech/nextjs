@@ -21,7 +21,13 @@ export interface ProductCardProduct {
   tax_status?: string;
   average_rating?: string;
   rating_count?: number;
-  images?: ImageData[];
+  images?: {
+    src: string;
+    alt?: string;
+  }[];
+  // ✅ ADD THIS
+  image?: string;
+  image_alt?: string;
 }
  
 /**

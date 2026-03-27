@@ -222,10 +222,11 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
 
   if (state.error) return <div>Error: {state.error}</div>;
   if (!state.products.length) return <div>No products found</div>;
-
+  console.log(state.products); 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        
         {state.products.map((product) => (
           <ProductCard
           key={product.id}
@@ -242,10 +243,11 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
           tax_status={product.tax_status}
           average_rating={product.average_rating}
           rating_count={product.rating_count}
-          imageUrl={product.images?.[0]?.src}
+          imageUrl={product.image ?? product.images?.[0]?.src ?? ""}
           imageAlt={product.images?.[0]?.alt || product.name}
           />
         ))}
+        
       </div>
 
       {state.hasMore && (
