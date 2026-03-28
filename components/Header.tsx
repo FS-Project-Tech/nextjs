@@ -11,6 +11,7 @@ import { apiFetchJson } from "@/lib/api";
 import { safeLogoUrl } from "@/lib/api-fallbacks";
 import HeaderUser from "@/components/HeaderUser";
 import SearchBar from "@/components/SearchBar";
+// import CustomSearchBox from "@/components/CustomSearchBox";
 
 export default function Header() {
 	const [open, setOpen] = useState(false);
@@ -84,7 +85,7 @@ export default function Header() {
 				<div className="container mx-auto flex items-center justify-between text-xs">
 
 					{tagline && (
-						<div className="text-white">{tagline}</div>
+						<div className="text-white italic">{tagline}</div>
 					)}
 
 				</div>

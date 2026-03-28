@@ -106,6 +106,7 @@ export default async function Footer() {
               <li><PrefetchLink href="/shipping" className="text-white/80 hover:text-white">Shipping & Returns</PrefetchLink></li>
               <li><PrefetchLink href="/collection-statement" className="text-white/80 hover:text-white">Collection Statement</PrefetchLink></li>
               <li><PrefetchLink href="/faq" className="text-white/80 hover:text-white">FAQ</PrefetchLink></li>
+              <li><PrefetchLink href="/request-for-catalogue" className="text-white/80 hover:text-white">Request for Catalogue</PrefetchLink></li>
             </ul>
           </div>
 
