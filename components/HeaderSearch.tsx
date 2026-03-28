@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Typesense from "typesense";
+import Typesense from "typesense";  
 
 const client = new Typesense.Client({
   nodes: [
