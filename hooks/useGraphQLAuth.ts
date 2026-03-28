@@ -1,31 +1,33 @@
-'use client';
 
+'use client';
+ 
 /**
  * useGraphQLAuth Hook
- * 
+ *
  * React hook for GraphQL-based authentication with cart sync
  * Extends useAuth with GraphQL-specific functionality
  */
-
+ 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/components/CartProvider';
-
+import { parseResponseJson } from '@/lib/parse-response-json';
+ 
 // ============================================================================
 // Types
 // ============================================================================
-
+ 
 export interface LoginOptions {
   redirectTo?: string;
   mergeCart?: boolean;
 }
-
+ 
 export interface RegisterOptions {
   redirectTo?: string;
   autoLogin?: boolean;
 }
-
+ 
 export interface UseGraphQLAuthReturn {
   // State from useAuth
   user: any;
@@ -33,19 +35,19 @@ export interface UseGraphQLAuthReturn {
   isLoading: boolean;
   status: string;
   error: any;
-  
+ 
   // GraphQL-specific actions
   graphqlLogin: (username: string, password: string, options?: LoginOptions) => Promise<{ success: boolean; error?: string }>;
   graphqlRegister: (data: RegisterData, options?: RegisterOptions) => Promise<{ success: boolean; error?: string }>;
   graphqlLogout: () => Promise<void>;
   refreshToken: () => Promise<{ success: boolean; error?: string }>;
   mergeCart: () => Promise<{ success: boolean; mergedCount: number }>;
-  
+ 
   // Original useAuth actions
   validateSession: () => Promise<void>;
   clearError: () => void;
 }
-
+ 
 export interface RegisterData {
   username?: string;
   email: string;
@@ -53,17 +55,17 @@ export interface RegisterData {
   firstName?: string;
   lastName?: string;
 }
-
+ 
 // ============================================================================
 // Hook Implementation
 // ============================================================================
-
+ 
 export function useGraphQLAuth(): UseGraphQLAuthReturn {
   const router = useRouter();
   const auth = useAuth();
   const { items: cartItems, clear: clearLocalCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
-
+ 
   /**
    * Login via GraphQL with optional cart merge
    */
@@ -73,13 +75,13 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
     options: LoginOptions = {}
   ): Promise<{ success: boolean; error?: string }> => {
     const { redirectTo, mergeCart = true } = options;
-    
+   
     if (isProcessing) {
       return { success: false, error: 'Already processing' };
     }
-
+ 
     setIsProcessing(true);
-
+ 
     try {
       // Prepare cart items for merge
       const cartItemsToMerge = mergeCart && cartItems.length > 0
@@ -89,7 +91,7 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
             variationId: item.variationId,
           }))
         : undefined;
-
+ 
       const response = await fetch('/api/auth/graphql/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,24 +103,36 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
           redirectTo,
         }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        return { 
-          success: false, 
-          error: data.error?.message || 'Login failed' 
+ 
+      const { data } = await parseResponseJson<{
+        success?: boolean;
+        error?: { message?: string };
+        cartSync?: { mergedCount?: number };
+        redirectTo?: string;
+      }>(response);
+ 
+      if (data === null) {
+        return {
+          success: false,
+          error: 'No response from server. Please try again.',
         };
       }
-
+ 
+      if (!response.ok || !data.success) {
+        return {
+          success: false,
+          error: data.error?.message || 'Login failed'
+        };
+      }
+ 
       // Clear local cart if items were merged
       if (data.cartSync?.mergedCount > 0) {
         clearLocalCart();
       }
-
+ 
       // Refresh auth state
       await auth.validateSession();
-
+ 
       // Redirect
       if (data.redirectTo) {
         router.push(data.redirectTo);
@@ -127,18 +141,18 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
       } else {
         router.push('/dashboard');
       }
-
+ 
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'An error occurred' 
+      return {
+        success: false,
+        error: error.message || 'An error occurred'
       };
     } finally {
       setIsProcessing(false);
     }
   }, [isProcessing, cartItems, clearLocalCart, auth, router]);
-
+ 
   /**
    * Register via GraphQL
    */
@@ -147,13 +161,13 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
     options: RegisterOptions = {}
   ): Promise<{ success: boolean; error?: string }> => {
     const { redirectTo, autoLogin = true } = options;
-
+ 
     if (isProcessing) {
       return { success: false, error: 'Already processing' };
     }
-
+ 
     setIsProcessing(true);
-
+ 
     try {
       const response = await fetch('/api/auth/graphql/register', {
         method: 'POST',
@@ -164,21 +178,32 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
           redirectTo,
         }),
       });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        return { 
-          success: false, 
-          error: result.error?.message || 'Registration failed' 
+ 
+      const { data: result } = await parseResponseJson<{
+        success?: boolean;
+        error?: { message?: string };
+        redirectTo?: string;
+      }>(response);
+ 
+      if (result === null) {
+        return {
+          success: false,
+          error: 'No response from server. Please try again.',
         };
       }
-
+ 
+      if (!response.ok || !result.success) {
+        return {
+          success: false,
+          error: result.error?.message || 'Registration failed'
+        };
+      }
+ 
       // Refresh auth state (registration includes auto-login)
       if (autoLogin) {
         await auth.validateSession();
       }
-
+ 
       // Redirect
       if (result.redirectTo) {
         router.push(result.redirectTo);
@@ -187,18 +212,18 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
       } else {
         router.push('/dashboard');
       }
-
+ 
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'An error occurred' 
+      return {
+        success: false,
+        error: error.message || 'An error occurred'
       };
     } finally {
       setIsProcessing(false);
     }
   }, [isProcessing, auth, router]);
-
+ 
   /**
    * Logout via GraphQL
    */
@@ -215,7 +240,7 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
       await auth.logout();
     }
   }, [auth]);
-
+ 
   /**
    * Refresh auth token
    */
@@ -225,28 +250,31 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
         method: 'POST',
         credentials: 'include',
       });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        return { 
-          success: false, 
-          error: data.error?.message || 'Token refresh failed' 
+ 
+      const { data } = await parseResponseJson<{
+        success?: boolean;
+        error?: { message?: string };
+      }>(response);
+ 
+      if (data === null || !response.ok || !data.success) {
+        return {
+          success: false,
+          error: data?.error?.message || 'Token refresh failed'
         };
       }
-
+ 
       // Refresh auth state
       await auth.validateSession();
-
+ 
       return { success: true };
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'An error occurred' 
+      return {
+        success: false,
+        error: error.message || 'An error occurred'
       };
     }
   }, [auth]);
-
+ 
   /**
    * Merge local cart with WooCommerce cart
    */
@@ -254,36 +282,39 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
     if (!auth.isAuthenticated || cartItems.length === 0) {
       return { success: true, mergedCount: 0 };
     }
-
+ 
     try {
       const itemsToMerge = cartItems.map(item => ({
         productId: item.productId,
         quantity: item.qty,
         variationId: item.variationId,
       }));
-
+ 
       const response = await fetch('/api/cart/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ items: itemsToMerge }),
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+ 
+      const { data } = await parseResponseJson<{
+        success?: boolean;
+        mergedCount?: number;
+      }>(response);
+ 
+      if (response.ok && data?.success) {
         // Clear local cart after successful merge
         clearLocalCart();
-        return { success: true, mergedCount: data.mergedCount };
+        return { success: true, mergedCount: data.mergedCount ?? 0 };
       }
-
+ 
       return { success: false, mergedCount: 0 };
     } catch (error) {
       console.error('Cart merge error:', error);
       return { success: false, mergedCount: 0 };
     }
   }, [auth.isAuthenticated, cartItems, clearLocalCart]);
-
+ 
   return {
     // State from useAuth
     user: auth.user,
@@ -291,19 +322,22 @@ export function useGraphQLAuth(): UseGraphQLAuthReturn {
     isLoading: auth.isLoading || isProcessing,
     status: auth.status,
     error: auth.error,
-    
+   
     // GraphQL-specific actions
     graphqlLogin,
     graphqlRegister,
     graphqlLogout,
     refreshToken,
     mergeCart,
-    
+   
     // Original useAuth actions
     validateSession: auth.validateSession,
     clearError: auth.clearError,
   };
 }
-
+ 
 export default useGraphQLAuth;
-
+ 
+ 
+ 
+ 
