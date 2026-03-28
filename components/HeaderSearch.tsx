@@ -7,12 +7,12 @@ import Typesense from "typesense";
 const client = new Typesense.Client({
   nodes: [
     {
-      host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
+      host: process.env.TYPESENSE_HOST,
       port: 443, 
       protocol: "https"
     }
   ],
-  apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY
+  apiKey: process.env.TYPESENSE_API_KEY
 });
 
 export default function HeaderSearch() {

@@ -1,23 +1,22 @@
-import Typesense from "typesense";
+import Typesense from "typesense/lib/Typesense";
 
-export const dynamic = "force-dynamic"; // 🔥 VERY IMPORTANT
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    // ✅ Prevent crash if env missing
-    if (!process.env.NEXT_PUBLIC_TYPESENSE_HOST || !process.env.NEXT_PUBLIC_TYPESENSE_API_KEY) {
+    if (!process.env.TYPESENSE_HOST || !process.env.TYPESENSE_ADMIN_KEY) {
       return Response.json({ hits: [] });
     }
 
     const client = new Typesense.Client({
       nodes: [
         {
-          host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
+          host: process.env.TYPESENSE_HOST,
           port: 443,
           protocol: "https",
         },
       ],
-      apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY,
+      apiKey: process.env.TYPESENSE_ADMIN_KEY,
     });
 
     const { searchParams } = new URL(req.url);
@@ -27,7 +26,6 @@ export async function GET(req: Request) {
       return Response.json({ hits: [] });
     }
 
-    // 🔥 multi-SKU support
     const formattedQuery = q
       .split(/[,\/&\s]+/)
       .map((q) => q.trim())
@@ -46,8 +44,6 @@ export async function GET(req: Request) {
 
   } catch (error) {
     console.error("Search API error:", error);
-
-    // ✅ NEVER crash build
     return Response.json({ hits: [] });
   }
 }

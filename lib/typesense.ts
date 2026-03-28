@@ -1,3 +1,5 @@
+"use client";
+
 import TypesenseInstantSearchAdapter from "typesense-instantsearch-adapter";
 
 const adapter = new TypesenseInstantSearchAdapter({
