@@ -11,7 +11,7 @@ import { apiFetchJson } from "@/lib/api";
 import { safeLogoUrl } from "@/lib/api-fallbacks";
 import HeaderUser from "@/components/HeaderUser";
 import SearchBar from "@/components/SearchBar";
-// import CustomSearchBox from "@/components/CustomSearchBox";
+import HeaderSearch from "@/components/HeaderSearch";
 
 export default function Header() {
 	const [open, setOpen] = useState(false);
@@ -129,7 +129,7 @@ export default function Header() {
 				{/* Center Search */}
 				<div className="hidden md:flex lg:col-span-7 justify-center">
 					
-				<SearchBar />
+				<HeaderSearch />		
 					
 				</div>
 

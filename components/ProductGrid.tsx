@@ -10,6 +10,7 @@ interface ProductGridProps {
   categorySlug?: string;
   brandSlug?: string;
   onSaleOnly?: boolean;
+  products?: ProductCardProduct[];
 }
 
 interface GridState {

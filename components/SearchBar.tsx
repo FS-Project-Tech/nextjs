@@ -1,29 +1,47 @@
 "use client";
 
-import { InstantSearch } from "react-instantsearch";
-import { algoliasearch } from "algoliasearch";
-import SearchBox from "@/components/search/SearchBox";
-import ProductHits from "@/components/search/ProductHits";
+import { InstantSearch, SearchBox, Hits } from "react-instantsearch";
+import { searchClient } from "@/lib/typesense";
+import router from "next/router";
 
-export default function SearchBar() {
-  const appId = process.env.NEXT_PUBLIC_ALGOLIA_APP_ID;
-  const apiKey = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY;
-
-  // 🚨 PREVENT BUILD CRASH
-  if (!appId || !apiKey) return null;
-
-  const searchClient = algoliasearch(appId, apiKey);
-
+function Hit({ hit }) {
   return (
-    <InstantSearch
-      searchClient={searchClient}
-      indexName="wp_searchable_posts"
-    >
+    <div className="flex gap-2 p-2 hover:bg-gray-100">
+      <img src={hit.image} className="w-10 h-10 object-contain" />
+      <div>
+        <p className="text-sm">{hit.name}</p>
+        <p className="text-xs text-gray-500">{hit.sku}</p>
+        <p className="text-sm">${hit.price}</p>
+        <p className="text-xs text-gray-500">{hit.category}</p>
+        <p className="text-xs text-gray-500">{hit.brand}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function HeaderSearch() {
+  return (
+    <InstantSearch searchClient={searchClient} indexName="products">
       <div className="relative w-full max-w-xl">
-        <SearchBox />
-        <div className="absolute left-0 top-full w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[400px] overflow-y-auto z-50">
-          <ProductHits />
+        
+      <SearchBox
+        placeholder="Search products..."
+        classNames={{
+          input: "w-full border p-2 rounded"
+        }}
+        onSubmit={(event) => {
+          const query = event.target.query.value;
+
+          if (query) {
+            router.push(`/search?q=${encodeURIComponent(query)}`);
+          }
+        }}
+      />
+
+        <div className="absolute w-full bg-white shadow mt-1 z-50 max-h-80 overflow-auto">
+          <Hits hitComponent={Hit} />
         </div>
+
       </div>
     </InstantSearch>
   );
