@@ -2,20 +2,26 @@
 
 import TypesenseInstantSearchAdapter from "typesense-instantsearch-adapter";
 
-const adapter = new TypesenseInstantSearchAdapter({
-  server: {
-    apiKey: "YBxhrmgEXolXvN11Xm3fkDBxLRJH8XyV", // 🔐 IMPORTANT
-    nodes: [
-      {
-        host: "owvh09nzpxs34ilqp-1.a2.typesense.net",
-        port: 443,
-        protocol: "https"
-      }
-    ]
-  },
-  additionalSearchParameters: {
-    query_by: "name,sku,category,brand"
-  }
-});
+let searchClient: any = null;
 
-export const searchClient = adapter.searchClient;
+if (typeof window !== "undefined") {
+  const adapter = new TypesenseInstantSearchAdapter({
+    server: {
+      apiKey: process.env.TYPESENSE_ADMIN_KEY!,
+      nodes: [
+        {
+          host: process.env.TYPESENSE_HOST!,
+          port: 443,
+          protocol: "https",
+        },
+      ],
+    },
+    additionalSearchParameters: {
+      query_by: "name,sku,category,brand",
+    },
+  });
+
+  searchClient = adapter.searchClient;
+}
+
+export { searchClient };

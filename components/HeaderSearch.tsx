@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Typesense from "typesense";  
+import Typesense from "typesense";
+// import { searchClient } from "@/lib/typesense";
 
 const client = new Typesense.Client({
   nodes: [
     {
-      host: process.env.TYPESENSE_HOST,
+      host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
       port: 443, 
       protocol: "https"
     }
   ],
-  apiKey: process.env.TYPESENSE_API_KEY
+  apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY 
 });
 
 export default function HeaderSearch() {

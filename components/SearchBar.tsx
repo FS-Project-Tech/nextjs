@@ -1,6 +1,6 @@
 "use client";
 
-import { InstantSearch, SearchBox, Hits } from "react-instantsearch";
+import { InstantSearch, SearchBox, Hits } from "react-instantsearch";     
 import { searchClient } from "@/lib/typesense";
 import router from "next/router";
 
@@ -21,7 +21,7 @@ function Hit({ hit }) {
 
 export default function HeaderSearch() {
   return (
-    <InstantSearch searchClient={searchClient} indexName="products">
+    <InstantSearch searchClient={searchClient} indexName={process.env.NEXT_PUBLIC_TYPESENSE_INDEX_NAME}>
       <div className="relative w-full max-w-xl">
         
       <SearchBox
