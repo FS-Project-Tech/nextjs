@@ -1,22 +1,53 @@
 import Typesense from "typesense";
 
-const client = new Typesense.Client({
-  nodes: [{
-    host: process.env.NEXT_PUBLIC_TYPESENSE_HOST!,
-    port: 443,
-    protocol: "https"
-  }],
-  apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY!
-});
+export const dynamic = "force-dynamic"; // 🔥 VERY IMPORTANT
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") || "";
+  try {
+    // ✅ Prevent crash if env missing
+    if (!process.env.NEXT_PUBLIC_TYPESENSE_HOST || !process.env.NEXT_PUBLIC_TYPESENSE_API_KEY) {
+      return Response.json({ hits: [] });
+    }
 
-  const res = await client.collections(process.env.NEXT_PUBLIC_TYPESENSE_INDEX_NAME!).documents().search({
-    q,
-    query_by: "name,sku"
-  });
+    const client = new Typesense.Client({
+      nodes: [
+        {
+          host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
+          port: 443,
+          protocol: "https",
+        },
+      ],
+      apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY,
+    });
 
-  return Response.json(res);
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q") || "";
+
+    if (!q) {
+      return Response.json({ hits: [] });
+    }
+
+    // 🔥 multi-SKU support
+    const formattedQuery = q
+      .split(/[,\/&\s]+/)
+      .map((q) => q.trim())
+      .filter(Boolean)
+      .join(" || ");
+
+    const res = await client
+      .collections("products")
+      .documents()
+      .search({
+        q: formattedQuery,
+        query_by: "sku,name,category,brand",
+      });
+
+    return Response.json(res);
+
+  } catch (error) {
+    console.error("Search API error:", error);
+
+    // ✅ NEVER crash build
+    return Response.json({ hits: [] });
+  }
 }
