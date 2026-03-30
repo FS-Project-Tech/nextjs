@@ -7,10 +7,10 @@ let searchClient: any = null;
 if (typeof window !== "undefined") {
   const adapter = new TypesenseInstantSearchAdapter({
     server: {
-      apiKey: process.env.TYPESENSE_ADMIN_KEY!,
+      apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY!,
       nodes: [
         {
-          host: process.env.TYPESENSE_HOST!,
+          host: process.env.NEXT_PUBLIC_TYPESENSE_HOST!,
           port: 443,
           protocol: "https",
         },
