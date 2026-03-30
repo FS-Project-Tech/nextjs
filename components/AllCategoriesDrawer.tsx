@@ -63,10 +63,16 @@ const CategoryList = memo(function CategoryList({
 
 export default function AllCategoriesDrawer({
   className = "",
+  open,
+  onOpenChange,
+  hideTrigger = false,
 }: {
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<WCCategory[]>([]);
   const [childrenMap, setChildrenMap] = useState<Record<number, WCCategory[]>>({});
@@ -75,10 +81,21 @@ export default function AllCategoriesDrawer({
   const [subcategories, setSubcategories] = useState<WCCategory[]>([]);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const router = useRouter();
+  const isControlled = typeof open === "boolean";
+  const isOpen = isControlled ? open : internalOpen;
+  const setDrawerOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (!isControlled) {
+        setInternalOpen(nextOpen);
+      }
+      onOpenChange?.(nextOpen);
+    },
+    [isControlled, onOpenChange]
+  );
 
   // Fetch all categories and build children map
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
 
     let cancelled = false;
 
@@ -149,7 +166,7 @@ export default function AllCategoriesDrawer({
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [isOpen]);
 
   // Handle category click - Amazon style
   const handleCategoryClick = useCallback(
@@ -201,14 +218,14 @@ export default function AllCategoriesDrawer({
           } else {
             // No subcategories found - close drawer and navigate
             setSubcategoryDrawerOpen(false);
-            setOpen(false);
+            setDrawerOpen(false);
             router.push(`/product-category/${category.slug}`);
             return;
           }
         } else {
           // API error - close drawer and navigate
           setSubcategoryDrawerOpen(false);
-          setOpen(false);
+          setDrawerOpen(false);
           router.push(`/product-category/${category.slug}`);
           return;
         }
@@ -216,18 +233,18 @@ export default function AllCategoriesDrawer({
         console.error("Error fetching subcategories:", error);
         // On error - close drawer and navigate
         setSubcategoryDrawerOpen(false);
-        setOpen(false);
+        setDrawerOpen(false);
         router.push(`/product-category/${category.slug}`);
         return;
       } finally {
         setLoadingSubcategories(false);
       }
     },
-    [childrenMap, router]
+    [childrenMap, router, setDrawerOpen]
   );
 
   const handleSubcategoryClick = (subcategory: WCCategory) => {
-    setOpen(false);
+    setDrawerOpen(false);
     setSubcategoryDrawerOpen(false);
     setSelectedCategory(null);
     router.push(`/product-category/${subcategory.slug}`);
@@ -241,30 +258,32 @@ export default function AllCategoriesDrawer({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className={`inline-flex items-center gap-2 ${className}`}
-        aria-label="Browse all categories"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          className="h-5 w-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setDrawerOpen(true)}
+          className={`inline-flex items-center gap-2 ${className}`}
+          aria-label="Browse all categories"
         >
-          <path d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-        <span className="font-medium">All Categories</span>
-      </button>
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span className="font-medium">All Categories</span>
+        </button>
+      )}
 
-      {open && (
+      {isOpen && (
         <div className="fixed inset-0 z-50">
           <div
             className="absolute inset-0 bg-black/40"
             onClick={() => {
-              setOpen(false);
+              setDrawerOpen(false);
               setSubcategoryDrawerOpen(false);
               setSelectedCategory(null);
             }}
@@ -305,7 +324,7 @@ export default function AllCategoriesDrawer({
               )}
               <button
                 onClick={() => {
-                  setOpen(false);
+                  setDrawerOpen(false);
                   setSubcategoryDrawerOpen(false);
                   setSelectedCategory(null);
                 }}
@@ -389,7 +408,7 @@ export default function AllCategoriesDrawer({
                   </h3>
                   <button
                     onClick={() => {
-                      setOpen(false);
+                      setDrawerOpen(false);
                       setSubcategoryDrawerOpen(false);
                       setSelectedCategory(null);
                     }}
@@ -441,7 +460,7 @@ export default function AllCategoriesDrawer({
                   </h3>
                   <button
                     onClick={() => {
-                      setOpen(false);
+                      setDrawerOpen(false);
                       setSubcategoryDrawerOpen(false);
                       setSelectedCategory(null);
                     }}

@@ -42,11 +42,11 @@ export default async function Footer() {
 
   return (
     <footer
-      className="text-white border-t border-teal-600"
+      className="text-white border-t border-teal-600 rounded-t-2xl md:rounded-t-3xl"
       style={{ backgroundColor: "#1f605f" }}
     >
-      <div className="container mx-auto w-full box-border px-4 py-8 sm:px-6 sm:py-10 md:px-8 lg:px-10 lg:py-16">
-        <div className="grid grid-cols-1 gap-8 sm:gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-4 lg:gap-12 mb-8 sm:mb-10 lg:mb-12">
+      <div className="container mx-auto w-full box-border px-4 py-7 sm:px-6 sm:py-9 md:px-8 md:py-10 lg:px-10 lg:py-16">
+        <div className="grid grid-cols-1 gap-7 sm:gap-8 md:grid-cols-2 md:gap-8 lg:grid-cols-4 lg:gap-12 mb-7 sm:mb-9 lg:mb-12">
 
           {/* Column 1: Logo */}
           <div className="space-y-3 sm:space-y-4">
@@ -77,7 +77,7 @@ export default async function Footer() {
               href="https://calendly.com/joyamedicalsupplies-info/30min"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-3 bg-white text-teal transition-all duration-200 rounded-xl shadow-md"
+              className="inline-flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 bg-white text-teal transition-all duration-200 rounded-xl shadow-md hover:shadow-lg"
             >
               Request a Call
             </a>
@@ -86,20 +86,20 @@ export default async function Footer() {
           {/* Column 2: Menu */}
           <div>
             <h3 className="text-white font-semibold text-base sm:text-lg mb-3 sm:mb-4">Menu</h3>
-            <ul className="space-y-2 sm:space-y-3 text-sm">
-              <li><PrefetchLink href="/" critical className="text-white/80 hover:text-white">Home</PrefetchLink></li>
-              <li><PrefetchLink href="/shop" critical className="text-white/80 hover:text-white">Shop</PrefetchLink></li>
-              <li><PrefetchLink href="/catalogue" critical className="text-white/80 hover:text-white">Catalogue</PrefetchLink></li>
-              <li><PrefetchLink href="/cart" critical className="text-white/80 hover:text-white">Cart</PrefetchLink></li>
-              <li><PrefetchLink href="/dashboard/wishlist" critical className="text-white/80 hover:text-white">Wishlist</PrefetchLink></li>
-              <li><PrefetchLink href="/account" critical className="text-white/80 hover:text-white">My Account</PrefetchLink></li>
-              <li><PrefetchLink href="/blog" className="text-white/80 hover:text-white">Blog</PrefetchLink></li>
+            <ul className="space-y-1.5 sm:space-y-2.5 text-sm">
+              <li><PrefetchLink href="/" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Home</PrefetchLink></li>
+              <li><PrefetchLink href="/shop" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Shop</PrefetchLink></li>
+              <li><PrefetchLink href="/catalogue" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Catalogue</PrefetchLink></li>
+              <li><PrefetchLink href="/cart" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Cart</PrefetchLink></li>
+              <li><PrefetchLink href="/dashboard/wishlist" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Wishlist</PrefetchLink></li>
+              <li><PrefetchLink href="/account" critical className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">My Account</PrefetchLink></li>
+              <li><PrefetchLink href="/blog" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Blog</PrefetchLink></li>
               <li>
                 <a
                   href="/pdf/Return-Form-new-2025.pdf"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/80 hover:text-white"
+                  className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10"
                 >
                   Product Return
                 </a>
@@ -110,14 +110,14 @@ export default async function Footer() {
           {/* Column 3: Quick Links */}
           <div>
             <h3 className="text-white font-semibold text-base sm:text-lg mb-3 sm:mb-4">Quick Links</h3>
-            <ul className="space-y-2 sm:space-y-3 text-sm">
-              <li><PrefetchLink href="/about" className="text-white/80 hover:text-white">About Us</PrefetchLink></li>
-              <li><PrefetchLink href="/resources" className="text-white/80 hover:text-white">Resources</PrefetchLink></li>
-              <li><PrefetchLink href="/shipping" className="text-white/80 hover:text-white">Shipping & Returns</PrefetchLink></li>
-              <li><PrefetchLink href="/collection-statement" className="text-white/80 hover:text-white">Collection Statement</PrefetchLink></li>
-              <li><PrefetchLink href="/faq" className="text-white/80 hover:text-white">FAQ</PrefetchLink></li>
-              <li><PrefetchLink href="/events" className="text-white/80 hover:text-white">Events</PrefetchLink></li>
-              <li><PrefetchLink href="/request-for-catalogue" className="text-white/80 hover:text-white">Request for Catalogue</PrefetchLink></li>
+            <ul className="space-y-1.5 sm:space-y-2.5 text-sm">
+              <li><PrefetchLink href="/about" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">About Us</PrefetchLink></li>
+              <li><PrefetchLink href="/resources" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Resources</PrefetchLink></li>
+              <li><PrefetchLink href="/shipping" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Shipping & Returns</PrefetchLink></li>
+              <li><PrefetchLink href="/collection-statement" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Collection Statement</PrefetchLink></li>
+              <li><PrefetchLink href="/faq" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">FAQ</PrefetchLink></li>
+              <li><PrefetchLink href="/events" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Events</PrefetchLink></li>
+              <li><PrefetchLink href="/request-for-catalogue" className="inline-flex rounded-md px-1.5 py-1 text-white/85 hover:text-white hover:bg-white/10">Request for Catalogue</PrefetchLink></li>
             </ul>
           </div>
 
@@ -186,7 +186,7 @@ export default async function Footer() {
 
         </div>
 
-        <div className="border-t border-white/20 pt-6 sm:pt-8">
+        <div className="border-t border-white/20 pt-5 sm:pt-7">
           <div className="flex flex-col md:flex-row justify-between items-center gap-3 sm:gap-4 text-center md:text-left">
             <p className="text-xs sm:text-sm text-white/90 order-2 md:order-1">
               © {currentYear} Joya Medical Supplies. All rights reserved.

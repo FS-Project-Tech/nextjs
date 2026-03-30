@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/components/CartProvider";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import AllCategoriesDrawer from "@/components/AllCategoriesDrawer";
 
 const TABS = [
   { key: "home", label: "Home", href: "/", icon: (
     <path d="M3 11l9-8 9 8v9a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4H9v4a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-9z" />
   ) },
-  { key: "categories", label: "Categories", href: "/shop", icon: (
+  { key: "categories", label: "Categories", href: "#", icon: (
     <>
       <path d="M4 4h7v7H4z" />
       <path d="M13 4h7v7h-7z" />
@@ -17,10 +19,13 @@ const TABS = [
       <path d="M13 13h7v7h-7z" />
     </>
   ) },
-  { key: "search", label: "Search", href: "/shop?focus=search", icon: (
+  { key: "wishlist", label: "Wishlist", href: "/dashboard/wishlist", icon: (
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+  ) },
+  { key: "me", label: "Me", href: "/dashboard", icon: (
     <>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4.35-4.35" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4 3.5-7 8-7s8 3 8 7" />
     </>
   ) },
   { key: "cart", label: "Cart", href: "#", icon: (
@@ -35,8 +40,12 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
   const { open, items } = useCart();
+  const { data: session, status } = useSession();
   const [visible, setVisible] = useState(true);
   const [lastY, setLastY] = useState(0);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const meHref = session?.user ? "/dashboard" : "/login";
+  const meActive = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
   useEffect(() => {
     const onScroll = () => {
@@ -49,11 +58,15 @@ export default function BottomNav() {
   }, [lastY]);
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 z-50 block md:hidden`} aria-label="Bottom navigation" suppressHydrationWarning>
-      <div className={`mx-auto w-full bg-white/95 backdrop-blur border-t border-gray-200 transition-transform duration-200 ${visible ? "translate-y-0" : "translate-y-full"}`} suppressHydrationWarning>
-        <ul className="grid grid-cols-4" suppressHydrationWarning>
+    <nav className={`fixed bottom-0 left-0 right-0 z-50 block lg:hidden`} aria-label="Bottom navigation" suppressHydrationWarning>
+      <div className={`mx-auto w-full max-w-[64rem] bg-white/95 backdrop-blur border-t border-gray-200 transition-transform duration-200 ${visible ? "translate-y-0" : "translate-y-full"} pb-[env(safe-area-inset-bottom)]`} suppressHydrationWarning>
+        <ul className="grid grid-cols-5" suppressHydrationWarning>
           {TABS.map((tab) => {
-            const active = tab.href !== "#" && pathname === tab.href;
+            const tabHref = tab.key === "me" ? meHref : tab.href;
+            const active =
+              tab.key === "me"
+                ? meActive
+                : tabHref !== "#" && (pathname === tabHref || pathname.startsWith(`${tabHref}/`));
             const content = (
               <div className={`flex flex-col items-center justify-center py-2 ${active ? "text-teal-700" : "text-gray-700"}`} suppressHydrationWarning>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -78,9 +91,19 @@ export default function BottomNav() {
               );
             }
 
+            if (tab.key === "categories") {
+              return (
+                <li key={tab.key} suppressHydrationWarning>
+                  <button type="button" onClick={() => setCategoriesOpen(true)} className="block w-full">
+                    {content}
+                  </button>
+                </li>
+              );
+            }
+
             return (
               <li key={tab.key} suppressHydrationWarning>
-                <Link href={tab.href} className="block w-full">
+                <Link href={tabHref} className="block w-full">
                   {content}
                 </Link>
               </li>
@@ -88,6 +111,7 @@ export default function BottomNav() {
           })}
         </ul>
       </div>
+      <AllCategoriesDrawer open={categoriesOpen} onOpenChange={setCategoriesOpen} hideTrigger />
     </nav>
   );
 }

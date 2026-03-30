@@ -136,20 +136,22 @@ export default function RootLayout({
 
               {/* <AnalyticsInitializer /> */}
 
-              <div className="sticky top-0 z-50 bg-white shadow-sm">
-                <Header />
-                <CategoriesNav />
-              </div>
+              <div className="app-shell">
+                <div className="sticky top-0 z-50 bg-white shadow-sm">
+                  <Header />
+                  <CategoriesNav />
+                </div>
 
-              <main suppressHydrationWarning>
-                <MainContent>{children}</MainContent>
-              </main>
-              
-              <Footer />
-              <MiniCartDrawer />
-              <BottomNav />
-              <PWARegister />
-              <TawkToWidget />
+                <main className="flex-1 pb-20 md:pb-24 lg:pb-0" suppressHydrationWarning>
+                  <MainContent>{children}</MainContent>
+                </main>
+                
+                <Footer />
+                <MiniCartDrawer />
+                <BottomNav />
+                <PWARegister />
+                <TawkToWidget />
+              </div>
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>

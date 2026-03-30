@@ -10,7 +10,6 @@ import { useSession, signOut } from "next-auth/react";
 import { apiFetchJson } from "@/lib/api";
 import { safeLogoUrl } from "@/lib/api-fallbacks";
 import HeaderUser from "@/components/HeaderUser";
-import SearchBar from "@/components/SearchBar";
 import HeaderSearch from "@/components/HeaderSearch";
 
 export default function Header() {
@@ -81,8 +80,8 @@ export default function Header() {
 		<header className="bg-white">
 
 			{/* Top Bar */}
-			<div className="bg-teal-600 text-white py-2 px-4">
-				<div className="container mx-auto flex items-center justify-between text-xs">
+			<div className="bg-teal-600 text-white py-2 px-3 sm:px-4 md:px-5 lg:px-0">
+				<div className="container mx-auto flex min-h-7 items-center justify-between text-[11px] sm:text-xs">
 
 					{tagline && (
 						<div className="text-white italic">{tagline}</div>
@@ -91,14 +90,14 @@ export default function Header() {
 				</div>
 			</div>
 
-			<nav className="container mx-auto grid grid-cols-2 lg:grid-cols-12 items-center py-4 gap-3">
+			<nav className="container mx-auto grid grid-cols-2 lg:grid-cols-12 items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-5 lg:px-0 py-3 md:py-4">
 
 				{/* Logo */}
 				<div className="lg:col-span-2 flex items-center">
 					<PrefetchLink href="/" className="flex items-center gap-2">
 
 						{logoUrl ? (
-							<div className="relative w-40 h-16">
+							<div className="relative h-12 w-32 sm:h-14 sm:w-36 md:h-16 md:w-40">
 								<Image
 									src={logoUrl || "/logo-placeholder.png"}
 									alt="Logo"
@@ -120,14 +119,15 @@ export default function Header() {
 				<div className="flex lg:hidden justify-end">
 					<button
 						onClick={() => setOpen(!open)}
-						className="p-2 rounded hover:bg-gray-100"
+						className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+						aria-label="Open menu"
 					>
-						☰
+						<span className="text-xl leading-none">☰</span>
 					</button>
 				</div>
 
-				{/* Center Search */}
-				<div className="hidden md:flex lg:col-span-7 justify-center">
+				{/* Desktop Search */}
+				<div className="hidden lg:flex lg:col-span-7 justify-center">
 					
 				<HeaderSearch />		
 					
@@ -247,35 +247,40 @@ export default function Header() {
 
 			</nav>
 
+			{/* Mobile + Tablet Search (Amazon-style top full width) */}
+			<div className="lg:hidden container mx-auto px-3 sm:px-4 md:px-5 pb-3">
+				<HeaderSearch />
+			</div>
+
 			{/* Mobile Menu */}
 			{open && (
-				<div className="lg:hidden border-t p-4 space-y-3">
+				<div className="lg:hidden border-t px-4 py-4 space-y-3 bg-white">
 
 					<a href="tel:+1234567890" className="block text-sm text-gray-700">
 						Hotline: +1 234 567 890
 					</a>
 
-					<PrefetchLink href="/">Home</PrefetchLink>
-					<PrefetchLink href="/shop">Shop</PrefetchLink>
-					<PrefetchLink href="/catalogue">Catalogue</PrefetchLink>
+					<PrefetchLink href="/" className="block rounded-lg px-2 py-2 hover:bg-gray-50">Home</PrefetchLink>
+					<PrefetchLink href="/shop" className="block rounded-lg px-2 py-2 hover:bg-gray-50">Shop</PrefetchLink>
+					<PrefetchLink href="/catalogue" className="block rounded-lg px-2 py-2 hover:bg-gray-50">Catalogue</PrefetchLink>
 
 					{loading ? (
 						<div className="h-5 w-24 bg-gray-200 rounded animate-pulse"></div>
 					) : user ? (
 						<>
-							<PrefetchLink href="/dashboard">Dashboard</PrefetchLink>
+							<PrefetchLink href="/dashboard" className="block rounded-lg px-2 py-2 hover:bg-gray-50">Dashboard</PrefetchLink>
 
 							<button
 								onClick={async () => {
 									await signOut({ callbackUrl: "/login" });
 								}}
-								className="text-red-600"
+								className="rounded-lg px-2 py-2 text-red-600 hover:bg-red-50"
 							>
 								Sign Out
 							</button>
 						</>
 					) : (
-						<PrefetchLink href="/login">Login</PrefetchLink>
+						<PrefetchLink href="/login" className="block rounded-lg px-2 py-2 hover:bg-gray-50">Login</PrefetchLink>
 					)}
 
 				</div>

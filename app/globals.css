@@ -64,6 +64,24 @@ body {
 
 main{background-color: #fff;}
 
+/* App-like shell for mobile/tablet */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  background: #fff;
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+  .app-shell {
+    max-width: 64rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  }
+}
+
 .btn-brand {
   background-color: var(--primary);
   color: var(--primary-foreground);

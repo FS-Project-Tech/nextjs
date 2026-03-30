@@ -83,7 +83,7 @@ export default function SearchPage() {
 
 
           {/* Brand */}
-          <div className="bg-white rounded-lg border p-4">
+          <div className="bg-white rounded-lg p-4">
             <h3 className="font-semibold text-gray-800 mb-3">Brand</h3>
 
             <RefinementList
