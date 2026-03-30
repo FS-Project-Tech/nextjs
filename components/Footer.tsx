@@ -56,9 +56,9 @@ export default async function Footer() {
                   <Image
                     src={logoUrl}
                     alt={siteName || "Logo"}
-                    width={800}
-                    height={200}
-                    className="w-full h-auto max-h-12 sm:max-h-14 md:max-h-none object-contain object-left"
+                    width={200}
+                    height={50}
+                    className="w-full h-auto max-h-12 sm:max-h-14 md:max-w-12 object-contain object-left"
                   />
                 </div>
               ) : (
@@ -106,6 +106,7 @@ export default async function Footer() {
               <li><PrefetchLink href="/shipping" className="text-white/80 hover:text-white">Shipping & Returns</PrefetchLink></li>
               <li><PrefetchLink href="/collection-statement" className="text-white/80 hover:text-white">Collection Statement</PrefetchLink></li>
               <li><PrefetchLink href="/faq" className="text-white/80 hover:text-white">FAQ</PrefetchLink></li>
+              <li><PrefetchLink href="/events" className="text-white/80 hover:text-white">Events</PrefetchLink></li>
               <li><PrefetchLink href="/request-for-catalogue" className="text-white/80 hover:text-white">Request for Catalogue</PrefetchLink></li>
             </ul>
           </div>
