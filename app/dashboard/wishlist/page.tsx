@@ -50,12 +50,14 @@ function WishlistProductWrapper({
         sale_price={product.sale_price}
         regular_price={product.regular_price}
         on_sale={product.on_sale}
-        imageUrl={product.images?.[0]?.src}
-        imageAlt={product.images?.[0]?.alt || product.name}
+        // imageUrl={product.images?.[0]?.src}
+        // imageAlt={product.images?.[0]?.alt || product.name}
         tax_class={product.tax_class}
         tax_status={product.tax_status}
         average_rating={product.average_rating}
         rating_count={product.rating_count}
+        imageUrl={product.image || product.images?.[0]?.src}
+        imageAlt={product.image_alt || product.images?.[0]?.alt || product.name}
       />
     </div>
   );
