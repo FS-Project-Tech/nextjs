@@ -65,14 +65,37 @@ export default function SearchPage() {
               }}
             /> */}
 
-          <div>
-            <h3 className="font-semibold mb-2">Category</h3>
-            <RefinementList attribute="category" />
+           {/* Category */}
+          <div className="bg-white rounded-lg  p-4">
+            <h3 className="font-semibold text-gray-800 mb-3">Category</h3>
+
+            <RefinementList
+              attribute="category"
+              classNames={{
+                list: "space-y-2",
+                item: "flex items-center justify-between text-sm cursor-pointer",
+                label: "flex items-center gap-2 cursor-pointer",
+                checkbox: "accent-teal-600 w-4 h-4",
+                count: "text-gray-400 text-xs"
+              }}
+            />
           </div>
 
-          <div>
-            <h3 className="font-semibold mb-2">Brand</h3>
-            <RefinementList attribute="brand" />
+
+          {/* Brand */}
+          <div className="bg-white rounded-lg border p-4">
+            <h3 className="font-semibold text-gray-800 mb-3">Brand</h3>
+
+            <RefinementList
+              attribute="brand"
+              classNames={{
+                list: "space-y-2",
+                item: "flex items-center justify-between text-sm",
+                label: "flex items-center gap-2",
+                checkbox: "accent-teal-600 w-4 h-4",
+                count: "text-gray-400 text-xs"
+              }}
+            />
           </div>
 
         </div>

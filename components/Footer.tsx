@@ -56,9 +56,9 @@ export default async function Footer() {
                   <Image
                     src={logoUrl}
                     alt={siteName || "Logo"}
-                    width={200}
-                    height={50}
-                    className="w-full h-auto max-h-12 sm:max-h-14 md:max-w-12 object-contain object-left"
+                    width={800}
+                    height={200}
+                    className="w-full h-auto max-h-12 sm:max-h-14 md:max-w-full object-contain object-left"
                   />
                 </div>
               ) : (
@@ -94,6 +94,16 @@ export default async function Footer() {
               <li><PrefetchLink href="/dashboard/wishlist" critical className="text-white/80 hover:text-white">Wishlist</PrefetchLink></li>
               <li><PrefetchLink href="/account" critical className="text-white/80 hover:text-white">My Account</PrefetchLink></li>
               <li><PrefetchLink href="/blog" className="text-white/80 hover:text-white">Blog</PrefetchLink></li>
+              <li>
+                <a
+                  href="/pdf/Return-Form-new-2025.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/80 hover:text-white"
+                >
+                  Product Return
+                </a>
+              </li>
             </ul>
           </div>
 
