@@ -94,13 +94,13 @@ export default function CategoryPageClient({
                 <h1 className="text-2xl font-semibold text-gray-900">{categoryName}</h1>
                 {categoryDescription && (
                   <div className="mt-3">
-                    <p
+                    <div
                       className={`w-full text-sm leading-relaxed text-gray-600 ${
                         isDescriptionExpanded ? "" : "line-clamp-4"
                       }`}
                     >
                       <div dangerouslySetInnerHTML={createSafeHTML(categoryDescription)} />
-                    </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setIsDescriptionExpanded((prev) => !prev)}
