@@ -12,6 +12,7 @@ import { matchVariation, findBrand, isAllSelected, extractProductBrands } from "
 import { useViewedProduct } from "@/hooks/useViewedProducts";
 import ConsultationFormModal from "@/components/ConsultationFormModal";
 import EmpowerCampaignBox from "@/components/EmpowerCampaignBox";	
+import Image from "next/image";
  
 function hasEmpowerTag(product: WooCommerceProduct): boolean {
     const tags = product.tags || [];
@@ -21,6 +22,23 @@ function hasEmpowerTag(product: WooCommerceProduct): boolean {
             (t.slug || "").toLowerCase() === "empower"
     );
 }
+
+function showProductTerms(product: WooCommerceProduct): boolean {
+    const meta = product.meta_data?.find(
+      (m: { key?: string }) => m.key === "show_terms_conditions"
+    );
+ 
+    if (!meta?.value) return false;
+ 
+    // value is array like ["yes: Yes"]
+    if (Array.isArray(meta.value)) {
+      return meta.value.some((v: string) =>
+        v.toLowerCase().includes("yes")
+      );
+    }
+ 
+    return String(meta.value).toLowerCase().includes("yes");
+  }
  
 export default function ProductDetailPanel({ product, variations }: { product: WooCommerceProduct; variations: WooCommerceVariation[] }) {
     const [plan, setPlan] = useState<RecurringPlan>("none");
@@ -96,6 +114,19 @@ const attributes = useMemo(() => {
                     )}
                 </div>
             </div>
+
+              {/* ✅ FIXED SPACING HERE */}
+                {showProductTerms(product) && (
+                    <div className="mt-5">
+                    <Image
+                        src="/images/product-terms-conditions.png"
+                        alt="Product Terms"
+                        width={1200}
+                        height={200}
+                        className="w-full max-w-[600px] h-auto rounded-md"
+                    />
+                    </div>
+                )}
  
             {/* Price — same treatment as product card: strikethrough original + Save $X when on sale */}
             <div className="space-y-2">
