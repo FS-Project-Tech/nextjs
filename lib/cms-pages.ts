@@ -48,7 +48,7 @@ export async function fetchPageBySlug(slug: string): Promise<WpPage | null> {
   try {
     const res = await fetch(
       `${base}/wp-json/wp/v2/pages?slug=${encodeURIComponent(slug)}&_embed=1`,
-      { next: { revalidate: 60 } }
+      { next: { revalidate: 3600 } }
     );
     if (!res.ok) return null;
     const data = await res.json();

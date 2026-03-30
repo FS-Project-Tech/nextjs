@@ -198,6 +198,16 @@ async function CategoriesNavContent() {
             )}
           </li>
 
+          {/* B2B */}
+          <li>
+            <PrefetchLink
+              href="/b2b/"
+              className="px-3 py-2 text-white hover:bg-nav-hover"
+            >
+              B2B
+            </PrefetchLink>
+          </li>
+
         </ul>
       </div>
     </nav>
