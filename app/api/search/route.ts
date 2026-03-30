@@ -4,19 +4,19 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    if (!process.env.TYPESENSE_HOST || !process.env.TYPESENSE_ADMIN_KEY) {
+    if (!process.env.NEXT_PUBLIC_TYPESENSE_HOST || !process.env.NEXT_PUBLIC_TYPESENSE_API_KEY) {
       return Response.json({ hits: [] });
     }
 
     const client = new Typesense.Client({
       nodes: [
         {
-          host: process.env.TYPESENSE_HOST,
+          host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
           port: 443,
           protocol: "https",
         },
       ],
-      apiKey: process.env.TYPESENSE_ADMIN_KEY,
+      apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY,
     });
 
     const { searchParams } = new URL(req.url);

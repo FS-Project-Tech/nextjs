@@ -1,19 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Typesense from "typesense";
-// import { searchClient } from "@/lib/typesense";
 
 const client = new Typesense.Client({
   nodes: [
     {
       host: process.env.NEXT_PUBLIC_TYPESENSE_HOST,
-      port: 443, 
-      protocol: "https"
-    }
+      port: 443,
+      protocol: "https",
+    },
   ],
-  apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY 
+  apiKey: process.env.NEXT_PUBLIC_TYPESENSE_API_KEY,
 });
 
 export default function HeaderSearch() {
@@ -21,84 +20,121 @@ export default function HeaderSearch() {
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [show, setShow] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
 
-const [categories, setCategories] = useState([]); // ✅ ADD THIS
-const [brands, setBrands] = useState([]); // ✅ ADD THIS
-  // 🔥 Debounce search
+  const inputRef = useRef(null);
+
+  // 🔥 Highlight function
+  const highlight = (text: string, query: string) => {
+    if (!query) return text;
+
+    const parts = query.split(/[,\/&\s]+/).filter(Boolean);
+    let result = text;
+
+    parts.forEach((q) => {
+      const regex = new RegExp(`(${q})`, "gi");
+      result = result.replace(regex, `<mark class="bg-yellow-200">$1</mark>`);
+    });
+
+    return result;
+  };
+
+  // 🔥 Search
   useEffect(() => {
     if (!query) {
       setResults([]);
       setCategories([]);
       setBrands([]);
+      setShow(false);
       return;
     }
-  
+
     const delay = setTimeout(async () => {
       try {
         const formattedQuery = query
-            .split(/[,\/&\s]+/) // 🔥 same fix here
-            .map(q => q.trim())
-            .filter(Boolean)
-            .join(" || ");
+          .split(/[,\/&\s]+/)
+          .map((q) => q.trim())
+          .filter(Boolean)
+          .join(" || ");
 
-            const isSkuSearch = /^[0-9,\s&\/]+$/.test(query);
-
-          const res = await client.collections(process.env.NEXT_PUBLIC_TYPESENSE_INDEX_NAME).documents().search({
+        const res = await client
+          .collections(process.env.NEXT_PUBLIC_TYPESENSE_INDEX_NAME)
+          .documents()
+          .search({
             q: formattedQuery,
-            query_by: isSkuSearch ? "sku" : "name,sku,category,brand",
-            num_typos: 1,
-            per_page: 20,
-            facet_by: isSkuSearch ? "category" : "category,brand"
+            query_by: "sku,name,category,brand",
+            per_page: 5,
+            facet_by: "category,brand",
           });
-  
+
+        setResults(res.hits || []);
+
+        const catFacet = res.facet_counts?.find((f) => f.field_name === "category");
+        setCategories(catFacet?.counts || []);
+
+        const brandFacet = res.facet_counts?.find((f) => f.field_name === "brand");
+        setBrands(brandFacet?.counts || []);
+
         setShow(true);
+        setActiveIndex(-1);
       } catch (err) {
         console.error(err);
       }
     }, 300);
-  
+
     return () => clearTimeout(delay);
   }, [query]);
 
-  // 🔍 Submit (Enter)
-  const handleSubmit = (e) => {
-    e.preventDefault();
-  
-    if (query) {
-      const cleanedQuery = query
-        .split(/[,\/&\s]+/) // 🔥 added &
-        .map(q => q.trim())
-        .filter(Boolean)
-        .join(",");
-  
-      router.push(`/search?q=${encodeURIComponent(cleanedQuery)}`);
+  // 🔥 Keyboard navigation
+  const handleKeyDown = (e) => {
+    const totalItems = results.length;
+
+    if (e.key === "ArrowDown") {
+      setActiveIndex((prev) => Math.min(prev + 1, totalItems - 1));
+    }
+
+    if (e.key === "ArrowUp") {
+      setActiveIndex((prev) => Math.max(prev - 1, 0));
+    }
+
+    if (e.key === "Enter") {
+      if (activeIndex >= 0 && results[activeIndex]) {
+        const hit = results[activeIndex].document;
+        router.push(`/product/${hit.slug}`);
+      } else {
+        router.push(`/search?q=${encodeURIComponent(query)}`);
+      }
     }
   };
 
   return (
     <div className="relative w-full max-w-xl">
       
-      {/* Search Input */}
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => query && setShow(true)}
-          onBlur={() => setTimeout(() => setShow(false), 200)}
-          className="w-full border p-2 rounded"
-        />
-      </form>
+      {/* 🔍 Input */}
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onKeyDown={handleKeyDown}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => query && setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 200)}
+        placeholder="Search products..."
+        className="w-full border p-2 rounded"
+      />
 
+      {/* 🔥 Dropdown */}
       {show && (
-        <div className="absolute w-full bg-white shadow-lg mt-1 z-50 max-h-96 overflow-auto rounded">
+        <div className="absolute w-full bg-white shadow-lg mt-1 z-50 rounded max-h-96 overflow-auto">
 
           {/* 🔥 Categories */}
           {categories.length > 0 && (
-            <div className="border-b p-2">
-              {categories.slice(0, 5).map((cat) => (
+            <div className="p-2 border-b">
+              <p className="text-xs font-semibold text-gray-400 mb-1">Categories</p>
+              {categories.slice(0, 3).map((cat) => (
                 <div
                   key={cat.value}
                   onMouseDown={() =>
@@ -114,8 +150,9 @@ const [brands, setBrands] = useState([]); // ✅ ADD THIS
 
           {/* 🔥 Brands */}
           {brands.length > 0 && (
-            <div className="border-b p-2">
-              {brands.slice(0, 5).map((brand) => (
+            <div className="p-2 border-b">
+              <p className="text-xs font-semibold text-gray-400 mb-1">Brands</p>
+              {brands.slice(0, 3).map((brand) => (
                 <div
                   key={brand.value}
                   onMouseDown={() =>
@@ -130,35 +167,61 @@ const [brands, setBrands] = useState([]); // ✅ ADD THIS
           )}
 
           {/* 🔥 Products */}
-          {results.map((item) => {
-            const hit = item.document;
+          <div className="p-2">
+            <p className="text-xs font-semibold text-gray-400 mb-1">Products</p>
 
-            return (
-              <div
-                key={hit.id}
-                onMouseDown={() => router.push(`/product/${hit.slug}`)}
-                className="flex gap-3 p-2 hover:bg-gray-100 cursor-pointer"
-              >
-                <img src={hit.image} className="w-10 h-10 object-contain" />
+            {results.map((item, index) => {
+              const hit = item.document;
 
-                <div>
-                  <p className="text-sm font-medium">{hit.name}</p>
+              return (
+                <div
+                  key={hit.id}
+                  onMouseDown={() => router.push(`/product/${hit.slug}`)}
+                  className={`flex gap-3 p-2 cursor-pointer rounded ${
+                    index === activeIndex ? "bg-gray-100" : "hover:bg-gray-100"
+                  }`}
+                >
+                  <img src={hit.image} className="w-10 h-10 object-contain" />
 
-                  {/* 🔥 Category + Brand */}
-                  <p className="text-xs text-gray-500">
-                    {Array.isArray(hit.category) ? hit.category[0] : hit.category}
-                    {hit.brand ? ` • ${hit.brand}` : ""}
-                  </p>
+                  <div>
+                    <p
+                      className="text-sm font-medium"
+                      dangerouslySetInnerHTML={{
+                        __html: highlight(hit.name, query),
+                      }}
+                    />
 
-                  <p className="text-xs text-gray-400">{hit.sku}</p>
+                    <p className="text-xs text-gray-500">
+                      {Array.isArray(hit.category) ? hit.category[0] : hit.category}
+                      {hit.brand ? ` • ${hit.brand}` : ""}
+                    </p>
+
+                    <p
+                      className="text-xs text-gray-400"
+                      dangerouslySetInnerHTML={{
+                        __html: highlight(
+                          Array.isArray(hit.sku) ? hit.sku[0] : hit.sku,
+                          query
+                        ),
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
+            {/* 🔥 View All */}
+            <div
+              onMouseDown={() =>
+                router.push(`/search?q=${encodeURIComponent(query)}`)
+              }
+              className="text-center text-blue-600 text-sm py-2 cursor-pointer hover:underline"
+            >
+              View all results →
+            </div>
+          </div>
         </div>
       )}
-
     </div>
   );
 }
