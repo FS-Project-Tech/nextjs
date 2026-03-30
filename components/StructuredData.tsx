@@ -67,7 +67,7 @@ export function ProductStructuredData({
     },
     offers: {
       "@type": "Offer",
-      url: `${siteUrl}/products/${product.slug}`,
+      url: `${siteUrl}/product/${product.slug}`,
       priceCurrency: "AUD",
       price: price,
       priceValidUntil: new Date(

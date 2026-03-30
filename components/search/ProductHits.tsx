@@ -43,7 +43,7 @@ export default function ProductHits() {
             return (
               <div
                 key={item.objectID}
-                onClick={() => router.push(`/products/${slug}`)}
+                onClick={() => router.push(`/product/${slug}`)}
                 className="flex gap-3 p-3 hover:bg-gray-50 cursor-pointer"
               >
 

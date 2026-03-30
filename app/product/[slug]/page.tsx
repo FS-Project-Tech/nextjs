@@ -9,7 +9,7 @@ import {
   import ProductGallery from "@/components/ProductGallery";
   import ProductDetailPanel from "@/components/ProductDetailPanel";
   import ProductInfoAccordion from "@/components/ProductInfoAccordion";
-  import ProductReviews from "@/app/products/[slug]/ProductReviews";
+  import ProductReviews from "@/app/product/[slug]/ProductReviews";
   import Breadcrumbs from "@/components/Breadcrumbs";
   import RelatedProductsSection from "@/components/RelatedProductsSection";
   import Container from "@/components/Container";
@@ -102,14 +102,14 @@ export async function generateMetadata(
       description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
  
       alternates: {
-        canonical: `${siteUrl}/products/${product.slug}`,
+        canonical: `${siteUrl}/product/${product.slug}`,
       },
  
       openGraph: {
         title: product.name,
         description: product.short_description?.replace(/<[^>]+>/g, "").slice(0,160),
         type: "website",
-        url: `${siteUrl}/products/${product.slug}`,
+        url: `${siteUrl}/product/${product.slug}`,
         images: product.images?.length
           ? [
               {
@@ -262,7 +262,7 @@ export async function generateMetadata(
                     product.stock_status === "instock"
                         ? "https://schema.org/InStock"
                         : "https://schema.org/OutOfStock",
-                    url: `${process.env.NEXT_PUBLIC_SITE_URL}/products/${product.slug}`,
+                    url: `${process.env.NEXT_PUBLIC_SITE_URL}/product/${product.slug}`,
                 },
                 }),
             }}

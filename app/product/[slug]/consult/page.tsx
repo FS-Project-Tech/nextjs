@@ -22,7 +22,7 @@ export async function generateMetadata({
     title: `Consultation: ${product.name} | Medical Supplies`,
     description: `Get expert consultation and guidance for ${product.name}. Make an informed purchasing decision.`,
     alternates: {
-      canonical: `/products/${slug}/consult`,
+      canonical: `/product/${slug}/consult`,
     },
   };
 }
@@ -61,7 +61,7 @@ export default async function ProductConsultationPage({
           },
         ]
       : []),
-    { label: product.name, href: `/products/${slug}` },
+    { label: product.name, href: `/product/${slug}` },
     { label: "Consultation" },
   ];
 

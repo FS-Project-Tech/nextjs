@@ -236,7 +236,7 @@ function ProductCardComponent({
     [rating_count, average_rating]
   );
 
-  const productUrl = useMemo(() => `/products/${slug}`, [slug]);
+  const productUrl = useMemo(() => `/product/${slug}`, [slug]);
 
   // Stable image source
   const imageSrc = useMemo(() => {

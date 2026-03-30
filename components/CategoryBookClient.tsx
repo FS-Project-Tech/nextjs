@@ -150,7 +150,7 @@ export default function CategoryBookClient({
                     {pageProducts.map((p) => (
                       <Link
                         key={p.id}
-                        href={`/products/${p.slug}`}
+                        href={`/product/${p.slug}`}
                         className="group flex flex-col rounded-lg border border-gray-200 p-2 hover:border-teal-500 hover:shadow-sm transition-all"
                       >
                         <div className="relative aspect-square rounded-md bg-gray-100 overflow-hidden mb-2">

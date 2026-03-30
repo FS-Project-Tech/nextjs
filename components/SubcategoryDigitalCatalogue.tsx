@@ -196,11 +196,11 @@ export default function SubcategoryDigitalCatalogue({
                     key={`${row.sku}-${idx}`}
                     role="button"
                     tabIndex={0}
-                    onClick={() => row.slug && router.push(`/products/${row.slug}`)}
+                    onClick={() => row.slug && router.push(`/product/${row.slug}`)}
                     onKeyDown={(e) => {
                       if ((e.key === "Enter" || e.key === " ") && row.slug) {
                         e.preventDefault();
-                        router.push(`/products/${row.slug}`);
+                        router.push(`/product/${row.slug}`);
                       }
                     }}
                     className={`cursor-pointer hover:bg-teal-50/70 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}

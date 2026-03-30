@@ -48,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const productsResult = await fetchProducts({ per_page: 100, orderby: 'popularity' }).catch(() => ({ products: [] }));
     
     productPages = (productsResult.products || []).map((product) => ({
-      url: `${baseUrl}/products/${product.slug}`,
+      url: `${baseUrl}/product/${product.slug}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,

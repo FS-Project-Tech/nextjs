@@ -11,7 +11,7 @@ import { ReactNode, useMemo } from "react";
  * 
  * Usage:
  *   <PrefetchLink href="/shop">Shop</PrefetchLink>
- *   <PrefetchLink href="/products/[slug]" prefetch={true}>Product</PrefetchLink>
+ *   <PrefetchLink href="/product/[slug]" prefetch={true}>Product</PrefetchLink>
  */
 export interface PrefetchLinkProps extends LinkProps, Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   children: ReactNode;

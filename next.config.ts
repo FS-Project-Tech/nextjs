@@ -233,6 +233,17 @@ const nextConfig: NextConfig = {
   // Redirect legacy URLs to info pages (privacy, terms, faq, shipping from WordPress)
   async redirects() {
     return [
+      // Product detail URLs moved from /products/[slug] to /product/[slug] (listing stays at /products)
+      {
+        source: '/products/:slug/consult',
+        destination: '/product/:slug/consult',
+        permanent: true,
+      },
+      {
+        source: '/products/:slug',
+        destination: '/product/:slug',
+        permanent: true,
+      },
       { source: '/privacy', destination: '/info/privacy', permanent: true },
       { source: '/terms', destination: '/info/terms', permanent: true },
       { source: '/faq', destination: '/info/faq', permanent: true },
