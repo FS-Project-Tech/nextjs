@@ -1,7 +1,3 @@
-// 
-
-
-
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchProducts } from '@/lib/woocommerce';
 import type { WooCommerceProduct } from '@/lib/woocommerce';
@@ -62,10 +58,12 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
  
+    const hasBrandFilter = !!searchParams.get('brands') || !!searchParams.get('brand');
     const bypassCache =
       searchParams.get('nocache') === '1' ||
       request.headers.get('cache-control')?.includes('no-cache') ||
-      request.headers.get('x-bypass-cache') === 'true';
+      request.headers.get('x-bypass-cache') === 'true' ||
+      hasBrandFilter;
  
     const params: Record<string, any> = {};
  
@@ -85,7 +83,7 @@ export async function GET(request: NextRequest) {
     const categories = searchParams.get('categories');
     if (categories) params.categories = sanitizeInput(categories);
  
-    const brands = searchParams.get('brands');
+    const brands = searchParams.get('brand') || searchParams.get('brands');
     if (brands) params.brands = sanitizeInput(brands);
  
     const tags = searchParams.get('tags') || searchParams.get('tag');

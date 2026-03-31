@@ -63,7 +63,8 @@ function OrderReviewContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
-  const orderId = searchParams.get("orderId");
+  const orderIdFromUrl = searchParams.get("orderId");
+  const recoverKey = searchParams.get("recover");
  
   useEffect(() => {
     // Suppress "lab" color function parsing errors from html2canvas/css parsing
@@ -84,29 +85,104 @@ function OrderReviewContent() {
   }, []);
  
   useEffect(() => {
-    if (!orderId) {
-      setError("Order ID is required");
-      setLoading(false);
-      return;
-    }
- 
-    const fetchOrder = async () => {
+    let cancelled = false;
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    const resolveOrderIdFromRecover = async (): Promise<string | null> => {
+      const key =
+        recoverKey ||
+        (typeof window !== "undefined"
+          ? sessionStorage.getItem("checkout_recover_ik")
+          : null);
+      if (!key) return null;
+
+      for (let attempt = 0; attempt < 28 && !cancelled; attempt++) {
+        try {
+          const r = await fetch(
+            `/api/checkout/result?key=${encodeURIComponent(key)}`,
+            { cache: "no-store", credentials: "same-origin" }
+          );
+          if (r.ok) {
+            const data = await r.json();
+            const oid =
+              data.order?.number ??
+              data.order?.order_number ??
+              data.order?.id;
+            if (oid != null && String(oid).trim() !== "") {
+              try {
+                sessionStorage.removeItem("checkout_recover_ik");
+              } catch {
+                /* ignore */
+              }
+              const idStr = String(oid);
+              router.replace(
+                `/checkout/order-review?orderId=${encodeURIComponent(idStr)}`,
+                { scroll: false }
+              );
+              return idStr;
+            }
+          }
+        } catch {
+          /* retry */
+        }
+        await sleep(400);
+      }
+      return null;
+    };
+
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+
+      let orderId: string | null = orderIdFromUrl;
+
+      if (!orderId && recoverKey) {
+        orderId = await resolveOrderIdFromRecover();
+      } else if (!orderId && typeof window !== "undefined") {
+        const stored = sessionStorage.getItem("checkout_recover_ik");
+        if (stored) {
+          orderId = await resolveOrderIdFromRecover();
+        }
+      }
+
+      if (cancelled) return;
+
+      if (!orderId) {
+        setError(
+          recoverKey
+            ? "We couldn’t load your order confirmation yet. If you were charged, check your email or your account orders — do not pay again."
+            : "Order ID is required"
+        );
+        setLoading(false);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
         if (!res.ok) {
           throw new Error("Failed to fetch order");
         }
         const data = await res.json();
-        setOrder(data.order);
+        if (!cancelled) {
+          setOrder(data.order);
+        }
       } catch (err: any) {
-        setError(err.message || "Failed to load order");
+        if (!cancelled) {
+          setError(err.message || "Failed to load order");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
- 
-    fetchOrder();
-  }, [orderId]);
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderIdFromUrl, recoverKey, router]);
  
   const handleDownloadPDF = useCallback(async () => {
     if (!order || typeof window === "undefined") return;
@@ -135,7 +211,7 @@ function OrderReviewContent() {
  
       const opt = {
         margin: [15, 15, 15, 15] as [number, number, number, number],
-        filename: `Invoice-${order.number ?? order.order_number ?? orderId ?? order.id}.pdf`,
+        filename: `Invoice-${order.number ?? order.order_number ?? orderIdFromUrl ?? order.id}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: {
           scale: 2,
@@ -175,14 +251,16 @@ function OrderReviewContent() {
     } finally {
       setDownloadingPDF(false);
     }
-  }, [order, orderId]);
+  }, [order, orderIdFromUrl]);
  
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">Loading order details...</p>
+          <p className="mt-4 text-gray-600">
+            {recoverKey ? "Confirming your order…" : "Loading order details..."}
+          </p>
         </div>
       </div>
     );
@@ -304,7 +382,7 @@ function OrderReviewContent() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-2xl font-bold mb-1">Order Summary</h2>
-                <p className="text-gray-300 text-sm">Order #{order.number ?? order.order_number ?? orderId ?? order.id}</p>
+                <p className="text-gray-300 text-sm">Order #{order.number ?? order.order_number ?? orderIdFromUrl ?? order.id}</p>
               </div>
               <div className="mt-4 md:mt-0 text-right">
                 <p className="text-sm text-gray-300">Date</p>

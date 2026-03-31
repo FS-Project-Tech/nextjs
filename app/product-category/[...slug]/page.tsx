@@ -4,15 +4,15 @@ import type { Metadata } from "next";
 import { fetchCategorySEO } from "@/lib/wordpress";
 import { stripHTML } from "@/lib/xss-sanitizer";
 
-// ============================================================================
-// ISR Configuration
-// ============================================================================
-export const revalidate = 600; // 10 minutes
+export const revalidate = 600;
 export const dynamicParams = true;
 
-// ============================================================================
-// Static params (top-level categories only)
-// ============================================================================
+function getLeafSlug(input: string[] | string): string {
+  const parts = Array.isArray(input) ? input : [input];
+  const clean = parts.filter(Boolean);
+  return decodeURIComponent(clean[clean.length - 1] || "");
+}
+
 export async function generateStaticParams() {
   try {
     const categories = await fetchCategories({
@@ -22,7 +22,7 @@ export async function generateStaticParams() {
     });
 
     return categories.map((category: { slug: string }) => ({
-      slug: category.slug,
+      slug: [category.slug],
     }));
   } catch (error) {
     console.error("Error generating category static params:", error);
@@ -30,16 +30,12 @@ export async function generateStaticParams() {
   }
 }
 
-// ============================================================================
-// Metadata (params is ASYNC in Next.js 15)
-// Yoast/WP when present; otherwise WooCommerce category (same source as page H1)
-// ============================================================================
 export async function generateMetadata(
-  props: { params: Promise<{ slug: string }> }
+  props: { params: Promise<{ slug: string[] }> }
 ): Promise<Metadata> {
   try {
     const { slug } = await props.params;
-    const decodedSlug = decodeURIComponent(slug);
+    const decodedSlug = getLeafSlug(slug);
 
     const [wpCategory, wooCategory] = await Promise.all([
       fetchCategorySEO(decodedSlug).catch(() => null),
@@ -75,18 +71,15 @@ export async function generateMetadata(
       };
     }
 
-    const title =
-      wooCategory?.name || wpCategory?.name || "Category";
+    const title = wooCategory?.name || wpCategory?.name || "Category";
     const rawDesc = wooCategory?.description;
-    const description = rawDesc
-      ? stripHTML(rawDesc).slice(0, 160)
-      : undefined;
+    const description = rawDesc ? stripHTML(rawDesc).slice(0, 160) : undefined;
 
     return {
       title,
       description,
       alternates: {
-        canonical: `/product-category/${decodedSlug}`,
+        canonical: `/product-category/${slug.join("/")}`,
       },
     };
   } catch {
@@ -94,14 +87,11 @@ export async function generateMetadata(
   }
 }
 
-// ============================================================================
-// Page (params is ASYNC in Next.js 15)
-// ============================================================================
 export default async function CategoryPage(
-  props: { params: Promise<{ slug: string }> }
+  props: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug } = await props.params;
-  const decodedSlug = decodeURIComponent(slug);
+  const decodedSlug = getLeafSlug(slug);
 
   const category = await fetchCategoryBySlug(decodedSlug).catch(() => null);
 
@@ -113,3 +103,4 @@ export default async function CategoryPage(
     />
   );
 }
+

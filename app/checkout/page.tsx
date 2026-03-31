@@ -19,6 +19,10 @@ import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { parseCartTotal, calculateGST, calculateTotal } from "@/lib/cart-utils";
 import { formatPrice } from "@/lib/format-utils";
 import { isValidName, isValidAuPhone, nameCharsOnly, digitsOnly } from "@/lib/form-validation";
+import {
+  parseCheckoutSuccessCookieFromDocument,
+  clearCheckoutSuccessCookieClient,
+} from "@/lib/checkout-success-cookie";
 
 interface ShippingMethodType {
   id: string;
@@ -27,6 +31,62 @@ interface ShippingMethodType {
   cost: number;
   total: number;
   description?: string;
+}
+
+/** If the JSON body is empty or stripped by a proxy, same-origin fetch can still read these headers from our API route. */
+function buildCheckoutDataFromSuccessHeaders(res: Response): Record<string, unknown> | null {
+  const successH = res.headers.get("x-checkout-success")?.trim();
+  const redirectUrl = res.headers.get("x-redirect-url")?.trim();
+  const orderIdH = res.headers.get("x-order-id")?.trim();
+  const orderNumH = res.headers.get("x-order-number")?.trim();
+  if (successH !== "1" || (!redirectUrl && !orderIdH && !orderNumH)) {
+    return null;
+  }
+  const ref = orderNumH || orderIdH || "";
+  return {
+    success: true,
+    order: {
+      id: orderIdH ? Number(orderIdH) : undefined,
+      number: orderNumH || orderIdH,
+      order_number: orderNumH || orderIdH,
+    },
+    redirect_url:
+      redirectUrl ||
+      `/checkout/order-review?orderId=${encodeURIComponent(String(ref))}`,
+  };
+}
+
+/** Fallback when both body and X-* headers are stripped; server sets checkout_done cookie on success. */
+function buildCheckoutDataFromSuccessCookie(): Record<string, unknown> | null {
+  const parsed = parseCheckoutSuccessCookieFromDocument();
+  if (!parsed) return null;
+  const { id, ref } = parsed;
+  const orderIdParam = ref || id;
+  return {
+    success: true,
+    order: {
+      id: id ? Number(id) : undefined,
+      number: ref || id,
+      order_number: ref || id,
+    },
+    redirect_url: `/checkout/order-review?orderId=${encodeURIComponent(orderIdParam)}`,
+  };
+}
+
+/**
+ * Full page navigation to order review — loads order via ?recover=<idempotency_key>
+ * when POST returned 200 but fetch could not read body/headers (proxy / cross-origin quirk).
+ */
+function redirectToOrderReviewWithRecoverKey(idempotencyKey: string) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem("checkout_recover_ik", idempotencyKey);
+  } catch {
+    /* ignore */
+  }
+  window.location.replace(
+    `/checkout/order-review?recover=${encodeURIComponent(idempotencyKey)}`
+  );
 }
 
 const checkoutSchema = yup.object({
@@ -460,6 +520,12 @@ function CheckoutPageContent() {
         checkoutPayload.quote_number = quoteConversion.quote_number;
       }
 
+      const idempotencyKeyClient =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `idem-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+      checkoutPayload.idempotency_key = idempotencyKeyClient;
+
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
@@ -481,6 +547,8 @@ function CheckoutPageContent() {
         method: "POST",
         headers,
         body: payloadString,
+        cache: "no-store",
+        credentials: "same-origin",
       });
 
       if (!checkoutRes.ok) {
@@ -516,36 +584,92 @@ function CheckoutPageContent() {
         return;
       }
 
-      let checkoutData: any = {};
+      let checkoutData: any = null;
       try {
         const text = await checkoutRes.text();
-        if (!text) {
-          throw new Error("Empty response from server");
+        let parseFailed = false;
+
+        if (text) {
+          try {
+            checkoutData = JSON.parse(text);
+          } catch (parseError) {
+            parseFailed = true;
+            console.error("Error parsing checkout response:", {
+              error: parseError,
+              responseText: text.substring(0, 200),
+              status: checkoutRes.status,
+              headers: Object.fromEntries(checkoutRes.headers.entries()),
+            });
+          }
         }
-        
-        try {
-          checkoutData = JSON.parse(text);
-        } catch (parseError) {
-          console.error("Error parsing checkout response:", {
-            error: parseError,
-            responseText: text.substring(0, 200), // Log first 200 chars for debugging
-            status: checkoutRes.status,
-            headers: Object.fromEntries(checkoutRes.headers.entries()),
-          });
-          throw new Error("Invalid JSON response from server");
+
+        const validBody =
+          checkoutData &&
+          typeof checkoutData === "object" &&
+          checkoutData.success === true &&
+          checkoutData.order;
+
+        if (!validBody) {
+          const fromHeaders = buildCheckoutDataFromSuccessHeaders(checkoutRes);
+          let fromCookie: Record<string, unknown> | null = null;
+          if (!fromHeaders && typeof document !== "undefined") {
+            // Set-Cookie from the response is applied before fetch resolves; one microtask helps edge browsers.
+            await Promise.resolve();
+            fromCookie = buildCheckoutDataFromSuccessCookie();
+          }
+          let recovered: Record<string, unknown> | null =
+            (fromHeaders as Record<string, unknown> | null) ||
+            fromCookie;
+
+          if (!recovered) {
+            try {
+              const resultRes = await fetch(
+                `/api/checkout/result?key=${encodeURIComponent(idempotencyKeyClient)}`,
+                { method: "GET", credentials: "same-origin", cache: "no-store" }
+              );
+              if (resultRes.ok) {
+                const rt = await resultRes.text();
+                if (rt) {
+                  const parsed = JSON.parse(rt) as Record<string, unknown>;
+                  if (parsed?.success === true && parsed?.order) {
+                    recovered = parsed;
+                  }
+                }
+              }
+            } catch (recoverErr) {
+              console.warn("Checkout idempotency recovery request failed:", recoverErr);
+            }
+          }
+
+          if (recovered) {
+            console.warn("Checkout: recovered success (order was created).", {
+              hadText: !!text,
+              parseFailed,
+              status: checkoutRes.status,
+              source: fromHeaders ? "headers" : fromCookie ? "cookie" : "idempotency",
+            });
+            checkoutData = recovered;
+          } else {
+            console.warn("Checkout: response not readable — opening order confirmation to resolve order", {
+              hadText: !!text,
+              parseFailed,
+              status: checkoutRes.status,
+            });
+            setIsRedirecting(true);
+            redirectToOrderReviewWithRecoverKey(idempotencyKeyClient);
+            return;
+          }
         }
-        if (!checkoutData || typeof checkoutData !== 'object') {
-          throw new Error("Invalid response format");
-        }
-      } catch (parseError: any) {
-        console.error("Error processing checkout response:", parseError);
-        const errorMsg = parseError.message || "Invalid response from server. Please try again.";
-        showError(errorMsg);
-        setPlacing(false);
+      } catch (readError: any) {
+        console.error("Error reading checkout response:", readError);
+        setIsRedirecting(true);
+        redirectToOrderReviewWithRecoverKey(idempotencyKeyClient);
         return;
       }
 
       if (checkoutData.success && checkoutData.order) {
+        clearCheckoutSuccessCookieClient();
+
         if (data.subscribe_newsletter && data.billing_email) {
           try {
             await fetch("/api/newsletter/subscribe", {

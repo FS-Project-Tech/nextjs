@@ -87,7 +87,7 @@ export default function ProductGrid({ categorySlug, brandSlug, onSaleOnly }: Pro
     if (categorySlug) params.categorySlug = categorySlug;
     else if (searchParams.get("categories")) params.categories = searchParams.get("categories")!;
 
-    const brands = brandSlug ?? searchParams.get("brands");
+    const brands = brandSlug ?? searchParams.get("brand") ?? searchParams.get("brands");
     const sortBy = searchParams.get("sortBy");
 
     if (brands) params.brands = brands;

@@ -19,9 +19,10 @@ const FilterSidebar = dynamic(() => import("@/components/FilterSidebar"), {
 // Extract slug from pathname
 function extractSlugFromPath(pathname: string | null): string | null {
   if (!pathname) return null;
-  return pathname.startsWith('/product-category/') 
-    ? pathname.split('/product-category/')[1]?.split('/')[0] ?? null
-    : null;
+  if (!pathname.startsWith('/product-category/')) return null;
+  const nested = pathname.split('/product-category/')[1] || "";
+  const parts = nested.split('/').filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : null;
 }
 
 interface CategoryResponse {

@@ -743,10 +743,14 @@ export const fetchProducts = async (params?: {
       }
     };
 
+    let singleBrandSlugForFallback: string | null = null;
+    let requestedBrandSlugs: string[] = [];
+
     // Handle brand filtering – try product attribute first; if "Brands" is a taxonomy, use WP REST API (supports multi-brand, category, and sort)
     if (params?.brands && params.brands !== '') {
       const brandVal = String(params.brands).trim();
       const brandSlugs = brandVal.split(',').map((s) => s.trim()).filter(Boolean);
+      requestedBrandSlugs = brandSlugs.map((s) => s.toLowerCase());
       const firstSlug = brandSlugs[0];
       if (!firstSlug) {
         // no-op
@@ -755,6 +759,7 @@ export const fetchProducts = async (params?: {
         if (resolved) {
           cleanParams.attribute = resolved.attribute;
           cleanParams.attribute_term = resolved.attribute_term;
+          singleBrandSlugForFallback = firstSlug;
         } else {
           const pageNum = cleanParams.page || 1;
           const perPageNum = cleanParams.per_page || 24;
@@ -818,6 +823,86 @@ export const fetchProducts = async (params?: {
       totalPages,
       page: cleanParams.page,
     });
+
+    // Some stores expose brands via taxonomy, not as attribute terms for combined filters.
+    // If single-brand attribute filtering returns nothing, retry with taxonomy fallback.
+    if (
+      singleBrandSlugForFallback &&
+      (response.data?.length || 0) === 0 &&
+      Number(total) === 0
+    ) {
+      const pageNum = cleanParams.page || 1;
+      const perPageNum = cleanParams.per_page || 24;
+      return fetchProductsByBrandTaxonomy(
+        singleBrandSlugForFallback,
+        pageNum,
+        perPageNum,
+        categoryId,
+        params?.sortBy
+      );
+    }
+
+    // Final fallback for category+brand combinations:
+    // Some stores have brand data in custom/meta shapes that don't match WC attribute/taxonomy filtering.
+    // In that case, load category products and filter by extracted brand slug/name in-memory.
+    if (
+      categoryId != null &&
+      requestedBrandSlugs.length > 0 &&
+      (response.data?.length || 0) === 0 &&
+      Number(total) === 0
+    ) {
+      const normalize = (v: string) => v.toLowerCase().trim().replace(/\s+/g, '-');
+      const wanted = new Set(requestedBrandSlugs.map(normalize));
+      const allCategoryProducts: WooCommerceProduct[] = [];
+      let rescuePage = 1;
+      const rescuePerPage = 100;
+      const rescueMaxPages = 10;
+
+      while (rescuePage <= rescueMaxPages) {
+        const rescueRes = await wcAPI.get('/products', {
+          params: {
+            category: categoryId,
+            per_page: rescuePerPage,
+            page: rescuePage,
+          },
+        });
+
+        const items: WooCommerceProduct[] = Array.isArray(rescueRes.data) ? rescueRes.data : [];
+        if (items.length === 0) break;
+        allCategoryProducts.push(...items);
+        if (items.length < rescuePerPage) break;
+        rescuePage += 1;
+      }
+
+      const matched = allCategoryProducts.filter((product) => {
+        const brands = extractProductBrands(product);
+        return brands.some((b) => {
+          const slug = b.slug ? normalize(b.slug) : '';
+          const name = b.name ? normalize(b.name) : '';
+          return (slug && wanted.has(slug)) || (name && wanted.has(name));
+        });
+      });
+
+      if (matched.length > 0) {
+        let sortedMatched = matched;
+        if (params?.sortBy) {
+          sortedMatched = applySortBy(sortedMatched, params.sortBy);
+        }
+
+        const pageNum = cleanParams.page || 1;
+        const perPageNum = cleanParams.per_page || 24;
+        const start = (pageNum - 1) * perPageNum;
+        const paged = sortedMatched.slice(start, start + perPageNum);
+
+        return {
+          products: paged,
+          total: sortedMatched.length,
+          totalPages: Math.max(1, Math.ceil(sortedMatched.length / perPageNum)),
+          page: pageNum,
+          perPage: perPageNum,
+        };
+      }
+    }
     
     return {
       products: response.data || [],
