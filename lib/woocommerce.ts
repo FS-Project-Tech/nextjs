@@ -2,6 +2,7 @@ import axios, { AxiosRequestHeaders } from 'axios';
 import { validateEnvironmentVariables } from './env-validation';
 import { normalizeError, getErrorMessage, hasAxiosResponse, getAxiosErrorDetails, isTimeoutError } from '@/lib/utils/errors';
 import { getWpBaseUrl } from '@/lib/wp-utils';
+import { extractProductBrands } from '@/lib/utils/product';
 
 // Validate environment variables (server-side only)
 if (typeof window === 'undefined') {
