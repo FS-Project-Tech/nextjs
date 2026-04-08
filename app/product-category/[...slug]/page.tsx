@@ -1,4 +1,5 @@
-import { fetchCategoryBySlug, fetchCategories } from "@/lib/woocommerce";
+import { fetchCategoryBySlug } from "@/lib/woocommerce";
+import { getUnifiedCategories, getRootCategoriesNonEmpty } from "@/lib/categories-unified";
 import CategoryPageClient from "@/components/CategoryPageClient";
 import type { Metadata } from "next";
 import { fetchCategorySEO } from "@/lib/wordpress";
@@ -15,13 +16,9 @@ function getLeafSlug(input: string[] | string): string {
 
 export async function generateStaticParams() {
   try {
-    const categories = await fetchCategories({
-      per_page: 50,
-      parent: 0,
-      hide_empty: true,
-    });
-
-    return categories.map((category: { slug: string }) => ({
+    const unified = await getUnifiedCategories();
+    const roots = getRootCategoriesNonEmpty(unified).slice(0, 50);
+    return roots.map((category) => ({
       slug: [category.slug],
     }));
   } catch (error) {
@@ -30,9 +27,9 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata(
-  props: { params: Promise<{ slug: string[] }> }
-): Promise<Metadata> {
+export async function generateMetadata(props: {
+  params: Promise<{ slug: string[] }>;
+}): Promise<Metadata> {
   try {
     const { slug } = await props.params;
     const decodedSlug = getLeafSlug(slug);
@@ -52,12 +49,14 @@ export async function generateMetadata(
           title: yoast.og_title,
           description: yoast.og_description,
           url: yoast.canonical,
-          images: yoast.og_image?.map((img: { url: string; width?: number; height?: number; alt?: string }) => ({
-            url: img.url,
-            width: img.width,
-            height: img.height,
-            alt: img.alt || yoast.title,
-          })),
+          images: yoast.og_image?.map(
+            (img: { url: string; width?: number; height?: number; alt?: string }) => ({
+              url: img.url,
+              width: img.width,
+              height: img.height,
+              alt: img.alt || yoast.title,
+            })
+          ),
         },
         twitter: {
           card: "summary_large_image",
@@ -87,9 +86,7 @@ export async function generateMetadata(
   }
 }
 
-export default async function CategoryPage(
-  props: { params: Promise<{ slug: string[] }> }
-) {
+export default async function CategoryPage(props: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await props.params;
   const decodedSlug = getLeafSlug(slug);
 
@@ -103,4 +100,3 @@ export default async function CategoryPage(
     />
   );
 }
-

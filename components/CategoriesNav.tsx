@@ -10,15 +10,15 @@ type Category = {
   parent: number;
 };
 
-const NDIS_SUBMENU = [
-  { name: "About NDIS", slug: "about-ndis" },
-  { name: "How to Apply", slug: "how-to-apply" },
-  { name: "NDIS Products", slug: "ndis-products" },
-  { name: "Eligibility", slug: "eligibility" },
-];
+// const NDIS_SUBMENU = [
+//   { name: "About NDIS", slug: "about-ndis" },
+//   { name: "How to Apply", slug: "how-to-apply" },
+//   { name: "NDIS Products", slug: "ndis-products" },
+//   { name: "Eligibility", slug: "eligibility" },
+// ];
 
 const NURSING_SUBMENU = [
-  { name: "About Nursing", href: "/nursing" },
+  // { name: "About Nursing", href: "/nursing" },
   { name: "Our Nursing Services", href: "/our-nursing-services" },
 ];
 
@@ -35,101 +35,54 @@ async function CategoriesNavContent() {
   let childCategories: Category[] = [];
 
   try {
-    const { parentCategories: parent, childCategories: child } =
-      await getCategoriesForNav();
+    const { parentCategories: parent, childCategories: child } = await getCategoriesForNav();
 
     parentCategories = parent;
     childCategories = child;
   } catch {
-    return null;
+    // Keep rendering static nav links even if category API is temporarily unavailable.
+    parentCategories = [];
+    childCategories = [];
   }
 
-  if (!parentCategories.length) return null;
-
   // Build map: parentId → children[]
-  const subCategoriesMap = childCategories.reduce<Record<number, Category[]>>(
-    (acc, cat) => {
-      if (cat.parent) {
-        acc[cat.parent] = acc[cat.parent] || [];
-        acc[cat.parent].push(cat);
-      }
-      return acc;
-    },
-    {}
-  );
+  const subCategoriesMap = childCategories.reduce<Record<number, Category[]>>((acc, cat) => {
+    if (cat.parent) {
+      acc[cat.parent] = acc[cat.parent] || [];
+      acc[cat.parent].push(cat);
+    }
+    return acc;
+  }, {});
 
   return (
     <nav className="bg-nav-header hidden md:block">
       <div className="container mx-auto w-full sm:w-[85vw]">
         <ul className="flex items-center gap-3 text-sm">
-
           {/* All Categories Drawer */}
           <li>
-            <AllCategoriesDrawer className="px-3 py-2 text-white" />
+            <AllCategoriesDrawer className="px-3 py-2 text-white cursor-pointer" />
           </li>
 
-          {/* Dynamic Categories */}
-          {parentCategories.map((category) => {
-            const subCategories =
-              (subCategoriesMap[category.id] || [])
-                .sort((a, b) => a.name.localeCompare(b.name));
+         {/* Our Products */}
+         <li>
+            <PrefetchLink href="/shop/" className="px-3 py-2 text-white hover:bg-nav-hover">
+              Our Products
+            </PrefetchLink>
+          </li>
 
-            const columns = splitIntoColumns(subCategories, 10);
-
-            return (
-              <li key={category.id} className="relative group">
-
-                {/* Parent */}
-                <PrefetchLink
-                  href={`/product-category/${category.slug}`}
-                  className="inline-flex items-center px-3 py-2 text-white hover:bg-nav-hover"
-                >
-                  {category.name}
-                  {subCategories.length > 0 && (
-                    <ChevronDown
-                      size={16}
-                      className="ml-1 transition-transform duration-200 group-hover:rotate-180"
-                    />
-                  )}
-                </PrefetchLink>
-
-                {/* Mega Menu */}
-                {subCategories.length > 0 && (
-                  <div className="absolute left-0 top-full z-50 hidden group-hover:flex rounded-lg border bg-white shadow-xl p-4 gap-6">
-
-                    {columns.map((col, i) => (
-                      <ul key={i} className="space-y-2 min-w-[200px]">
-                        {col.map((sub) => (
-                          <li key={sub.id}>
-                            <PrefetchLink
-                              href={`/product-category/${sub.slug}`}
-                              className="block rounded-md px-3 py-1 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                            >
-                              {sub.name}
-                            </PrefetchLink>
-                          </li>
-                        ))}
-                      </ul>
-                    ))}
-
-                  </div>
-                )}
-              </li>
-            );
-          })}
+         
+          
 
           {/* Brands */}
+          
           <li>
-            <PrefetchLink
-              href="/brands/"
-              className="px-3 py-2 text-white hover:bg-nav-hover"
-            >
+            <PrefetchLink href="/brands/" className="px-3 py-2 text-white hover:bg-nav-hover">
               Brands
             </PrefetchLink>
           </li>
 
           {/* NDIS */}
-          <li className="relative group">
+          {/* <li className="relative group">
             <PrefetchLink
               href="/ndis/"
               className="inline-flex items-center px-3 py-2 text-white hover:bg-nav-hover"
@@ -155,6 +108,16 @@ async function CategoriesNavContent() {
                 ))}
               </ul>
             </div>
+          </li> */}
+          
+          {/* NDIS */}
+          <li>
+            <PrefetchLink
+              href="/ndis/"
+              className="px-3 py-2 text-white hover:bg-nav-hover"
+            >
+              NDIS
+            </PrefetchLink>
           </li>
 
           {/* Funding */}
@@ -200,14 +163,34 @@ async function CategoriesNavContent() {
 
           {/* B2B */}
           <li>
-            <PrefetchLink
-              href="/b2b/"
-              className="px-3 py-2 text-white hover:bg-nav-hover"
-            >
+            <PrefetchLink href="/b2b/" className="px-3 py-2 text-white hover:bg-nav-hover">
               B2B
             </PrefetchLink>
           </li>
 
+          {/* Health Professionals  */}
+          <li>
+            <PrefetchLink
+              href="/health-professionals/"
+              className="px-3 py-2 text-white hover:bg-nav-hover"
+            >
+              Health Professionals
+            </PrefetchLink>
+          </li>
+          <li>
+            <PrefetchLink
+              href="/telehealth/"
+              className="px-3 py-2 text-white hover:bg-nav-hover"
+            >
+              Telehealth
+            </PrefetchLink>
+          </li>
+           {/* Offers */}
+         <li>
+            <PrefetchLink href="/clearance/" className="px-3 py-2 text-white hover:bg-nav-hover bg-red-500">
+              Clearance
+            </PrefetchLink>
+          </li>
         </ul>
       </div>
     </nav>

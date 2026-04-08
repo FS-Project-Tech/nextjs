@@ -1,8 +1,8 @@
 "use client";
- 
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeString } from "@/lib/sanitize";
- 
+
 interface ShippingRate {
   id: string;
   label: string;
@@ -12,7 +12,7 @@ interface ShippingRate {
   maximum_amount?: number;
   requires?: string;
 }
- 
+
 interface ShippingOptionsProps {
   country?: string;
   zone?: string;
@@ -26,7 +26,7 @@ interface ShippingOptionsProps {
   subtotal?: number; // Cart subtotal for rule-based filtering
   items?: Array<{ id: string; productId: number; price: string; qty: number; [key: string]: any }>; // Cart items for filtering
 }
- 
+
 export default function ShippingOptions({
   country = "AU",
   zone,
@@ -46,13 +46,13 @@ export default function ShippingOptions({
   const serializedItems = useMemo(() => JSON.stringify(items ?? []), [items]);
   const onRateChangeRef = useRef(onRateChange);
   onRateChangeRef.current = onRateChange;
- 
+
   // Use controlled or internal state
   const currentSelectedId = selectedRateId !== undefined ? selectedRateId : internalSelectedId;
- 
+
   useEffect(() => {
     if (!country) return;
- 
+
     let cancelled = false;
     (async () => {
       try {
@@ -67,11 +67,11 @@ export default function ShippingOptions({
         if (items.length > 0) {
           params.set("items", serializedItems);
         }
- 
+
         const res = await fetch(`/api/shipping/rates?${params.toString()}`, { cache: "no-store" });
         const json = await res.json();
         const fetched: ShippingRate[] = Array.isArray(json.rates) ? json.rates : [];
- 
+
         if (!cancelled) {
           setRates(fetched);
           if (fetched.length > 0) {
@@ -95,12 +95,12 @@ export default function ShippingOptions({
         }
       }
     })();
- 
+
     return () => {
       cancelled = true;
     };
   }, [country, zone, postcode, state, city, subtotal, serializedItems]);
- 
+
   const handleRateChange = (rate: ShippingRate) => {
     if (selectedRateId === undefined) {
       setInternalSelectedId(rate.id);
@@ -109,19 +109,24 @@ export default function ShippingOptions({
       onRateChange(rate.id, rate);
     }
   };
- 
+
   return (
     <div className={className}>
       {showLabel && (
         <label className="block text-sm font-semibold text-gray-900 mb-2">Shipping Options</label>
       )}
       {loadingRates && (
-        <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+        <div
+          className="flex items-center gap-2 py-2 text-sm text-gray-800"
+          role="status"
+          aria-live="polite"
+        >
           <svg
-            className="animate-spin h-4 w-4"
+            className="h-4 w-4 animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -137,11 +142,13 @@ export default function ShippingOptions({
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <span>Loading rates…</span>
+          <span>Loading shipping rates…</span>
         </div>
       )}
       {!loadingRates && rates.length === 0 && (
-        <div className="text-sm text-gray-500 py-2">No shipping rates found</div>
+        <div className="py-2 text-sm text-gray-800" role="status">
+          No shipping rates found for this address.
+        </div>
       )}
       <div className="space-y-2">
         {rates.map((r) => {
@@ -153,7 +160,9 @@ export default function ShippingOptions({
             <label
               key={r.id}
               className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 bg-white/60 p-3 transition-all ${
-                isSelected ? "border-teal-500 shadow-sm bg-white" : "border-gray-200 hover:border-teal-200"
+                isSelected
+                  ? "border-teal-500 shadow-sm bg-white"
+                  : "border-gray-200 hover:border-teal-200"
               }`}
             >
               <input
@@ -162,17 +171,25 @@ export default function ShippingOptions({
                 value={r.id}
                 checked={isSelected}
                 onChange={() => handleRateChange(r)}
-                className="h-4 w-4 text-teal-600 focus:ring-teal-500"
-                aria-label={`Select ${safeLabel}`}
+                className="h-4 w-4 text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2"
+                aria-label={`${safeLabel || "Shipping option"}, ${isFree ? "free" : `$${r.cost.toFixed(2)}`}`}
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <div className="text-sm font-semibold text-gray-900">{safeLabel || "Shipping option"}</div>
-                  {isFree && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">Free</span>}
+                  <div className="text-sm font-semibold text-gray-900">
+                    {safeLabel || "Shipping option"}
+                  </div>
+                  {isFree && (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                      Free
+                    </span>
+                  )}
                 </div>
-                {safeDescription && <div className="text-xs text-gray-500 mt-0.5">{safeDescription}</div>}
+                {safeDescription && (
+                  <div className="text-xs text-gray-500 mt-0.5">{safeDescription}</div>
+                )}
                 {r.minimum_amount && (
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="text-xs text-gray-600 mt-0.5">
                     Min. order: ${r.minimum_amount.toFixed(2)}
                   </div>
                 )}

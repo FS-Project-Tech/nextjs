@@ -1,33 +1,105 @@
 import type { WooCommerceProduct, WooCommerceVariation } from "@/lib/woocommerce";
- 
+
+function metaDataString(
+  meta: Array<{ key?: string; value?: unknown }> | undefined,
+  ...keys: string[]
+): string {
+  if (!meta?.length) return "";
+  for (const key of keys) {
+    const m = meta.find((x) => x?.key === key);
+    const v = m?.value;
+    if (v != null && String(v).trim() !== "") return String(v).trim();
+  }
+  return "";
+}
+
+/**
+ * WooCommerce list responses often omit variable parent `regular_price` / `sale_price`.
+ * Uses parent `meta_data` min-variation keys (no extra API calls).
+ */
+export function enrichWcListProductPricesForCard(product: WooCommerceProduct): WooCommerceProduct {
+  const type = product.type;
+  const regStr = product.regular_price != null ? String(product.regular_price).trim() : "";
+  const saleStr = product.sale_price != null ? String(product.sale_price).trim() : "";
+  const hasRegular = regStr !== "";
+  const hasSale = saleStr !== "";
+
+  if (type !== "variable" || (hasRegular && hasSale)) {
+    return product;
+  }
+
+  const meta = product.meta_data as Array<{ key?: string; value?: unknown }> | undefined;
+  const regular =
+    regStr || metaDataString(meta, "_min_variation_regular_price", "min_variation_regular_price");
+  const sale =
+    saleStr || metaDataString(meta, "_min_variation_sale_price", "min_variation_sale_price");
+
+  return {
+    ...product,
+    regular_price: regular || product.regular_price,
+    sale_price: sale || product.sale_price,
+  };
+}
+
 export interface ProductBrandInfo {
   id?: number;
   name: string;
   slug?: string;
   image?: string;
 }
- 
+
 // Extended product type with optional brands field
 interface ProductWithBrands extends WooCommerceProduct {
   brands?: Array<
     string | { id?: number; name?: string; slug?: string; image?: { src?: string } | string }
   >;
 }
- 
+
 // Meta data item type
 interface MetaDataItem {
   key: string;
   value: unknown;
 }
- 
+
 // Product attribute type
 interface ProductAttribute {
   name: string;
   options?: string[];
 }
- 
+
+function variationAttrKey(name: string): string {
+  let s = String(name || "")
+    .toLowerCase()
+    .trim()
+    .replace(/^attribute_/, "");
+  if (s.startsWith("pa_")) s = s.slice(3);
+  return s.replace(/[^a-z0-9]+/g, "");
+}
+
+function variationAttributeNamesMatch(a: string, b: string): boolean {
+  const ka = variationAttrKey(a);
+  const kb = variationAttrKey(b);
+  if (ka.length > 0 && kb.length > 0) return ka === kb;
+  return eq(a, b);
+}
+
+function isVariationAnyOption(value: string): boolean {
+  const raw = String(value || "").trim();
+  if (!raw) return true;
+  const v = raw.toLowerCase();
+  if (v === "any" || v === "*") return true;
+  if (v.startsWith("any ") || v.startsWith("any-") || v.startsWith("any|") || v.startsWith("any/"))
+    return true;
+  return /^any\b/i.test(raw);
+}
+
+function variationOptionMatchesSelected(variationOption: string, selectedValue: string): boolean {
+  if (isVariationAnyOption(variationOption)) return true;
+  return eq(variationOption, selectedValue);
+}
+
 /**
- * Match a variation based on selected attributes
+ * Match a variation based on selected attributes (label vs `pa_` names, "Any …" options, full concrete match).
  */
 export function matchVariation(
   variations: WooCommerceVariation[],
@@ -36,12 +108,22 @@ export function matchVariation(
   const names = Object.keys(selected);
   if (names.length === 0) return null;
   return (
-    variations.find((v) =>
-      names.every((n) => v.attributes.some((a) => eq(a.name, n) && eq(a.option, selected[n])))
-    ) || null
+    variations.find((v) => {
+      const selectedOk = names.every((n) => {
+        const va = v.attributes.find((a) => variationAttributeNamesMatch(a.name, n));
+        return va && variationOptionMatchesSelected(va.option, selected[n]);
+      });
+      if (!selectedOk) return false;
+      return v.attributes.every((attr) => {
+        if (isVariationAnyOption(attr.option)) return true;
+        const sk = names.find((k) => variationAttributeNamesMatch(k, attr.name));
+        const sv = sk ? selected[sk] : undefined;
+        return !!sv && variationOptionMatchesSelected(attr.option, sv);
+      });
+    }) || null
   );
 }
- 
+
 /**
  * Find brand from product_brand taxonomy or attributes
  * WooCommerce REST API may include brands in the product response similar to categories
@@ -63,7 +145,7 @@ export function findBrand(product: WooCommerceProduct): string | null {
       return firstBrand.name;
     }
   }
- 
+
   // Check meta_data for product_brand taxonomy data
   const metaData = product.meta_data as MetaDataItem[] | undefined;
   if (metaData && Array.isArray(metaData)) {
@@ -92,7 +174,7 @@ export function findBrand(product: WooCommerceProduct): string | null {
       }
     }
   }
- 
+
   // Fallback: check attributes (for backward compatibility with attribute-based brands)
   const attributes = product.attributes as ProductAttribute[] | undefined;
   const attr = (attributes || []).find(
@@ -102,10 +184,10 @@ export function findBrand(product: WooCommerceProduct): string | null {
     const opts = attr.options || [];
     if (opts.length > 0) return opts[0];
   }
- 
+
   return null;
 }
- 
+
 /**
  * Extract all brand entries from a product.
  */
@@ -119,7 +201,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
     seen.add(key);
     brands.push(brand);
   };
- 
+
   const productWithBrands = product as ProductWithBrands;
   if (Array.isArray(productWithBrands.brands)) {
     productWithBrands.brands.forEach((brand) => {
@@ -136,7 +218,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       });
     });
   }
- 
+
   const metaData = product.meta_data as MetaDataItem[] | undefined;
   if (Array.isArray(metaData)) {
     metaData.forEach((meta) => {
@@ -169,7 +251,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       }
     });
   }
- 
+
   // Fallback to attribute-based brands
   const attributes = product.attributes as ProductAttribute[] | undefined;
   (attributes || []).forEach((attr) => {
@@ -178,7 +260,7 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       opts.forEach((opt) => addBrand({ name: opt }));
     }
   });
- 
+
   // If we still have no brands, use the first brand name
   if (brands.length === 0) {
     const single = findBrand(product);
@@ -186,17 +268,17 @@ export function extractProductBrands(product: WooCommerceProduct): ProductBrandI
       addBrand({ name: single });
     }
   }
- 
+
   return brands;
 }
- 
+
 /**
  * Case-insensitive string equality
  */
 export function eq(a?: string, b?: string): boolean {
   return (a || "").toLowerCase() === (b || "").toLowerCase();
 }
- 
+
 /**
  * Check if all required attributes are selected
  */
@@ -228,15 +310,35 @@ export function getSalePercentageFromProduct(product: {
 }
 
 /**
+ * Remove duplicate products by numeric `id`, preserving first occurrence order.
+ */
+export function dedupeProductsById<T extends { id?: unknown }>(items: T[]): T[] {
+  const seen = new Set<number>();
+  const out: T[] = [];
+  for (const item of items) {
+    const id = Number(item?.id ?? 0);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(item);
+  }
+  return out;
+}
+
+/**
  * Normalize products from API/caller: accept array or { products: array } and return a plain array.
  * Used by ProductSectionCard, ProductsSlider, etc.
  */
-export function normalizeProductsList<T>(
-  raw: T[] | { products?: T[] } | null | undefined
+export function normalizeProductsList<T extends { id?: unknown }>(
+  raw: T[] | { products?: T[] } | null | undefined,
 ): T[] {
   if (!raw) return [];
-  if (Array.isArray(raw)) return raw;
-  if (typeof raw === "object" && "products" in raw && Array.isArray((raw as { products?: T[] }).products))
-    return (raw as { products: T[] }).products;
+  if (Array.isArray(raw)) return dedupeProductsById(raw);
+  if (
+    typeof raw === "object" &&
+    "products" in raw &&
+    Array.isArray((raw as { products?: T[] }).products)
+  )
+    return dedupeProductsById((raw as { products: T[] }).products);
   return [];
 }

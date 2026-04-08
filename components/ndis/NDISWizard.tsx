@@ -2,13 +2,7 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
-import {
-  FileText,
-  CloudUpload,
-  User,
-  MailCheck,
-  Send,
-} from "lucide-react";
+import { FileText, CloudUpload, User, MailCheck, Send } from "lucide-react";
 
 /* Brand colors – also in globals.css as --ndis-primary, --ndis-secondary (hex here for alpha variants) */
 const NDIS_PRIMARY = "#5B1D65";
@@ -94,18 +88,15 @@ export default function NDISWizard() {
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">STEP 1</p>
+                <p className="text-gray-600 text-sm">STEP 1</p>
                 <h3 className="text-xl font-bold text-gray-900">Getting Started</h3>
               </div>
             </div>
-            <p className="text-gray-700 mb-4">
-              Fill out the registration form to begin.
-            </p>
+            <p className="text-gray-700 mb-4">Fill out the registration form to begin.</p>
             <p className="text-gray-700 mb-6">
-              This Board will enable the participants / organisation or their
-              nominees to place medical orders easily. While filling out the
-              form, member/participants will use email. After you complete the
-              process, we could send you the login credentials on the given
+              This Board will enable the participants / organisation or their nominees to place
+              medical orders easily. While filling out the form, member/participants will use email.
+              After you complete the process, we could send you the login credentials on the given
               email.
             </p>
             <p className="font-semibold text-gray-900 mb-2">
@@ -139,15 +130,11 @@ export default function NDISWizard() {
                 <CloudUpload className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">STEP 2</p>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Upload Your Form
-                </h3>
+                <p className="text-gray-600 text-sm">STEP 2</p>
+                <h3 className="text-xl font-bold text-gray-900">Upload Your Form</h3>
               </div>
             </div>
-            <p className="text-gray-600 mb-2">
-              Submit your service agreement via email.
-            </p>
+            <p className="text-gray-600 mb-2">Submit your service agreement via email.</p>
             <p className="text-gray-600 mb-6">
               Send your completed form to{" "}
               <Link
@@ -167,8 +154,7 @@ export default function NDISWizard() {
                   Thank you for your submission.
                 </p>
                 <p className="text-sm text-gray-700 mt-1">
-                  We will respond to {email || "your email"}. You can also email
-                  us at{" "}
+                  We will respond to {email || "your email"}. You can also email us at{" "}
                   <Link
                     href={`mailto:${NDIS_EMAIL}`}
                     className="underline"
@@ -219,9 +205,7 @@ export default function NDISWizard() {
                       ref={fileInputRef}
                       type="file"
                       accept=".pdf,.doc,.docx"
-                      onChange={(e) =>
-                        setFile(e.target.files?.[0] ?? null)
-                      }
+                      onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                       className="hidden"
                     />
                     <button
@@ -236,13 +220,9 @@ export default function NDISWizard() {
                       {file ? file.name : "No file chosen"}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    Upload Here Your BA/SA Updated File
-                  </p>
+                  <p className="text-sm text-gray-500">Upload Here Your BA/SA Updated File</p>
                 </div>
-                {error && (
-                  <p className="text-sm text-red-600">{error}</p>
-                )}
+                {error && <p className="text-sm text-red-600">{error}</p>}
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     type="submit"
@@ -268,10 +248,8 @@ export default function NDISWizard() {
                 <User className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">STEP 3</p>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Joya&apos;s Response
-                </h3>
+                <p className="text-gray-600 text-sm">STEP 3</p>
+                <h3 className="text-xl font-bold text-gray-900">Joya&apos;s Response</h3>
               </div>
             </div>
             <p className="text-gray-700 mb-4">
@@ -279,12 +257,11 @@ export default function NDISWizard() {
             </p>
             <hr className="border-gray-200 my-4" />
             <p className="text-gray-700 mb-2">
-              Once you have completed the form you will be allocated to your
-              dedicated account manager.
+              Once you have completed the form you will be allocated to your dedicated account
+              manager.
             </p>
             <p className="text-gray-700">
-              Once the form is submitted, please allow us at least 24hrs to set
-              up your account.
+              Once the form is submitted, please allow us at least 24hrs to set up your account.
             </p>
           </>
         )}
@@ -300,19 +277,13 @@ export default function NDISWizard() {
                 <MailCheck className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">STEP 4</p>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Check Your Email
-                </h3>
+                <p className="text-gray-600 text-sm">STEP 4</p>
+                <h3 className="text-xl font-bold text-gray-900">Check Your Email</h3>
               </div>
             </div>
-            <p className="text-gray-700 mb-4">
-              Receive login credentials to start ordering.
-            </p>
+            <p className="text-gray-700 mb-4">Receive login credentials to start ordering.</p>
             <hr className="border-gray-200 my-4" />
-            <p className="text-gray-700">
-              Check your email for login credentials start ordering.
-            </p>
+            <p className="text-gray-700">Check your email for login credentials start ordering.</p>
           </>
         )}
 
@@ -327,10 +298,8 @@ export default function NDISWizard() {
                 <Send className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-gray-400 text-sm">STEP 5</p>
-                <h3 className="text-xl font-bold text-gray-900">
-                  Skip Paperwork
-                </h3>
+                <p className="text-gray-600 text-sm">STEP 5</p>
+                <h3 className="text-xl font-bold text-gray-900">Skip Paperwork</h3>
               </div>
             </div>
             <p className="text-gray-700 mb-4">
@@ -338,12 +307,11 @@ export default function NDISWizard() {
             </p>
             <hr className="border-gray-200 my-4" />
             <p className="text-gray-700 mb-4">
-              Simply use our Guest user option for an account – we will send
-              your invoice directly to your plan manager!
+              Simply use our Guest user option for an account – we will send your invoice directly
+              to your plan manager!
             </p>
             <p className="font-bold text-gray-900">
-              PS NOTE: All the order will be directed to our customer service
-              for standard process
+              PS NOTE: All the order will be directed to our customer service for standard process
             </p>
           </>
         )}
@@ -354,7 +322,7 @@ export default function NDISWizard() {
             type="button"
             onClick={goPrev}
             disabled={currentStep === 1}
-            className="font-medium disabled:text-gray-400 disabled:cursor-not-allowed hover:underline"
+            className="font-medium disabled:text-gray-600 disabled:cursor-not-allowed hover:underline"
             style={{
               color: currentStep === 1 ? undefined : NDIS_PRIMARY,
             }}
@@ -365,7 +333,7 @@ export default function NDISWizard() {
             type="button"
             onClick={goNext}
             disabled={currentStep === 5}
-            className="font-medium disabled:text-gray-400 disabled:cursor-not-allowed hover:underline"
+            className="font-medium disabled:text-gray-600 disabled:cursor-not-allowed hover:underline"
             style={{
               color: currentStep === 5 ? undefined : NDIS_PRIMARY,
             }}

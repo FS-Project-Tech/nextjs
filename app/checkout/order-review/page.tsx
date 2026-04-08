@@ -1,171 +1,173 @@
 "use client";
- 
-import { useEffect, useState, Suspense, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+
+import { useEffect, useState, Suspense, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
- 
-interface OrderItem {
-  id: number;
-  name: string;
-  quantity: number;
-  price: string;
-  total?: string;
-  sku?: string;
-  image?: { src: string; alt: string };
-}
- 
-interface Order {
-  id: number;
-  number?: string;
-  order_number?: string;
-  order_key: string;
-  status: string;
-  total: string;
-  subtotal?: string;
-  total_shipping?: string;
-  shipping_total?: string;
-  tax_total?: string;
-  discount_total?: string;
-  payment_method: string;
-  payment_method_title: string;
-  date_created?: string;
-  billing: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    address_1: string;
-    address_2?: string;
-    city: string;
-    state: string;
-    postcode: string;
-    country: string;
-  };
-  shipping: {
-    first_name: string;
-    last_name: string;
-    address_1: string;
-    address_2?: string;
-    city: string;
-    state: string;
-    postcode: string;
-    country: string;
-  };
-  line_items: OrderItem[];
-  meta_data?: Array<{ key: string; value: any }>;
-}
- 
+import { useCart } from "@/components/CartProvider";
+import type { OrderReviewOrder } from "@/components/checkout/order-review/types";
+import OrderReviewSummary from "@/components/checkout/order-review/OrderReviewSummary";
+import OrderItems from "@/components/checkout/order-review/OrderItems";
+import PaymentStatus from "@/components/checkout/order-review/PaymentStatus";
+import { downloadOrderInvoicePdf } from "@/lib/order-review-pdf";
+import { trackPurchase } from "@/lib/analytics";
+import { getOrderPaymentMethodDisplay } from "@/lib/checkout/paymentDisplay";
+
 function OrderReviewContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [order, setOrder] = useState<Order | null>(null);
+  const { clear } = useCart();
+  const [order, setOrder] = useState<OrderReviewOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
-  const orderIdFromUrl = searchParams.get("orderId");
-  const recoverKey = searchParams.get("recover");
- 
+  const purchaseTrackedForOrderRef = useRef<string | null>(null);
+  const orderIdFromUrl = searchParams.get("order_id") || searchParams.get("orderId");
+  const orderKeyFromUrl = searchParams.get("key");
+  const accessCodeFromUrl = searchParams.get("AccessCode") || searchParams.get("accessCode");
   useEffect(() => {
     // Suppress "lab" color function parsing errors from html2canvas/css parsing
     const originalError = console.error;
     console.error = (...args: any[]) => {
       // Filter out "lab" color function errors
-      const errorMessage = args[0]?.toString() || '';
-      if (errorMessage.includes('lab') && errorMessage.includes('color function')) {
+      const errorMessage = args[0]?.toString() || "";
+      if (errorMessage.includes("lab") && errorMessage.includes("color function")) {
         return; // Suppress this specific error
       }
       originalError.apply(console, args);
     };
- 
+
     return () => {
       // Restore original console.error on unmount
       console.error = originalError;
     };
   }, []);
- 
+
   useEffect(() => {
     let cancelled = false;
 
     const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-    const resolveOrderIdFromRecover = async (): Promise<string | null> => {
-      const key =
-        recoverKey ||
-        (typeof window !== "undefined"
-          ? sessionStorage.getItem("checkout_recover_ik")
-          : null);
-      if (!key) return null;
-
-      for (let attempt = 0; attempt < 28 && !cancelled; attempt++) {
-        try {
-          const r = await fetch(
-            `/api/checkout/result?key=${encodeURIComponent(key)}`,
-            { cache: "no-store", credentials: "same-origin" }
-          );
-          if (r.ok) {
-            const data = await r.json();
-            const oid =
-              data.order?.number ??
-              data.order?.order_number ??
-              data.order?.id;
-            if (oid != null && String(oid).trim() !== "") {
-              try {
-                sessionStorage.removeItem("checkout_recover_ik");
-              } catch {
-                /* ignore */
-              }
-              const idStr = String(oid);
-              router.replace(
-                `/checkout/order-review?orderId=${encodeURIComponent(idStr)}`,
-                { scroll: false }
-              );
-              return idStr;
-            }
-          }
-        } catch {
-          /* retry */
-        }
-        await sleep(400);
-      }
-      return null;
-    };
-
     const run = async () => {
       setLoading(true);
       setError(null);
 
-      let orderId: string | null = orderIdFromUrl;
-
-      if (!orderId && recoverKey) {
-        orderId = await resolveOrderIdFromRecover();
-      } else if (!orderId && typeof window !== "undefined") {
-        const stored = sessionStorage.getItem("checkout_recover_ik");
-        if (stored) {
-          orderId = await resolveOrderIdFromRecover();
-        }
-      }
+      const orderId = orderIdFromUrl;
 
       if (cancelled) return;
 
       if (!orderId) {
-        setError(
-          recoverKey
-            ? "We couldn’t load your order confirmation yet. If you were charged, check your email or your account orders — do not pay again."
-            : "Order ID is required"
-        );
+        setError("Order ID is required");
         setLoading(false);
         return;
       }
 
       try {
-        const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error("Failed to fetch order");
+        const hasKey = Boolean(orderKeyFromUrl?.trim());
+        const ac = accessCodeFromUrl?.trim()
+          ? `&AccessCode=${encodeURIComponent(accessCodeFromUrl.trim())}`
+          : "";
+        const orderApiUrl = hasKey
+          ? `/api/checkout/get-order?orderId=${encodeURIComponent(orderId)}&key=${encodeURIComponent(orderKeyFromUrl!.trim())}${ac}`
+          : accessCodeFromUrl
+            ? `/api/orders/${encodeURIComponent(orderId)}?AccessCode=${encodeURIComponent(accessCodeFromUrl)}`
+            : `/api/orders/${encodeURIComponent(orderId)}`;
+
+        const maxAttempts = accessCodeFromUrl ? 6 : hasKey ? 2 : 3;
+        let data: { order?: OrderReviewOrder } | null = null;
+        let lastError: Error | null = null;
+
+        for (let attempt = 0; attempt < maxAttempts && !cancelled; attempt++) {
+          if (attempt > 0) {
+            await sleep(180 + attempt * 220);
+          }
+
+          const res = await fetch(orderApiUrl, {
+            cache: "no-store",
+            credentials: "same-origin",
+          });
+          const responseText = (await res.text()).replace(/^\uFEFF/, "");
+          const trimmed = responseText.trim();
+
+          if (!res.ok) {
+            let msg = `Unable to load order (HTTP ${res.status}).`;
+            if (trimmed) {
+              try {
+                const errBody = JSON.parse(trimmed) as { error?: string; message?: string };
+                if (typeof errBody.error === "string" && errBody.error.trim()) {
+                  msg = errBody.error.trim();
+                } else if (typeof errBody.message === "string" && errBody.message.trim()) {
+                  msg = errBody.message.trim();
+                }
+              } catch {
+                /* keep msg */
+              }
+            }
+            const retryable =
+              res.status === 502 || res.status === 503 || res.status === 504 || res.status === 429;
+            if (retryable && attempt < maxAttempts - 1) {
+              lastError = new Error(msg);
+              continue;
+            }
+            throw new Error(msg);
+          }
+
+          if (!trimmed) {
+            lastError = new Error(
+              "Order service returned an empty response. Try refreshing the page."
+            );
+            continue;
+          }
+
+          let parsed: { order?: OrderReviewOrder };
+          try {
+            parsed = JSON.parse(trimmed) as { order?: OrderReviewOrder };
+          } catch (e) {
+            const hint = e instanceof SyntaxError ? e.message : "Invalid JSON from order service";
+            lastError = new Error(hint);
+            continue;
+          }
+
+          if (!parsed.order || typeof parsed.order !== "object") {
+            lastError = new Error("Order details were missing from the server response.");
+            continue;
+          }
+
+          data = parsed;
+          break;
         }
-        const data = await res.json();
+
+        if (!data?.order) {
+          throw lastError || new Error("Failed to load order after several attempts.");
+        }
+
         if (!cancelled) {
           setOrder(data.order);
+          try {
+            if (typeof window !== "undefined" && data.order) {
+              const oid = String(data.order.id ?? "");
+              const pm = String(data.order.payment_method || "").toLowerCase();
+              const offlinePm = ["cod", "bacs", "bank_transfer", "cheque"];
+              let shouldClear = offlinePm.includes(pm);
+              if (oid && sessionStorage.getItem(`headless_clear_cart_for_order_${oid}`)) {
+                sessionStorage.removeItem(`headless_clear_cart_for_order_${oid}`);
+                shouldClear = true;
+              }
+              if (sessionStorage.getItem("headless_clear_cart_after_woo_token_checkout")) {
+                sessionStorage.removeItem("headless_clear_cart_after_woo_token_checkout");
+                shouldClear = true;
+              }
+              if (shouldClear) {
+                clear();
+                fetch("/api/dashboard/cart/save", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ items: [] }),
+                }).catch(() => {});
+              }
+            }
+          } catch {
+            /* ignore */
+          }
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -182,97 +184,83 @@ function OrderReviewContent() {
     return () => {
       cancelled = true;
     };
-  }, [orderIdFromUrl, recoverKey, router]);
- 
+  }, [orderIdFromUrl, orderKeyFromUrl, accessCodeFromUrl, clear]);
+
+  useEffect(() => {
+    if (!order || loading || error) return;
+    const dedupeKey = String(order.id);
+    if (purchaseTrackedForOrderRef.current === dedupeKey) return;
+    purchaseTrackedForOrderRef.current = dedupeKey;
+
+    const revenue = parseFloat(String(order.total || "0")) || 0;
+    const tax = parseFloat(String(order.total_tax ?? order.tax_total ?? "0")) || 0;
+    const shipping =
+      parseFloat(String(order.shipping_total ?? order.total_shipping ?? "0")) || 0;
+
+    const items = order.line_items.map((li) => {
+      const ext = li as typeof li & { product_id?: number };
+      const unit = parseFloat(String(li.price ?? "0")) || 0;
+      return {
+        id: typeof ext.product_id === "number" && ext.product_id > 0 ? ext.product_id : li.id,
+        name: li.name,
+        price: unit,
+        quantity: Math.max(1, li.quantity || 1),
+        sku: li.sku,
+      };
+    });
+
+    trackPurchase({
+      id: order.number ?? order.order_number ?? order.id,
+      revenue,
+      tax,
+      shipping,
+      items,
+    });
+  }, [order, loading, error]);
+
   const handleDownloadPDF = useCallback(async () => {
     if (!order || typeof window === "undefined") return;
- 
+
     setDownloadingPDF(true);
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => {
+      const s = String(args[0] ?? "");
+      if (s.includes("lab") || s.includes("color function")) return;
+      originalError(...args);
+    };
     try {
-      // Suppress console errors for unsupported color functions
-      const originalError = console.error;
-      console.error = (...args: any[]) => {
-        // Filter out "lab" color function errors from html2canvas
-        if (args[0]?.toString().includes('lab') ||
-            args[0]?.toString().includes('color function')) {
-          return; // Suppress this specific error
-        }
-        originalError.apply(console, args);
-      };
- 
-      // Dynamically import html2pdf.js
-      const html2pdfModule = await import("html2pdf.js");
-      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
- 
-      const element = document.getElementById("invoice-content");
-      if (!element) {
-        throw new Error("Invoice content not found");
-      }
- 
-      const opt = {
-        margin: [15, 15, 15, 15] as [number, number, number, number],
-        filename: `Invoice-${order.number ?? order.order_number ?? orderIdFromUrl ?? order.id}.pdf`,
-        image: { type: "jpeg" as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          letterRendering: true,
-          ignoreElements: (element: Element) => {
-            // Ignore elements that might cause color parsing issues
-            return false;
-          },
-          onclone: (clonedDoc: Document) => {
-            // Convert any lab() colors to rgb in the cloned document
-            const style = clonedDoc.createElement('style');
-            style.textContent = `
-              * {
-                color-scheme: light !important;
-              }
-            `;
-            clonedDoc.head.appendChild(style);
-          },
-        },
-        jsPDF: {
-          unit: "mm",
-          format: "a4",
-          orientation: "portrait" as const
-        },
-      };
- 
-      await (html2pdf as any)().set(opt).from(element).save();
-     
-      // Restore original console.error
-      console.error = originalError;
+      await downloadOrderInvoicePdf(
+        `Invoice-${order.number ?? order.order_number ?? orderIdFromUrl ?? order.id}.pdf`
+      );
     } catch (error) {
       console.error("PDF generation error:", error);
-      // Fallback to print dialog
       window.print();
     } finally {
+      console.error = originalError;
       setDownloadingPDF(false);
     }
   }, [order, orderIdFromUrl]);
- 
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-10 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-          <p className="mt-4 text-gray-600">
-            {recoverKey ? "Confirming your order…" : "Loading order details..."}
-          </p>
+          <p className="mt-4 text-gray-600">Loading order details…</p>
         </div>
       </div>
     );
   }
- 
+
   if (error || !order) {
     return (
       <div className="min-h-screen bg-gray-50 py-10">
         <div className="mx-auto w-[85vw] px-4 sm:px-6 lg:px-8">
           <div className="text-center py-20">
             <h1 className="text-2xl font-semibold mb-4">Order Not Found</h1>
-            <p className="text-gray-600 mb-6">{error || "The order you're looking for doesn't exist."}</p>
+            <p className="text-gray-600 mb-6">
+              {error || "The order you're looking for doesn't exist."}
+            </p>
             <Link
               href="/shop"
               className="inline-block rounded-md bg-gray-900 px-6 py-3 text-white hover:bg-black"
@@ -284,339 +272,173 @@ function OrderReviewContent() {
       </div>
     );
   }
- 
-  const getNDISNumber = () => {
-    const ndisMeta = order.meta_data?.find((m) => m.key === "NDIS Number");
-    return ndisMeta?.value || null;
+
+  const getNDISNumber = (): string | null => {
+    const ndisInfo = order.meta_data?.find((m) => m.key === "ndis_info")?.value;
+    if (typeof ndisInfo === "string" && ndisInfo.trim()) {
+      try {
+        const parsed = JSON.parse(ndisInfo) as { number?: unknown };
+        if (parsed?.number != null && String(parsed.number).trim()) return String(parsed.number);
+      } catch {
+        // no-op
+      }
+    }
+    const legacy = order.meta_data?.find((m) => m.key === "NDIS Number")?.value;
+    if (legacy == null || String(legacy).trim() === "") return null;
+    return String(legacy);
   };
- 
-  const getHCPNumber = () => {
-    const hcpMeta = order.meta_data?.find((m) => m.key === "HCP Number");
-    return hcpMeta?.value || null;
+
+  const getHCPNumber = (): string | null => {
+    const hcpInfo = order.meta_data?.find((m) => m.key === "hcp_info")?.value;
+    if (typeof hcpInfo === "string" && hcpInfo.trim()) {
+      try {
+        const parsed = JSON.parse(hcpInfo) as { number?: unknown };
+        if (parsed?.number != null && String(parsed.number).trim()) return String(parsed.number);
+      } catch {
+        // no-op
+      }
+    }
+    const legacy = order.meta_data?.find((m) => m.key === "HCP Number")?.value;
+    if (legacy == null || String(legacy).trim() === "") return null;
+    return String(legacy);
   };
- 
+
   const getMetaValue = (key: string) => {
     const meta = order.meta_data?.find((m) => m.key === key);
     return meta?.value ?? null;
   };
- 
+
   const getDeliveryAuthority = () => {
-    const value = getMetaValue("Signature Required");
+    const value = getMetaValue("delivery_authority") ?? getMetaValue("Signature Required");
     return value === "yes" ? "With Signature" : null;
   };
- 
+
   const getDeliveryInstructions = () => {
-    return getMetaValue("Delivery Instructions");
+    return getMetaValue("delivery_notes") ?? getMetaValue("Delivery Instructions");
   };
- 
+
   const getDoNotSendPaperwork = () => {
-    const value = getMetaValue("Do not Send Paperwork With Delivery");
+    const value = getMetaValue("no_paperwork") ?? getMetaValue("Do not Send Paperwork With Delivery");
     return value === "yes";
   };
- 
+
   const getDiscreetPackaging = () => {
-    const value = getMetaValue("Discreet Packaging");
+    const value = getMetaValue("discreet_packaging") ?? getMetaValue("Discreet Packaging");
     return value === "yes";
   };
- 
+
   const getNewsletterSubscription = () => {
-    const value = getMetaValue("Newsletter Subscription");
+    const value = getMetaValue("newsletter") ?? getMetaValue("Newsletter Subscription");
     return value === "yes";
   };
- 
+
   const isPaid = order.status === "processing" || order.status === "completed";
   const offlinePaymentMethods = ["cod", "bacs", "bank_transfer", "cheque"];
- 
+
+  const paymentMethodDisplay = getOrderPaymentMethodDisplay(order);
+
+  /** Receipt label: on-account orders show **Done** when Woo is processing (or completed). */
+  const orderStatusLabel = (() => {
+    const s = String(order.status || "").toLowerCase();
+    const pm = String(order.payment_method || "").toLowerCase();
+    if (pm === "eway" && (s === "processing" || s === "completed")) {
+      return "Payment Done";
+    }
+    if (pm === "cod" && (s === "processing" || s === "completed")) {
+      return "Done";
+    }
+    if (s === "processing") return "Completed";
+    if (s === "completed") return "Completed";
+    if (s === "pending") return "Pending";
+    if (s === "on-hold") return "On hold";
+    if (s === "cancelled") return "Cancelled";
+    if (s === "refunded") return "Refunded";
+    if (s === "failed") return "Failed";
+    return order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : "—";
+  })();
+
+  const orderStatusToneClass = (() => {
+    const s = String(order.status || "").toLowerCase();
+    const pm = String(order.payment_method || "").toLowerCase();
+    if (pm === "cod" && (s === "processing" || s === "completed")) return "text-green-700";
+    if (s === "completed") return "text-green-700";
+    if (s === "processing") return "text-blue-700";
+    return "text-amber-800";
+  })();
+
   // Calculate totals
   // Subtotal: use order.subtotal if present, otherwise sum line items (WooCommerce may omit subtotal)
-  const subtotalFromLineItems = order.line_items?.reduce((sum, item) => {
-    const itemTotal = item.total != null && item.total !== ''
-      ? parseFloat(String(item.total))
-      : Number(item.price) * (item.quantity || 0);
-    return sum + itemTotal;
-  }, 0) ?? 0;
-  const subtotal = (order.subtotal != null && order.subtotal !== '')
-    ? parseFloat(order.subtotal)
-    : subtotalFromLineItems;
- 
-  const shipping = (order.shipping_total ?? order.total_shipping)
-    ? parseFloat(String(order.shipping_total ?? order.total_shipping))
-    : 0;
-  const tax = order.tax_total ? parseFloat(order.tax_total) : 0;
+  const subtotalFromLineItems =
+    order.line_items?.reduce((sum, item) => {
+      const itemTotal =
+        item.total != null && item.total !== ""
+          ? parseFloat(String(item.total))
+          : Number(item.price) * (item.quantity || 0);
+      return sum + itemTotal;
+    }, 0) ?? 0;
+  const subtotal =
+    order.subtotal != null && order.subtotal !== ""
+      ? parseFloat(order.subtotal)
+      : subtotalFromLineItems;
+
+  const shipping =
+    (order.shipping_total ?? order.total_shipping)
+      ? parseFloat(String(order.shipping_total ?? order.total_shipping))
+      : 0;
+  const taxRaw = order.total_tax ?? order.tax_total;
+  let tax = taxRaw != null && String(taxRaw).trim() !== "" ? parseFloat(String(taxRaw)) : 0;
+  if (!Number.isFinite(tax)) tax = 0;
   const discount = order.discount_total ? parseFloat(order.discount_total) : 0;
   const total = parseFloat(order.total);
- 
+
   // Format subtotalFromLineItems
   const orderDate = order.date_created
-    ? new Date(order.date_created).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+    ? new Date(order.date_created).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       })
-    : new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+    : new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
- 
+
+  const ndisNumber = getNDISNumber();
+  const hcpNumber = getHCPNumber();
+  const deliveryAuthority = getDeliveryAuthority();
+  const deliveryInstructions = getDeliveryInstructions();
+  const doNotSendPaperwork = getDoNotSendPaperwork();
+  const discreetPackaging = getDiscreetPackaging();
+  const newsletterSubscription = getNewsletterSubscription();
+
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        {/* Success Header */}
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h1 className="mb-2 text-3xl font-bold text-gray-900">Order Confirmed!</h1>
-          <p className="text-gray-600">
-            Thank you for your order. We've sent a confirmation email to <strong>{order.billing.email}</strong>
-          </p>
-        </div>
- 
-        {/* Invoice Container */}
-        <div id="invoice-content" className="bg-white shadow-lg rounded-lg overflow-hidden">
-          {/* Invoice Header */}
-          <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-8 py-6 text-white">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold mb-1">Order Summary</h2>
-                <p className="text-gray-300 text-sm">Order #{order.number ?? order.order_number ?? orderIdFromUrl ?? order.id}</p>
-              </div>
-              <div className="mt-4 md:mt-0 text-right">
-                <p className="text-sm text-gray-300">Date</p>
-                <p className="font-semibold">{orderDate}</p>
-              </div>
-            </div>
-          </div>
- 
-          {/* Invoice Body */}
-          <div className="p-8">
-            {/* Company & Customer Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pb-8 border-b">
-              {/* Company Info */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">From</h3>
-                <div className="text-sm text-gray-700">
-                  <p className="font-bold text-lg text-gray-900 mb-1">
-                    {process.env.NEXT_PUBLIC_SITE_NAME || "Joya Medical Supplies"}
-                  </p>
-                  <p className="text-gray-600">Medical Supplies & Healthcare Products</p>
-                  <p className="text-gray-600 mt-2">Australia</p>
-                </div>
-              </div>
- 
-              {/* Customer Info */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Bill To</h3>
-                <div className="text-sm text-gray-700">
-                  <p className="font-semibold text-gray-900">
-                    {order.billing.first_name} {order.billing.last_name}
-                  </p>
-                  <p>{order.billing.address_1}</p>
-                  {order.billing.address_2 && <p>{order.billing.address_2}</p>}
-                  <p>
-                    {order.billing.city}, {order.billing.state} {order.billing.postcode}
-                  </p>
-                  <p>{order.billing.country}</p>
-                  <p className="mt-2">Phone: {order.billing.phone}</p>
-                  <p>Email: {order.billing.email}</p>
-                </div>
-              </div>
-            </div>
- 
-            {/* Shipping Address (if different) */}
-            {order.shipping &&
-             (order.shipping.address_1 !== order.billing.address_1 ||
-              order.shipping.city !== order.billing.city) && (
-              <div className="mb-8 pb-8 border-b">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Ship To</h3>
-                <div className="text-sm text-gray-700">
-                  <p className="font-semibold text-gray-900">
-                    {order.shipping.first_name} {order.shipping.last_name}
-                  </p>
-                  <p>{order.shipping.address_1}</p>
-                  {order.shipping.address_2 && <p>{order.shipping.address_2}</p>}
-                  <p>
-                    {order.shipping.city}, {order.shipping.state} {order.shipping.postcode}
-                  </p>
-                  <p>{order.shipping.country}</p>
-                </div>
-              </div>
-            )}
- 
-            {/* Order Items Table */}
-            <div className="mb-8">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b-2 border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">Item</th>
-                    <th className="text-center py-3 px-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">SKU</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">Quantity</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">Price</th>
-                    <th className="text-right py-3 px-4 text-sm font-semibold text-gray-900 uppercase tracking-wide">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {order.line_items.map((item, index) => {
-                    const itemPrice = Number(item.price);
-                    const itemTotal = itemPrice * item.quantity;
-                    return (
-                      <tr key={item.id} className={`border-b ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            {item.image?.src && (
-                              <div className="hidden print:block relative h-12 w-12 shrink-0 overflow-hidden rounded border border-gray-200">
-                                <Image
-                                  src={item.image.src}
-                                  alt={item.image.alt || item.name}
-                                  fill
-                                  sizes="48px"
-                                  className="object-cover"
-                                />
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-medium text-gray-900">{item.name}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-center text-sm text-gray-600">
-                          {item.sku || "—"}
-                        </td>
-                        <td className="py-4 px-4 text-right text-sm text-gray-900">
-                          {item.quantity}
-                        </td>
-                        <td className="py-4 px-4 text-right text-sm text-gray-900">
-                          ${itemPrice.toFixed(2)}
-                        </td>
-                        <td className="py-4 px-4 text-right font-semibold text-gray-900">
-                          ${itemTotal.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
- 
-            {/* Totals Section */}
-            <div className="flex justify-end mb-8">
-              <div className="w-full md:w-80">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between py-2">
-                    <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium text-gray-900">${subtotal.toFixed(2)}</span>
-                  </div>
-                  {shipping > 0 && (
-                    <div className="flex justify-between py-2">
-                      <span className="text-gray-600">Shipping:</span>
-                      <span className="font-medium text-gray-900">${shipping.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {tax > 0 && (
-                    <div className="flex justify-between py-2">
-                      <span className="text-gray-600">Tax:</span>
-                      <span className="font-medium text-gray-900">${tax.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {discount > 0 && (
-                    <div className="flex justify-between py-2 text-emerald-600">
-                      <span>Discount:</span>
-                      <span className="font-medium">-${discount.toFixed(2)}</span>
-                    </div>
-                  )}
-                  <div className="border-t-2 border-gray-900 pt-3 mt-2">
-                    <div className="flex justify-between">
-                      <span className="text-lg font-bold text-gray-900">Total:</span>
-                      <span className="text-xl font-bold text-gray-900">${total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
- 
-            {/* Payment & Status Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 pb-8 border-b">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Payment Method</h3>
-                <p className="text-sm text-gray-700">{order.payment_method_title}</p>
-                {!isPaid && offlinePaymentMethods.includes(order.payment_method) && (
-                  <p className="text-xs text-yellow-600 mt-1">Payment Pending</p>
-                )}
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-2">Order Status</h3>
-                <p className={`text-sm font-medium ${
-                  order.status === "completed" ? "text-green-600" :
-                  order.status === "processing" ? "text-blue-600" :
-                  "text-yellow-600"
-                }`}>
-                  {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                </p>
-              </div>
-            </div>
- 
-            {/* Additional Information */}
-            {(getNDISNumber() || getHCPNumber() || getDeliveryAuthority() || getDeliveryInstructions() || getDoNotSendPaperwork() || getDiscreetPackaging() || getNewsletterSubscription()) && (
-              <div className="mb-8 pb-8 border-b">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">Additional Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  {getNDISNumber() && (
-                    <div>
-                      <span className="font-medium text-gray-700">NDIS Number:</span>{" "}
-                      <span className="text-gray-900">{getNDISNumber()}</span>
-                    </div>
-                  )}
-                  {getHCPNumber() && (
-                    <div>
-                      <span className="font-medium text-gray-700">HCP Number:</span>{" "}
-                      <span className="text-gray-900">{getHCPNumber()}</span>
-                    </div>
-                  )}
-                  {getDeliveryAuthority() && (
-                    <div>
-                      <span className="font-medium text-gray-700">Delivery Authority:</span>{" "}
-                      <span className="text-gray-900">{getDeliveryAuthority()}</span>
-                    </div>
-                  )}
-                  {getDoNotSendPaperwork() && (
-                    <div>
-                      <span className="font-medium text-gray-700">Do not Send Paperwork With Delivery:</span>{" "}
-                      <span className="text-gray-900">Yes</span>
-                    </div>
-                  )}
-                  {getDiscreetPackaging() && (
-                    <div>
-                      <span className="font-medium text-gray-700">Discreet Packaging:</span>{" "}
-                      <span className="text-gray-900">Yes</span>
-                    </div>
-                  )}
-                  {getNewsletterSubscription() && (
-                    <div>
-                      <span className="font-medium text-gray-700">Newsletter Subscription:</span>{" "}
-                      <span className="text-gray-900">Yes</span>
-                    </div>
-                  )}
-                  {getDeliveryInstructions() && (
-                    <div className="md:col-span-2">
-                      <span className="font-medium text-gray-700">Delivery Instructions:</span>{" "}
-                      <span className="text-gray-900">{getDeliveryInstructions()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
- 
-            {/* Footer Note */}
-            <div className="text-center text-xs text-gray-500 pt-4 border-t">
-              <p>Thank you for your business!</p>
-              <p className="mt-1">If you have any questions about this invoice, please contact us.</p>
-            </div>
-          </div>
-        </div>
- 
+    <div className="min-h-screen bg-gray-50 py-8 sm:py-10">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <OrderReviewSummary order={order} orderIdFromUrl={orderIdFromUrl} orderDate={orderDate}>
+          <OrderItems lineItems={order.line_items} />
+          <PaymentStatus
+            order={order}
+            subtotal={subtotal}
+            shipping={shipping}
+            tax={tax}
+            discount={discount}
+            total={total}
+            paymentMethodDisplay={paymentMethodDisplay}
+            isPaid={isPaid}
+            offlinePaymentMethods={offlinePaymentMethods}
+            orderStatusLabel={orderStatusLabel}
+            orderStatusToneClass={orderStatusToneClass}
+            ndisNumber={ndisNumber}
+            hcpNumber={hcpNumber}
+            deliveryAuthority={deliveryAuthority}
+            deliveryInstructions={deliveryInstructions}
+            doNotSendPaperwork={doNotSendPaperwork}
+            discreetPackaging={discreetPackaging}
+            newsletterSubscription={newsletterSubscription}
+          />
+        </OrderReviewSummary>
+
         {/* Action Buttons */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
           <button
@@ -626,16 +448,37 @@ function OrderReviewContent() {
           >
             {downloadingPDF ? (
               <>
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-4 w-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 <span>Generating PDF...</span>
               </>
             ) : (
               <>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 <span>Download PDF</span>
               </>
@@ -643,7 +486,7 @@ function OrderReviewContent() {
           </button>
           <Link
             href="/shop"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 px-6 py-3 text-sm font-semibold text-white hover:bg-black transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-teal-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800"
           >
             <span>Continue Shopping</span>
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -655,7 +498,7 @@ function OrderReviewContent() {
     </div>
   );
 }
- 
+
 export default function OrderReviewPage() {
   return (
     <Suspense

@@ -37,11 +37,13 @@ export default function CategoryBookClient({
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          categorySlug,
+          category_slug: categorySlug,
           per_page: String(MAX_PRODUCTS),
           page: "1",
+          sortBy: "popularity",
+          q: "*",
         });
-        const res = await fetch(`/api/products?${params.toString()}`);
+        const res = await fetch(`/api/typesense/search?${params.toString()}`);
         const json = await res.json();
         if (!cancelled) {
           setProducts(Array.isArray(json.products) ? json.products : []);
@@ -99,9 +101,7 @@ export default function CategoryBookClient({
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="text-sm text-gray-600 self-end">
-        Page 1 of {totalPages}
-      </div>
+      <div className="text-sm text-gray-600 self-end">Page 1 of {totalPages}</div>
       <div className="bg-gradient-to-b from-gray-200 to-gray-300 p-4 rounded-2xl shadow-inner">
         <HTMLFlipBook
           width={600}
@@ -163,7 +163,7 @@ export default function CategoryBookClient({
                               sizes="150px"
                             />
                           ) : (
-                            <span className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">
+                            <span className="absolute inset-0 flex items-center justify-center text-gray-600 text-xs">
                               No image
                             </span>
                           )}
@@ -199,4 +199,3 @@ export default function CategoryBookClient({
     </div>
   );
 }
-

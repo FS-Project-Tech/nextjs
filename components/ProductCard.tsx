@@ -44,7 +44,7 @@ interface PriceData {
   discount: number;
   savings: string;
   formattedRegular: string;
-  formattedRegularWithLabel: string;
+  formattedRegularExcl: string;
   formattedCurrent: string;
   label: string;
   exclPrice: string | null;
@@ -60,16 +60,18 @@ interface RatingData {
 // Constants
 // ============================================================================
 
-const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect fill='%23f3f4f6' width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='system-ui' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
+const PLACEHOLDER_IMAGE =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect fill='%23f3f4f6' width='400' height='400'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-family='system-ui' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E";
 
 // SVG paths as constants to avoid recreation
-const CART_ICON_PATH = "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 6h12.2M7 13L5 5m2 14a1 1 0 110-2 1 1 0 010 2zm9 0a1 1 0 110-2 1 1 0 010 2z";
-const STAR_ICON_PATH = "M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.564-.954L10 0l2.946 5.956 6.564.954-4.755 4.635 1.123 6.545z";
+const CART_ICON_PATH =
+  "M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1.5 6h12.2M7 13L5 5m2 14a1 1 0 110-2 1 1 0 010 2zm9 0a1 1 0 110-2 1 1 0 010 2z";
+const STAR_ICON_PATH =
+  "M10 15l-5.878 3.09 1.123-6.545L.49 6.91l6.564-.954L10 0l2.946 5.956 6.564.954-4.755 4.635 1.123 6.545z";
 
 // ============================================================================
 // Helper Functions (outside component to avoid recreation)
 // ============================================================================
-
 
 function calculatePriceData(
   price: string,
@@ -84,14 +86,9 @@ function calculatePriceData(
 
   const current = sale > 0 ? sale : parseFloat(price || "0");
 
-  const isOnSale =
-    regular > 0 &&
-    sale > 0 &&
-    sale < regular;
+  const isOnSale = regular > 0 && sale > 0 && sale < regular;
 
-  const discount = isOnSale
-    ? Math.round(((regular - sale) / regular) * 100)
-    : 0;
+  const discount = isOnSale ? Math.round(((regular - sale) / regular) * 100) : 0;
 
   const savingsAmount = isOnSale ? regular - sale : 0;
   const savings = savingsAmount > 0 ? `$${savingsAmount.toFixed(2)}` : "";
@@ -101,16 +98,13 @@ function calculatePriceData(
   let exclPrice: string | null = null;
   let isGstFree = false;
 
-  let formattedRegularWithLabel = `$${regular.toFixed(2)}`;
+  const formattedRegularExcl = `$${regular.toFixed(2)}`;
   try {
     const priceInfo = formatPriceWithLabel(current, taxClass, taxStatus);
     formattedPrice = priceInfo.price;
     label = priceInfo.label || label;
     exclPrice = priceInfo.exclPrice || null;
     isGstFree = priceInfo.taxType === "gst_free";
-    const regularInfo = formatPriceWithLabel(regular, taxClass, taxStatus);
-    formattedRegularWithLabel =
-      regularInfo.label ? `${regularInfo.label}: ${regularInfo.price}` : regularInfo.price;
   } catch {}
 
   return {
@@ -120,7 +114,7 @@ function calculatePriceData(
     discount,
     savings,
     formattedRegular: `$${regular.toFixed(2)}`,
-    formattedRegularWithLabel,
+    formattedRegularExcl,
     formattedCurrent: formattedPrice,
     label,
     exclPrice,
@@ -128,14 +122,13 @@ function calculatePriceData(
   };
 }
 
-
 function calculateRatingData(ratingCount?: number, averageRating?: string): RatingData | null {
   const count = Number(ratingCount || 0);
   if (count <= 0) return null;
-  
+
   const avg = parseFloat(averageRating || "0") || 0;
   const clampedAvg = Math.max(0, Math.min(5, avg));
-  
+
   return isNaN(clampedAvg) ? null : { avg: Math.round(clampedAvg), count };
 }
 
@@ -145,7 +138,11 @@ function calculateRatingData(ratingCount?: number, averageRating?: string): Rati
 
 const StarRating = memo(function StarRating({ rating }: { rating: RatingData }) {
   return (
-    <div className="mt-2 flex items-center gap-1" role="img" aria-label={`Rated ${rating.avg} out of 5 stars`}>
+    <div
+      className="mt-1 flex w-full items-center gap-1 md:mt-2"
+      role="img"
+      aria-label={`Rated ${rating.avg} out of 5 stars`}
+    >
       <div className="flex gap-0.5 text-amber-400">
         {[0, 1, 2, 3, 4].map((i) => (
           <svg
@@ -175,7 +172,7 @@ const DiscountBadge = memo(function DiscountBadge({
   if (!showPercent && !showSale) return null;
   return (
     <span
-      className="absolute bottom-2 right-2 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white"
+      className="absolute bottom-2 right-2 hidden rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white md:inline-flex"
       aria-label={showPercent ? `${discount}% off` : "On sale"}
     >
       {showPercent ? `${discount}% OFF` : "Sale"}
@@ -183,12 +180,38 @@ const DiscountBadge = memo(function DiscountBadge({
   );
 });
 
+/** Amazon-style promo strip — mobile only; desktop uses corner badge on image */
+const MobilePromoBadge = memo(function MobilePromoBadge({
+  discount,
+  saleOnly,
+}: {
+  discount: number;
+  saleOnly?: boolean;
+}) {
+  const showPercent = discount > 0;
+  const showSale = saleOnly && discount <= 0;
+  if (!showPercent && !showSale) return null;
+  return (
+    <div className="mb-1.5 md:hidden">
+      <span
+        className="inline-block rounded-sm bg-red-600 px-2 py-1 text-xs font-bold uppercase tracking-wide text-white"
+        aria-label={showPercent ? `${discount}% off` : "On sale"}
+      >
+        {showPercent ? `${discount}% off` : "Sale"}
+      </span>
+    </div>
+  );
+});
 
 const LoadingSpinner = memo(function LoadingSpinner() {
   return (
     <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
     </svg>
   );
 });
@@ -216,7 +239,6 @@ function ProductCardComponent({
   compact = false,
   sale_percentage: salePercentageFromBackend,
 }: ProductCardProps) {
-
   // Hooks
   const { addItem, open: openCart } = useCart();
   const { success, error: showError } = useToast();
@@ -274,137 +296,135 @@ function ProductCardComponent({
     } finally {
       setAddingToCart(false);
     }
-  }, [id, name, slug, imageUrl, price, sale_price, sku, tax_class, tax_status, addingToCart, addItem, openCart, success, showError]);
+  }, [
+    id,
+    name,
+    slug,
+    imageUrl,
+    price,
+    sale_price,
+    sku,
+    tax_class,
+    tax_status,
+    addingToCart,
+    addItem,
+    openCart,
+    success,
+    showError,
+  ]);
+
+  const saleDiscountForBadge =
+    salePercentageFromBackend != null && salePercentageFromBackend > 0
+      ? salePercentageFromBackend
+      : priceData.discount;
+  const saleBadgeSaleOnly =
+    on_sale &&
+    !priceData.isOnSale &&
+    (salePercentageFromBackend == null || salePercentageFromBackend <= 0);
+  const showSaleBadge =
+    (salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
+    priceData.isOnSale ||
+    on_sale;
 
   return (
     <article
-      className="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-md"
+      className="grid h-full grid-cols-2 gap-3 rounded-xl border border-gray-200 bg-white p-3 transition hover:shadow-md md:grid-cols-1"
       style={{ contain: "layout style paint" }}
     >
-      {/* Image Section */}
-      <Link
-        href={productUrl}
-        className="relative block overflow-hidden rounded-lg bg-white"
-        aria-label={`View ${name}`}
-        prefetch={false}
-      >
-        <div className={'relative aspect-square'}>
-          <Image
-            src={imageSrc}
-            alt={imageAlt || name}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-            className="object-contain p-4"
-            onError={handleImageError}
-          />
-
-          {/* Wishlist Button */}
-          <div className="absolute top-2 left-2 z-10">
-            <WishlistButton productId={id} size="sm" variant="icon" className="bg-white rounded-full shadow-sm hover:scale-110 transition" />
-          </div>
-
-          {/* Discount Badge */}
-          {(salePercentageFromBackend != null && salePercentageFromBackend > 0) ||
-          priceData.isOnSale ||
-          on_sale ? (
-            <DiscountBadge
-              discount={
-                salePercentageFromBackend != null && salePercentageFromBackend > 0
-                  ? salePercentageFromBackend
-                  : priceData.discount
-              }
-              saleOnly={
-                on_sale &&
-                !priceData.isOnSale &&
-                (salePercentageFromBackend == null || salePercentageFromBackend <= 0)
-              }
+      {/* Image column — 50% width on mobile; mobile wishlist under image (desktop: heart on image top-left) */}
+      <div className="flex min-w-0 flex-col items-stretch gap-2">
+        <Link
+          href={productUrl}
+          className="relative block w-full overflow-hidden rounded-lg bg-white"
+          aria-label={`View ${name}`}
+          prefetch={false}
+        >
+          <div className="relative aspect-square">
+            <Image
+              src={imageSrc}
+              alt={imageAlt || name}
+              fill
+              sizes="(max-width: 768px) 45vw, (max-width: 1200px) 33vw, 25vw"
+              className="object-contain p-2 md:p-4"
+              onError={handleImageError}
             />
-          ) : null}
-        </div>
-      </Link>
 
-      {/* Content Section */}
-      <div className="flex flex-1 flex-col pt-3">
-        {/* Product Info */}
-        <div className="min-h-0 flex-1 overflow-hidden text-ellipsis">
+            <div className="absolute top-2 left-2 z-10 hidden md:block">
+              <WishlistButton
+                productId={id}
+                size="sm"
+                variant="icon"
+                className="rounded-full bg-white shadow-sm transition hover:scale-110"
+              />
+            </div>
+
+            {showSaleBadge ? (
+              <DiscountBadge discount={saleDiscountForBadge} saleOnly={saleBadgeSaleOnly} />
+            ) : null}
+          </div>
+        </Link>
+
+        <div className="flex w-full justify-start md:hidden">
+          <WishlistButton
+            productId={id}
+            size="sm"
+            variant="icon"
+            className="rounded-md border border-gray-200 bg-white shadow-sm transition hover:scale-105"
+          />
+        </div>
+      </div>
+
+      {/* Details column */}
+      <div className="flex min-w-0 flex-col md:pt-3">
+        <div className="min-h-0 flex-1">
           <Link
             href={productUrl}
-            className="text-sm font-medium text-gray-900 line-clamp-2 min-h-[60px]"
+            className="text-sm line-clamp-4 font-medium text-gray-900 md:line-clamp-2"
           >
             {name}
           </Link>
 
-          <p className="mt-1 text-xs text-gray-500 min-h-[18px]">
+          <p className="mt-1 min-h-[18px] text-sm text-grey py-2">
             {sku ? `SKU: ${sku}` : "\u00A0"}
           </p>
 
-
-          <div className="hidden min-h-[1.25rem] sm:block">
-            {ratingData && <StarRating rating={ratingData} />}
-          </div>
-
+          {ratingData ? <StarRating rating={ratingData} /> : null}
         </div>
 
-        {/* Pricing */}
-        <div className="space-y-1 min-h-[2.75rem] sm:min-h-[3.5rem]">
+        <div className="mt-auto min-h-[2.5rem] space-y-1 pt-2 sm:min-h-[3.5rem] md:pt-0">
+          {showSaleBadge ? (
+            <MobilePromoBadge discount={saleDiscountForBadge} saleOnly={saleBadgeSaleOnly} />
+          ) : null}
+
           {priceData.isOnSale && (
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularWithLabel}</p>
-              <span className="text-xs font-semibold text-green-600">
-                Save {priceData.savings}
-              </span>
+            <div className="hidden flex-wrap items-center gap-2 md:flex">
+              <p className="text-sm text-gray-500 line-through">{priceData.formattedRegularExcl}</p>
+              <span className="text-xs font-semibold text-green-600">Save {priceData.savings}</span>
             </div>
           )}
 
           <div className={priceData.isGstFree ? "text-emerald-700" : undefined}>
-            <p className={`font-bold text-[16px]`}>
+            {priceData.exclPrice ? (
+              <p className="text-sm text-gray-600">Excl. GST: {priceData.exclPrice}</p>
+            ) : null}
+            <p className="text-lg font-bold text-teal md:text-[16px]">
               {priceData.label}: {priceData.formattedCurrent}
             </p>
 
-            {priceData.exclPrice && (
-              <p className="hidden text-xs text-gray-600 sm:block">
-                Excl. GST: {priceData.exclPrice}
-              </p>
+            {priceData.isOnSale && (
+              <div className="mt-0.5 text-xs text-gray-600 md:hidden">
+                <span className="line-through">{priceData.formattedRegularExcl}</span>
+                {priceData.discount > 0 ? (
+                  <span className="ml-1 font-medium text-gray-800">({priceData.discount}% off)</span>
+                ) : null}
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-auto flex items-center gap-2 pt-2">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={addingToCart}
-            className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-teal-700 px-3 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-teal-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
-            aria-label={`Add ${name} to cart`}
-            aria-busy={addingToCart}
-   
->
-          
-            {addingToCart ? (
-              <>
-                <LoadingSpinner />
-                <span className="sr-only sm:not-sr-only">Adding…</span>
-              </>
-            ) : (
-              <>
-                <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d={CART_ICON_PATH} />
-                </svg>
-                <span className="sr-only sm:not-sr-only">Add to cart</span>
-              </>
-            )}
-          </button>
-          
-         
         </div>
       </div>
     </article>
   );
 }
-
-
-
 
 // ============================================================================
 // Export with memo + custom comparison

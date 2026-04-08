@@ -1,39 +1,37 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import Script from "next/script";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import PWARegister from "@/components/PWARegister";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NavigationProgress from "@/components/NavigationProgress";
 import MainContent from "@/components/MainContent";
 import CoreProviders from "@/components/CoreProviders";
 import CommerceProviders from "@/components/CommerceProviders";
-import { Poppins } from 'next/font/google'
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-})
+import { grift } from "@/lib/fonts";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import TawkToWidget from "@/components/TawkToWidget";
+import AnalyticsInitializer from "@/components/AnalyticsInitializer";
+import AnalyticsTracker from "@/components/AnalyticsTracker";
+
 
 // Validate environment variables at startup (server-side only)
-if (typeof window === 'undefined') {
+if (typeof window === "undefined") {
   try {
-    const { validateStartup } = require('@/lib/startup-validation');
+    const { validateStartup } = require("@/lib/startup-validation");
     validateStartup();
   } catch (error) {
     // In production, this will prevent startup
     // In development, it will log a warning
-    console.error('Startup validation failed:', error);
+    console.error("Startup validation failed:", error);
   }
 }
 const Header = dynamic(() => import("@/components/Header"));
-const Footer = dynamic(
-  () => import("@/components/Footer"),
-  {
-    loading: () => <div className="h-40" />,
-  }
-);
+const Footer = dynamic(() => import("@/components/Footer"), {
+  loading: () => <div className="h-40" />,
+});
 const BottomNav = dynamic(() => import("@/components/BottomNav"));
 const CategoriesNav = dynamic(() => import("@/components/CategoriesNav"));
 // const AnalyticsInitializer = dynamic(
@@ -48,7 +46,8 @@ const MiniCartDrawer = dynamic(() => import("@/components/MiniCartDrawer"), {
   // No ssr: false needed - component will render empty on server and hydrate on client
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
+const ga4MeasurementId = process.env.NEXT_PUBLIC_GA4_ID?.trim() || "";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -56,7 +55,8 @@ export const metadata: Metadata = {
     default: "WooCommerce Headless Store",
     template: "%s | WooCommerce Store",
   },
-  description: "A modern headless e-commerce solution with Next.js and WooCommerce. Shop the latest products with fast, secure checkout.",
+  description:
+    "A modern headless e-commerce solution with Next.js and WooCommerce. Shop the latest products with fast, secure checkout.",
   keywords: ["e-commerce", "woocommerce", "online store", "shopping", "headless commerce"],
   authors: [{ name: "WooCommerce Store" }],
   creator: "WooCommerce Store",
@@ -117,24 +117,41 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="color-scheme-light">
-      <body 
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${grift.variable} color-scheme-light`}
+    >
+      <body
         suppressHydrationWarning
-        className={`antialiased ${poppins.className}`}
+        className={`${grift.className} min-h-screen antialiased text-base font-normal leading-normal text-gray-900`}
       >
         {/* Remove browser extension attributes before React hydrates */}
-        <Script
-          src="/remove-extension-attributes.js"
-          strategy="beforeInteractive"
-        />
+        {/* <Script src="/remove-extension-attributes.js" strategy="beforeInteractive" /> */}
+
+        {ga4MeasurementId ? (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4MeasurementId)}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}window.gtag=gtag;gtag('js',new Date());gtag('config',${JSON.stringify(ga4MeasurementId)},{send_page_view:false});`}
+            </Script>
+          </>
+        ) : null}
 
         <NavigationProgress />
-        <SpeedInsights/>
+        <SpeedInsights />
+        <Analytics />
         <ErrorBoundary>
           <CoreProviders>
+            <AnalyticsInitializer />
+            <Suspense fallback={null}>
+              <AnalyticsTracker />
+            </Suspense>
             <CommerceProviders>
-
-              {/* <AnalyticsInitializer /> */}
+              
 
               <div className="app-shell">
                 <div className="sticky top-0 z-50 bg-white shadow-sm">
@@ -145,7 +162,7 @@ export default function RootLayout({
                 <main className="flex-1 pb-20 md:pb-24 lg:pb-0" suppressHydrationWarning>
                   <MainContent>{children}</MainContent>
                 </main>
-                
+
                 <Footer />
                 <MiniCartDrawer />
                 <BottomNav />
@@ -155,7 +172,6 @@ export default function RootLayout({
             </CommerceProviders>
           </CoreProviders>
         </ErrorBoundary>
-        <SpeedInsights/>
       </body>
     </html>
   );

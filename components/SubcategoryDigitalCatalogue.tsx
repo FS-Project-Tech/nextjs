@@ -3,15 +3,21 @@
 import { useEffect, useMemo, useState, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/format-utils";
-import { extractProductBrands } from "@/lib/utils/product";
-import type { WooCommerceProduct } from "@/lib/woocommerce";
 
 /** Format product attributes for the Attribute column (Pkt/CTN/Each – packaging / selling unit). Prefer packaging-related attributes. */
-function formatAttributeColumn(
-  attrs: Array<{ name?: string; options?: string[] }>
-): string {
+function formatAttributeColumn(attrs: Array<{ name?: string; options?: string[] }>): string {
   if (!attrs.length) return "—";
-  const packagingKeys = ["pkt", "ctn", "each", "pack", "unit", "box", "selling", "attribute", "size"];
+  const packagingKeys = [
+    "pkt",
+    "ctn",
+    "each",
+    "pack",
+    "unit",
+    "box",
+    "selling",
+    "attribute",
+    "size",
+  ];
   const getRelevance = (name: string) => {
     const n = name.toLowerCase();
     return packagingKeys.some((k) => n.includes(k));
@@ -21,7 +27,10 @@ function formatAttributeColumn(
   const parts: string[] = [];
   for (const a of preferred) {
     const options = Array.isArray(a.options) ? a.options : [];
-    const value = options.map((o) => String(o).trim()).filter(Boolean).join(", ");
+    const value = options
+      .map((o) => String(o).trim())
+      .filter(Boolean)
+      .join(", ");
     if (value) parts.push(value);
   }
   return parts.length ? parts.join(" / ") : "—";
@@ -53,14 +62,18 @@ export default function SubcategoryDigitalCatalogue({
   const [rows, setRows] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const rowsCache = (globalThis as typeof globalThis & {
-    __subcategoryRowsCache?: Map<string, TableRow[]>;
-    __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
-  }).__subcategoryRowsCache ??= new Map<string, TableRow[]>();
+  const rowsCache = ((
+    globalThis as typeof globalThis & {
+      __subcategoryRowsCache?: Map<string, TableRow[]>;
+      __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
+    }
+  ).__subcategoryRowsCache ??= new Map<string, TableRow[]>());
 
-  const inFlightCache = (globalThis as typeof globalThis & {
-    __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
-  }).__subcategoryRowsInFlight ??= new Map<string, Promise<TableRow[]>>();
+  const inFlightCache = ((
+    globalThis as typeof globalThis & {
+      __subcategoryRowsInFlight?: Map<string, Promise<TableRow[]>>;
+    }
+  ).__subcategoryRowsInFlight ??= new Map<string, Promise<TableRow[]>>());
 
   useEffect(() => {
     if (!shouldLoad) return;
@@ -82,27 +95,27 @@ export default function SubcategoryDigitalCatalogue({
         if (!request) {
           request = (async () => {
             const params = new URLSearchParams({
-              categorySlug: subcategorySlug,
+              category_slug: subcategorySlug,
               per_page: "200",
               page: "1",
+              sortBy: "popularity",
+              q: "*",
             });
-            const res = await fetch(`/api/products?${params.toString()}`);
+            const res = await fetch(`/api/typesense/search?${params.toString()}`);
             const json = await res.json();
-            const products: WooCommerceProduct[] = Array.isArray(json.products)
-              ? json.products
-              : [];
+            const products = Array.isArray(json.products) ? json.products : [];
 
-            return products.map((p) => {
-              const brandInfo = extractProductBrands(p)[0];
-              const attrs = (p.attributes || []) as Array<{ name?: string; options?: string[] }>;
+            return products.map((p: Record<string, unknown>) => {
+              const attrs =
+                (p.attributes as Array<{ name?: string; options?: string[] }> | undefined) || [];
               const attributeLabel = formatAttributeColumn(attrs);
               return {
-                sku: p.sku || "",
-                name: p.name,
+                sku: String(p.sku ?? ""),
+                name: String(p.name ?? ""),
                 attribute: attributeLabel,
-                price: p.price || "",
-                brand: brandInfo?.name || "",
-                slug: p.slug || "",
+                price: String(p.price ?? ""),
+                brand: String(p.brand_name ?? p.brand ?? ""),
+                slug: String(p.slug ?? ""),
               };
             });
           })();
@@ -151,9 +164,7 @@ export default function SubcategoryDigitalCatalogue({
   if (!rows.length) {
     return (
       <div className="flex items-center justify-center min-h-[360px] bg-white rounded-xl shadow-sm">
-        <p className="text-gray-500 text-sm">
-          No products found for this subcategory.
-        </p>
+        <p className="text-gray-500 text-sm">No products found for this subcategory.</p>
       </div>
     );
   }
@@ -169,12 +180,8 @@ export default function SubcategoryDigitalCatalogue({
           <thead>
             <tr className="bg-teal-600 text-white">
               <th className="px-3 py-2 border-b border-teal-700 text-left">SKU Code</th>
-              <th className="px-3 py-2 border-b border-teal-700 text-left">
-                Product Name
-              </th>
-              <th className="px-3 py-2 border-b border-teal-700 text-left">
-                Attribute
-              </th>
+              <th className="px-3 py-2 border-b border-teal-700 text-left">Product Name</th>
+              <th className="px-3 py-2 border-b border-teal-700 text-left">Attribute</th>
               <th className="px-3 py-2 border-b border-teal-700 text-left">Price</th>
             </tr>
           </thead>
@@ -205,19 +212,11 @@ export default function SubcategoryDigitalCatalogue({
                     }}
                     className={`cursor-pointer hover:bg-teal-50/70 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                   >
+                    <td className="px-3 py-1.5 border-b border-gray-200">{row.sku || "—"}</td>
+                    <td className="px-3 py-1.5 border-b border-gray-200">{row.name}</td>
+                    <td className="px-3 py-1.5 border-b border-gray-200">{row.attribute || "—"}</td>
                     <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.sku || "—"}
-                    </td>
-                    <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.name}
-                    </td>
-                    <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.attribute || "—"}
-                    </td>
-                    <td className="px-3 py-1.5 border-b border-gray-200">
-                      {row.price != null && row.price !== ""
-                        ? formatPrice(row.price)
-                        : "—"}
+                      {row.price != null && row.price !== "" ? formatPrice(row.price) : "—"}
                     </td>
                   </tr>
                 ))}
@@ -229,4 +228,3 @@ export default function SubcategoryDigitalCatalogue({
     </div>
   );
 }
-

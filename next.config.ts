@@ -52,6 +52,21 @@ function nursingServiceRootRedirects(): Array<{
 }
  
 const nextConfig: NextConfig = {
+
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: ContentSecurityPolicy.replace(/\n/g, ""),
+          },
+        ],
+      },
+    ];
+  },
+
   reactCompiler: true,
  
   compress: true,
@@ -167,14 +182,14 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       // Add known WooCommerce media hosts here
-      // {
-      //   protocol: "https",
-      //   hostname: "wordpress-1496507-5718895.cloudwaysapps.com",
-      //   pathname: "/wp-content/uploads/**",
-      // },
       {
         protocol: "https",
-        hostname: "**.wordpress-1513595-6089575.cloudwaysapps.com",
+        hostname: "live.joyamedicalsupplies.com.au",
+        pathname: "/wp-content/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "stage.joyamedicalsupplies.com.au",
         pathname: "/wp-content/uploads/**",
       },
       // Placeholder image host used in development/demo sliders
@@ -221,7 +236,7 @@ const nextConfig: NextConfig = {
     // Enable image optimization
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Increase timeout for slow upstream servers (30 seconds)
     // Note: This requires Next.js 14.1+ for full support
     unoptimized: false,
@@ -244,19 +259,60 @@ const nextConfig: NextConfig = {
         destination: '/product/:slug',
         permanent: true,
       },
-      { source: '/privacy', destination: '/info/privacy', permanent: true },
-      { source: '/terms', destination: '/info/terms', permanent: true },
+      { source: '/privacy', destination: '/privacy-policy', permanent: true },
+      // { source: '/terms', destination: '/info/terms', permanent: true },
       { source: '/faq', destination: '/info/faq', permanent: true },
       { source: '/shipping', destination: '/info/shipping', permanent: true },
       { source: '/collection-statement', destination: '/info/collection-statement', permanent: true },
       { source: '/collection-statement-general-enquiries', destination: '/info/collection-statement', permanent: true },
       { source: '/info/blog', destination: '/blog', permanent: true },
+      {
+        source: '/legal/terms',
+        destination: '/info/terms',
+        permanent: true,
+      },
+      {
+        source: '/legal/privacy',
+        destination: '/privacy-policy',
+        permanent: true,
+      },
+      {
+        source: '/health-professional',
+        destination: '/health-professionals',
+        permanent: true,
+      },
+      {
+        source: '/health-professional/:path*',
+        destination: '/health-professionals/:path*',
+        permanent: true,
+      },
       ...nursingServiceRootRedirects()
     ];
   },
  
+  async rewrites() {
+    return [{ source: "/privacy-policy", destination: "/info/privacy" }];
+  },
+
   // Enable static page generation with ISR
   output: 'standalone',
 };
+
+/**
+ * Google Maps JS + Places needs script/connect to Google hosts, map tiles in img-src,
+ * and blob workers. Without these, checkout AddressAutocomplete is blocked by the browser.
+ */
+const ContentSecurityPolicy = `
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://connect.facebook.net https://maps.googleapis.com https://maps.gstatic.com;
+  connect-src 'self' https://www.google-analytics.com https://connect.facebook.net https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com https://*.google.com;
+  img-src 'self' data: blob: https://www.google-analytics.com https://www.facebook.com https://www.googletagmanager.com https://*.google.com https://*.googleapis.com https://*.gstatic.com https://*.ggpht.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' data: https://fonts.gstatic.com;
+  worker-src 'self' blob:;
+  frame-src https://www.googletagmanager.com;
+`;
+
+
  
 export default withBundleAnalyzer(nextConfig);

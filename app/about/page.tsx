@@ -4,17 +4,19 @@ import HeroHeadingSection from "@/components/about/HeroHeadingSection";
 import ServicesSection from "@/components/about/ServicesSection";
 import AboutVideoSection from "@/components/about/AboutVideoSection";
 import NumberCountersSection from "@/components/about/NumberCountersSection";
-import FoundersDeskSection from "@/components/about/FoundersDeskSection";
+// import FoundersDeskSection from "@/components/about/FoundersDeskSection";
 import WhatMakesUsSpecialSection from "@/components/about/WhatMakesUsSpecialSection";
 import JOYAMeaningSection from "@/components/about/JOYAMeaningSection";
 import WhereWeSupplySection from "@/components/about/WhereWeSupplySection";
 
 export const metadata: Metadata = {
   title: "About Us",
-  description: "Learn about JOYA - your trusted partner for medical supplies, continence care products, and healthcare essentials. NDIS approved provider serving Australia.",
+  description:
+    "Learn about JOYA - your trusted partner for medical supplies, continence care products, and healthcare essentials. NDIS approved provider serving Australia.",
   openGraph: {
     title: "About Us - JOYA",
-    description: "Learn about JOYA - your trusted partner for medical supplies and healthcare essentials.",
+    description:
+      "Learn about JOYA - your trusted partner for medical supplies and healthcare essentials.",
     type: "website",
   },
   alternates: {
@@ -56,9 +58,9 @@ export default function AboutPage() {
         {/* Divider */}
         <div className="border-t border-gray-100"></div>
 
-        <AnimatedSection>
+        {/* <AnimatedSection>
           <FoundersDeskSection />
-        </AnimatedSection>
+        </AnimatedSection> */}
 
         <AnimatedSection>
           <WhatMakesUsSpecialSection />
@@ -78,4 +80,3 @@ export default function AboutPage() {
     </div>
   );
 }
-
